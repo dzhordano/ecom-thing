@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	product_v1 "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
+	productv1 "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
 	"log"
 	"log/slog"
 	"net"
@@ -44,7 +44,7 @@ func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
 
 	reflection.Register(s)
 
-	product_v1.RegisterProductServiceV1Server(s, handler)
+	productv1.RegisterProductServiceV1Server(s, handler)
 
 	return &Server{
 		s:    s,

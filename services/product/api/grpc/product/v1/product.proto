@@ -33,7 +33,7 @@ message CreateProductRequest {
 }
 
 message CreateProductResponse {
-  string id = 1;
+  Product product = 1;
 }
 
 message GetProductRequest {
