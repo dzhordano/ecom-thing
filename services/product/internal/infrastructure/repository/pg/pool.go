@@ -7,18 +7,18 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-func NewPGXPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
+func MustNewPGXPool(ctx context.Context, dsn string) *pgxpool.Pool {
 	pool, err := pgxpool.New(ctx, dsn)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
 	if err := pool.Ping(ctx); err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return pool, nil
+	return pool
 }
