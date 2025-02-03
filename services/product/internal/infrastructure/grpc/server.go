@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	product_v1 "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
 	"log"
 	"log/slog"
 	"net"
@@ -8,22 +9,20 @@ import (
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpc/status"
 )
 
 type Server struct {
 	s    *grpc.Server
-	port string
+	addr string
 }
 
-func NewServer(log *slog.Logger, port string) *Server {
+func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
 			log.Error("Recovered from panic", slog.Any("panic", p))
 
-			return status.Errorf(codes.Internal, "internal error")
+			panic(err)
 		}),
 	}
 
@@ -45,19 +44,21 @@ func NewServer(log *slog.Logger, port string) *Server {
 
 	reflection.Register(s)
 
+	product_v1.RegisterProductServiceV1Server(s, handler)
+
 	return &Server{
 		s:    s,
-		port: ":" + port,
+		addr: addr,
 	}
 }
 
 func (s *Server) Run() error {
-	list, err := net.Listen("tcp", s.port)
+	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
 	}
 
-	log.Printf("starting gRPC server on port %s", s.port)
+	log.Printf("starting gRPC server on addr %s", s.addr)
 
 	return s.s.Serve(list)
 }

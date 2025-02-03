@@ -9,11 +9,14 @@ import (
 )
 
 func MapError(ctx context.Context, err error) error {
+	if s, ok := status.FromError(err); ok {
+		return s.Err() // Return the status error if it's a gRPC error
+	}
+
 	switch {
 	case errors.Is(err, domain.ErrInvalidArgument):
-		{
-			return status.Error(codes.InvalidArgument, err.Error())
-		}
+		return status.Error(codes.InvalidArgument, err.Error())
+
 	default:
 		return status.Error(codes.Internal, "internal error")
 	}
