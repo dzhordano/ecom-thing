@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package product.v1;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+option go_package = "dzhordano/ecom-thing/services/product/pkg/grpc/product/v1;product_v1";
+
+service ProductServiceV1 {
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc GetProducts(google.protobuf.Empty) returns (GetProductsResponse);
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
+  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+}
+
+message Product {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  double price = 4;
+  int64 quantity = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message CreateProductRequest {
+  string name = 1;
+  string description = 2;
+  int64 price = 3;
+  double quantity = 4;
+}
+
+message CreateProductResponse {
+  string id = 1;
+}
+
+message GetProductRequest {
+  string id = 1;
+}
+
+message GetProductResponse {
+  Product product = 1;
+}
+
+
+message GetProductsResponse {
+  repeated Product products = 1;
+}
+
+message UpdateProductRequest {
+  string id = 1;
+  string name = 2;
+  string description = 3;
+  int64 price = 4;
+  double quantity = 5;
+}
+
+message UpdateProductResponse {
+  Product product = 1;
+}
+
+message DeleteProductRequest {
+  string id = 1;
+}
+
+message DeleteProductResponse {
+  Product product = 1;
+}
