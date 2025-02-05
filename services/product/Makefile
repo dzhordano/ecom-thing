@@ -31,9 +31,6 @@ init.db:
 	@sleep 2
 	@make migrate.up
 
-init.db.test:
-	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
-
 stop.db:
 	@docker rm -f product-db
 
@@ -53,8 +50,7 @@ generate.mocks:
 	@mockgen -source=internal/application/interfaces/product.go -destination=internal/infrastructure/grpc/mocks/mocks.go
 
 test.integration:
-	@make init.db.test
-	@sleep 2
+	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
 	@bash -c 'trap "make stop.db.test" EXIT; \
 		go test ./tests/integration -v; RESULT=$$?; \
 		exit $$RESULT'
