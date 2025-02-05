@@ -8,9 +8,9 @@ import (
 )
 
 type ProductService interface {
-	CreateProduct(ctx context.Context, name, description string, price float64, quantity uint64) (*domain.Product, error)
+	CreateProduct(ctx context.Context, name, description, category string, price float64) (*domain.Product, error)
 	GetProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
 	GetAllProducts(ctx context.Context) ([]*domain.Product, error)
-	UpdateProduct(ctx context.Context, id uuid.UUID, name, description string, price float64, quantity uint64) (*domain.Product, error)
+	UpdateProduct(ctx context.Context, id uuid.UUID, name, description, category string, price float64) (*domain.Product, error)
 	DeleteProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
 }

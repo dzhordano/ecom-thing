@@ -1,7 +1,7 @@
 package grpc
 
 import (
-	productv1 "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
+	api "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
 	"log"
 	"log/slog"
 	"net"
@@ -28,10 +28,8 @@ func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
 
 	loggingOpts := []logging.Option{
 		logging.WithLogOnEvents(
-			// logging.StartCall, logging.FinishCall,
 			logging.PayloadReceived, logging.PayloadSent,
 		),
-		// Add any other option (check functions starting with logging.With).
 	}
 
 	s := grpc.NewServer(
@@ -44,7 +42,7 @@ func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
 
 	reflection.Register(s)
 
-	productv1.RegisterProductServiceV1Server(s, handler)
+	api.RegisterProductServiceV1Server(s, handler)
 
 	return &Server{
 		s:    s,

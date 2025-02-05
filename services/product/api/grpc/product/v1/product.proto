@@ -17,19 +17,19 @@ service ProductServiceV1 {
 
 message Product {
   string id = 1;
-  string name = 2;
-  string description = 3;
-  double price = 4;
-  uint64 quantity = 5;
-  google.protobuf.Timestamp created_at = 6;
-  google.protobuf.Timestamp updated_at = 7;
+  string category = 2;
+  string name = 3;
+  string desc = 4;
+  double price = 5;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
 }
 
 message CreateProductRequest {
   string name = 1;
-  string description = 2;
+  string category = 2;
+  string desc = 3;
   double price = 4;
-  uint64 quantity = 5;
 }
 
 message CreateProductResponse {
@@ -44,17 +44,16 @@ message GetProductResponse {
   Product product = 1;
 }
 
-
 message GetProductsResponse {
   repeated Product products = 1;
 }
 
 message UpdateProductRequest {
   string id = 1;
-  string name = 2;
-  string description = 3;
-  double price = 4;
-  uint64 quantity = 5;
+  string category = 2;
+  string name = 3;
+  string desc = 4;
+  double price = 5;
 }
 
 message UpdateProductResponse {

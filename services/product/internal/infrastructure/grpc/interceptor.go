@@ -22,7 +22,7 @@ func ErrorMapperInterceptor() grpc.UnaryServerInterceptor {
 	) (any, error) {
 		resp, err := handler(ctx, req)
 		if err != nil {
-			return nil, MapError(ctx, err)
+			return nil, MapError(err)
 		}
 
 		return resp, nil
