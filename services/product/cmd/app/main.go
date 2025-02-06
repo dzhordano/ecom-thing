@@ -5,7 +5,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/product/internal/config"
 	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure"
-	grpcServer "github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/grpc"
 	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc"
 	"log/slog"
@@ -18,7 +17,6 @@ import (
 // 04.02:
 // Unit Тесты на домен.
 // Load Тесты.
-// Метрики. (Prom. Grafana.) [Думаю через интерцептор]
 // Rate-Limiter. Circuit Breaker.
 // Запустить профилирование + Нагрузочное.
 
@@ -45,7 +43,7 @@ func main() {
 
 	handler := grpc.NewProductHandler(productService)
 
-	server := grpcServer.MustNew(log, cfg.GRPC.Addr(), handler)
+	server := grpc.MustNew(log, cfg.GRPC.Addr(), handler)
 
 	go infrastructure.RunMetricsServer(net.JoinHostPort(cfg.GRPC.Host, cfg.Prometheus.Port))
 

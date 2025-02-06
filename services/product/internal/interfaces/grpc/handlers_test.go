@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
-	mock_interfaces "github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/grpc/mocks"
+	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc/mocks"
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
