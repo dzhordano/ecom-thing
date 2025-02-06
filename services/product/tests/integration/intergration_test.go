@@ -48,7 +48,7 @@ func (s *IntegrationSuite) SetupSuite() {
 	migrationsPath := filepath.Join(projectDir, "migrations")
 
 	if err := godotenv.Load(envPath); err != nil {
-		log.Fatalf("error loading .env file: %v", err)
+		log.Fatalf("integration_suite: error loading .env file: %v", err)
 	}
 
 	dsn := os.Getenv("PG_TEST_URL")

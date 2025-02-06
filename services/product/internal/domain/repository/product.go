@@ -8,8 +8,9 @@ import (
 
 type ProductRepository interface {
 	Save(ctx context.Context, product *domain.Product) error
-	Get(ctx context.Context, id uuid.UUID) (*domain.Product, error)
-	GetAll(ctx context.Context) ([]*domain.Product, error)
 	Update(ctx context.Context, product *domain.Product) error
-	Delete(ctx context.Context, id uuid.UUID) error
+	Deactivate(ctx context.Context, id uuid.UUID) error
+
+	GetById(ctx context.Context, id uuid.UUID) (*domain.Product, error)
+	Search(ctx context.Context, options domain.SearchOptions, limit, offset uint64) ([]*domain.Product, error)
 }

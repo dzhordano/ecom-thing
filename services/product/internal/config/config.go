@@ -7,8 +7,9 @@ import (
 )
 
 type Config struct {
-	GRPC GRPCConfig
-	PG   PostgresConfig
+	GRPC       GRPCConfig
+	PG         PostgresConfig
+	Prometheus PrometheusConfig
 }
 
 type GRPCConfig struct {
@@ -33,10 +34,14 @@ func (p *PostgresConfig) DSN() string {
 	return "host=" + p.Host + " port=" + p.Port + " user=" + p.User + " password=" + p.Password + " dbname=" + p.DBName + " sslmode=" + p.SSLMode
 }
 
+type PrometheusConfig struct {
+	Port string `env:"PROMETHEUS_PORT" env_default:"9090"`
+}
+
 // MustNew Reads .env file and returns Config.
 func MustNew() *Config {
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("error loading .env file: %v", err)
+		log.Fatalf("config: error loading .env file: %v", err)
 	}
 
 	var cfg Config

@@ -2,14 +2,13 @@ package grpc
 
 import (
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
-	"log"
-	"log/slog"
-	"net"
-
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"log"
+	"log/slog"
+	"net"
 )
 
 type Server struct {
@@ -17,7 +16,7 @@ type Server struct {
 	addr string
 }
 
-func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
+func MustNew(log *slog.Logger, addr string, handler api.ProductServiceV1Server) *Server {
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
 			log.Error("Recovered from panic", slog.Any("panic", p))
@@ -36,13 +35,14 @@ func MustNew(log *slog.Logger, addr string, handler *ProductHandler) *Server {
 		grpc.ChainUnaryInterceptor(
 			recovery.UnaryServerInterceptor(recoveryOpts...),
 			logging.UnaryServerInterceptor(InterceptorLogger(log), loggingOpts...),
+			MetricsInterceptor(),
 			ErrorMapperInterceptor(),
 		),
 	)
 
-	reflection.Register(s)
-
 	api.RegisterProductServiceV1Server(s, handler)
+
+	reflection.Register(s)
 
 	return &Server{
 		s:    s,

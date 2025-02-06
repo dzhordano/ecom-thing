@@ -3,16 +3,16 @@ syntax = "proto3";
 package product.v1;
 
 import "google/protobuf/timestamp.proto";
-import "google/protobuf/empty.proto";
 
-option go_package = "dzhordano/ecom-thing/services/product/pkg/grpc/product/v1;product_v1";
+option go_package = "dzhordano/ecom-thing/services/grpc/pkg/grpc/grpc/v1;product_v1";
 
 service ProductServiceV1 {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
-  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
-  rpc GetProducts(google.protobuf.Empty) returns (GetProductsResponse);
   rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
-  rpc DeleteProduct(DeleteProductRequest) returns (DeleteProductResponse);
+  rpc DeactivateProduct(DeactivateProductRequest) returns (DeactivateProductResponse);
+
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
 }
 
 message Product {
@@ -21,6 +21,7 @@ message Product {
   string name = 3;
   string desc = 4;
   double price = 5;
+  bool is_active = 6;
   google.protobuf.Timestamp created_at = 7;
   google.protobuf.Timestamp updated_at = 8;
 }
@@ -53,17 +54,31 @@ message UpdateProductRequest {
   string category = 2;
   string name = 3;
   string desc = 4;
-  double price = 5;
+  bool is_active = 5;
+  double price = 6;
+}
+
+message SearchProductsRequest {
+  optional string query = 1;
+  optional string category = 2;
+  optional double min_price = 3;
+  optional double max_price = 4;
+  uint64 limit = 5;
+  uint64 offset = 6;
+}
+
+message SearchProductsResponse {
+  repeated Product products = 1;
 }
 
 message UpdateProductResponse {
   Product product = 1;
 }
 
-message DeleteProductRequest {
+message DeactivateProductRequest {
   string id = 1;
 }
 
-message DeleteProductResponse {
+message DeactivateProductResponse {
   Product product = 1;
 }

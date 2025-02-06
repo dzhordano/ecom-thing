@@ -9,8 +9,9 @@ import (
 
 type ProductService interface {
 	CreateProduct(ctx context.Context, name, description, category string, price float64) (*domain.Product, error)
-	GetProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
-	GetAllProducts(ctx context.Context) ([]*domain.Product, error)
-	UpdateProduct(ctx context.Context, id uuid.UUID, name, description, category string, price float64) (*domain.Product, error)
-	DeleteProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
+	UpdateProduct(ctx context.Context, id uuid.UUID, name, description, category string, isActive bool, price float64) (*domain.Product, error)
+	DeactivateProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
+
+	GetById(ctx context.Context, id uuid.UUID) (*domain.Product, error)
+	SearchProducts(ctx context.Context, filters map[string]any, limit, offset uint64) ([]*domain.Product, error)
 }

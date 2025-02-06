@@ -14,6 +14,7 @@ type Product struct {
 	Desc      string
 	Category  string
 	Price     float64
+	IsActive  bool
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -35,33 +36,37 @@ func NewProduct(id uuid.UUID, name, description, category string, price float64)
 		Desc:      description,
 		Category:  category,
 		Price:     price,
+		IsActive:  true,
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
 	}
 }
 
 const (
-	maxProdCategoryLength = 32
-	maxProdNameLength     = 256
-	maxProdDescLength     = 2048
+	MaxProdCategoryLength = 32
+	MaxProdNameLength     = 256
+	MaxProdDescLength     = 2048
+
+	MinPrice = 0.01
+	MaxPrice = 128000
 )
 
 func (c *Product) Validate() error {
 	var errs []string
 
-	if c.Name == "" || len(c.Name) > maxProdNameLength {
+	if !ValidateName(c.Name) {
 		errs = append(errs, "invalid name")
 	}
 
-	if c.Desc == "" || len(c.Desc) > maxProdDescLength {
+	if !ValidateDescription(c.Desc) {
 		errs = append(errs, "invalid description")
 	}
 
-	if c.Category == "" || len(c.Category) > maxProdCategoryLength {
+	if !ValidateCategory(c.Category) {
 		errs = append(errs, "invalid category")
 	}
 
-	if c.Price <= 0 || math.IsNaN(c.Price) || math.IsInf(c.Price, 0) {
+	if !ValidatePrice(c.Price) {
 		errs = append(errs, "invalid price")
 	}
 
@@ -72,10 +77,43 @@ func (c *Product) Validate() error {
 	return nil
 }
 
-func (c *Product) Update(name, description, category string, price float64) {
+func ValidateName(name string) bool {
+	if name == "" || len(name) > MaxProdNameLength {
+		return false
+	}
+
+	return true
+}
+
+func ValidateDescription(desc string) bool {
+	if desc == "" || len(desc) > MaxProdDescLength {
+		return false
+	}
+
+	return true
+}
+
+func ValidateCategory(category string) bool {
+	if category == "" || len(category) > MaxProdCategoryLength {
+		return false
+	}
+
+	return true
+}
+
+func ValidatePrice(price float64) bool {
+	if price < MinPrice || price > MaxPrice || math.IsNaN(price) {
+		return false
+	}
+
+	return true
+}
+
+func (c *Product) Update(name, description, category string, isActive bool, price float64) {
 	c.Name = name
 	c.Desc = description
 	c.Category = category
 	c.Price = price
+	c.IsActive = isActive
 	c.UpdatedAt = time.Now()
 }

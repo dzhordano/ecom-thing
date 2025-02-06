@@ -1,5 +1,13 @@
 LOCAL_BIN:=$(CURDIR)/.bin
 
+run:
+	@go build -o .bin/main cmd/app/main.go
+	@.bin/main
+
+run.pprof:
+	@go build -o .bin/main cmd/app/main.go
+	@go build -o .bin/pprof ./cmd/pprof/main.go
+	@bash -c '.bin/main & .bin/pprof'
 
 install-deps:
 	@GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
@@ -46,8 +54,11 @@ migrate.up:
 migrate.down:
 	@migrate -source file://migrations -database ${PG_MIGRATIONS_URL} down
 
-generate.mocks:
+generate.mocks.handlers:
 	@mockgen -source=internal/application/interfaces/product.go -destination=internal/infrastructure/grpc/mocks/mocks.go
+
+generate.mocks.service:
+	@mockgen -source=internal/domain/repository/product.go -destination=internal/application/service/mocks/mocks.go
 
 test.integration:
 	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
