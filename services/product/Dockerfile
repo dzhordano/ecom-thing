@@ -19,5 +19,4 @@ WORKDIR /app
 
 COPY --from=builder /app/main .
 
-# IF PROFILING NOT NEEDED - REMOVE --pprof FLAG.
-CMD ["./main", "--pprof"]
+CMD ["./main"]

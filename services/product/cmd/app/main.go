@@ -19,8 +19,6 @@ import (
 
 // 04.02:
 // Unit Тесты на домен.
-// Load Тесты.
-// Rate-Limiter. Circuit Breaker.
 // Запустить профилирование + Нагрузочное.
 // sync.Pool for objects? [Мб для конвертации выделить как-то пулы, иначе оч много alloc_objects]
 

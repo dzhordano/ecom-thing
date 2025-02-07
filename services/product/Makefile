@@ -1,16 +1,24 @@
 LOCAL_BIN:=$(CURDIR)/.bin
 
 run:
-	@docker compose up --remove-orphans
+	@docker compose --profile default up --remove-orphans
 
-rebuild.run:
-	@docker compose up --build --remove-orphans --force-recreate
+run.pprof:
+	@docker compose --profile pprof up --remove-orphans
+
+run.rebuild:
+	@docker compose --profile default up --build --remove-orphans --force-recreate
+
+run.pprof.rebuild:
+	@docker compose --profile pprof up --build --remove-orphans --force-recreate
 
 run.nodocker:
+	@make init.db
 	@go build -o .bin/main cmd/app/main.go
 	@.bin/main
 
 run.nodocker.pprof:
+	@make init.db
 	@go build -o .bin/main cmd/app/main.go
 	@.bin/main --pprof
 	
