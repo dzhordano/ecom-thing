@@ -21,8 +21,8 @@ func MetricsInterceptor() grpc.UnaryServerInterceptor {
 		latency := time.Since(start).Seconds()
 
 		if err != nil {
-			infrastructure.IncResponseCounter.WithLabelValues(info.FullMethod, "ERROR").Inc()
-			infrastructure.HistRequestDuration.WithLabelValues(info.FullMethod, "ERROR").Observe(latency)
+			infrastructure.IncResponseCounter.WithLabelValues(info.FullMethod, err.Error()).Inc()
+			infrastructure.HistRequestDuration.WithLabelValues(info.FullMethod, err.Error()).Observe(latency)
 		} else {
 			infrastructure.IncResponseCounter.WithLabelValues(info.FullMethod, "OK").Inc()
 			infrastructure.HistRequestDuration.WithLabelValues(info.FullMethod, "OK").Observe(latency)

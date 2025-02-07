@@ -18,7 +18,7 @@ type Server struct {
 	addr string
 }
 
-func MustNew(log *slog.Logger, addr string, rps int, handler api.ProductServiceV1Server) *Server {
+func MustNew(log *slog.Logger, addr string, rps uint16, handler api.ProductServiceV1Server) *Server {
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
 			log.Error("Recovered from panic", slog.Any("panic", p))

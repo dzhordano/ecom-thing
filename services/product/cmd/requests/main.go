@@ -27,7 +27,7 @@ func main() {
 
 	b := babble.NewBabbler()
 	b.Separator = " "
-	b.Count = 2
+	b.Count = 1
 
 	_, err = c.CreateProduct(context.Background(), &product_v1.CreateProductRequest{
 		Name:     b.Babble(),
@@ -36,7 +36,7 @@ func main() {
 		Price:    1.0,
 	})
 
-	timeout := int(50 * time.Millisecond)
+	timeout := int(10 * time.Millisecond)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
 

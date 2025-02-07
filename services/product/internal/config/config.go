@@ -45,7 +45,7 @@ type PprofConfig struct {
 }
 
 type RateLimiterConfig struct {
-	MaxRequests int `env:"RATE_LIMITER_MAX_REQUESTS" env_default:"100"`
+	MaxRequests uint16 `env:"RATE_LIMITER_MAX_REQUESTS" env_default:"100"`
 }
 
 // MustNew Reads .env file and returns Config.

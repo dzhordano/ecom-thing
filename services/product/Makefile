@@ -70,6 +70,6 @@ test.integration:
 
 test.load:
 	@ghz --insecure --proto api/grpc/product/v1/product.proto --call product.v1.ProductServiceV1/GetProduct \
-	--concurrency 100 --total 3000 \
+	--rps 100 --total 3000 \
 	-d '{"id": "0cea4c9f-e4bd-11ef-8035-0242ac120005"}' \
 	localhost:50001

@@ -2,26 +2,27 @@ package interceptors
 
 import (
 	"context"
-	"go.uber.org/ratelimit"
+	"golang.org/x/time/rate"
 	"google.golang.org/grpc"
-	"log"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type RateLimiter struct {
-	ratelimit.Limiter
+	rl *rate.Limiter
 }
 
-func NewRateLimiter(rate int) *RateLimiter {
+func NewRateLimiter(rps uint16) *RateLimiter {
 	return &RateLimiter{
-		ratelimit.New(rate),
+		rl: rate.NewLimiter(rate.Limit(rps), int(rps)),
 	}
 }
 
-func (rl *RateLimiter) RateLimiterInterceptor() grpc.UnaryServerInterceptor {
+func (r *RateLimiter) RateLimiterInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (_ any, err error) {
-		rl.Take()
-
-		log.Printf("TOOK")
+		if !r.rl.Allow() {
+			return nil, status.Error(codes.ResourceExhausted, "rate limit exceeded")
+		}
 
 		return handler(ctx, req)
 	}
