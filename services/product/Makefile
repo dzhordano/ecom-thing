@@ -1,14 +1,19 @@
 LOCAL_BIN:=$(CURDIR)/.bin
 
 run:
+	@docker compose up --remove-orphans
+
+rebuild.run:
+	@docker compose up --build --remove-orphans --force-recreate
+
+run.nodocker:
 	@go build -o .bin/main cmd/app/main.go
 	@.bin/main
 
-run.pprof:
+run.nodocker.pprof:
 	@go build -o .bin/main cmd/app/main.go
-	@go build -o .bin/pprof ./cmd/pprof/main.go
-	@bash -c '.bin/main & .bin/pprof'
-
+	@.bin/main --pprof
+	
 install-deps:
 	@GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	@GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -55,13 +60,16 @@ migrate.down:
 	@migrate -source file://migrations -database ${PG_MIGRATIONS_URL} down
 
 generate.mocks.handlers:
-	@mockgen -source=internal/application/interfaces/product.go -destination=internal/infrastructure/grpc/mocks/mocks.go
-
-generate.mocks.service:
-	@mockgen -source=internal/domain/repository/product.go -destination=internal/application/service/mocks/mocks.go
+	@mockgen -source=internal/application/interfaces/product.go -destination=internal/interfaces/grpc/mocks/mocks.go
 
 test.integration:
 	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
 	@bash -c 'trap "make stop.db.test" EXIT; \
 		go test ./tests/integration -v; RESULT=$$?; \
 		exit $$RESULT'
+
+test.load:
+	@ghz --insecure --proto api/grpc/product/v1/product.proto --call product.v1.ProductServiceV1/GetProduct \
+	--concurrency 100 --total 3000 \
+	-d '{"id": "0cea4c9f-e4bd-11ef-8035-0242ac120005"}' \
+	localhost:50001

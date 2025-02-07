@@ -7,9 +7,11 @@ import (
 )
 
 type Config struct {
-	GRPC       GRPCConfig
-	PG         PostgresConfig
-	Prometheus PrometheusConfig
+	GRPC        GRPCConfig
+	PG          PostgresConfig
+	Prometheus  PrometheusConfig
+	Pprof       PprofConfig
+	RateLimiter RateLimiterConfig
 }
 
 type GRPCConfig struct {
@@ -36,6 +38,14 @@ func (p *PostgresConfig) DSN() string {
 
 type PrometheusConfig struct {
 	Port string `env:"PROMETHEUS_PORT" env_default:"9090"`
+}
+
+type PprofConfig struct {
+	Port string `env:"PPROF_PORT" env_default:"6060"`
+}
+
+type RateLimiterConfig struct {
+	MaxRequests int `env:"RATE_LIMITER_MAX_REQUESTS" env_default:"100"`
 }
 
 // MustNew Reads .env file and returns Config.

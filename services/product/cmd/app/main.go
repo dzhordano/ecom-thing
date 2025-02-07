@@ -2,16 +2,19 @@ package main
 
 import (
 	"context"
-	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
-	"github.com/dzhordano/ecom-thing/services/product/internal/config"
-	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure"
-	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
-	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc"
+	"flag"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+
+	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
+	"github.com/dzhordano/ecom-thing/services/product/internal/config"
+	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure"
+	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/profiling"
+	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
+	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc"
 )
 
 // 04.02:
@@ -19,6 +22,7 @@ import (
 // Load Тесты.
 // Rate-Limiter. Circuit Breaker.
 // Запустить профилирование + Нагрузочное.
+// sync.Pool for objects? [Мб для конвертации выделить как-то пулы, иначе оч много alloc_objects]
 
 // TODO:
 // gRPC-Gateway. OpenAPI.
@@ -26,7 +30,14 @@ import (
 // TLS.
 // Redis. [Мб сейвить количество продуктов, чтобы нагрузка на минус + другие сервисы (inv) получали быстрее ответ]
 
+var (
+	pprof bool
+)
+
 func main() {
+	flag.BoolVar(&pprof, "pprof", false, "specify to run profiling server on PPROF_PORT")
+	flag.Parse()
+
 	cfg := config.MustNew()
 
 	log := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -43,9 +54,15 @@ func main() {
 
 	handler := grpc.NewProductHandler(productService)
 
-	server := grpc.MustNew(log, cfg.GRPC.Addr(), handler)
+	server := grpc.MustNew(log, cfg.GRPC.Addr(), cfg.RateLimiter.MaxRequests, handler)
 
+	// Run Metrics Server
 	go infrastructure.RunMetricsServer(net.JoinHostPort(cfg.GRPC.Host, cfg.Prometheus.Port))
+
+	// Run Profiling Server. TODO: Run this only with a specific flag
+	if pprof {
+		go profiling.Run(net.JoinHostPort(cfg.GRPC.Host, cfg.Pprof.Port))
+	}
 
 	q := make(chan os.Signal, 1)
 

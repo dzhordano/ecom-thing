@@ -20,6 +20,7 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
+	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
@@ -42,6 +43,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/ratelimit v0.3.1 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect

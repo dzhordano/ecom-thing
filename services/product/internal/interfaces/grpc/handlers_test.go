@@ -2,8 +2,13 @@ package grpc
 
 import (
 	"context"
+	"math"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
-	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc/mocks"
+	mock_interfaces "github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc/mocks"
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -12,12 +17,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"math"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestProductHandler_CreateProduct(t *testing.T) {
@@ -228,7 +228,7 @@ func TestProductHandler_GetProduct(t *testing.T) {
 				Id: generatedUUID.String(),
 			},
 			mockFunc: func(s *mock_interfaces.MockProductService, req *api.GetProductRequest) {
-				s.EXPECT().GetProduct(
+				s.EXPECT().GetById(
 					gomock.Any(),
 					gomock.Eq(generatedUUID),
 				).Return(&domain.Product{
@@ -271,7 +271,7 @@ func TestProductHandler_GetProduct(t *testing.T) {
 				Id: generatedUUID.String(),
 			},
 			mockFunc: func(s *mock_interfaces.MockProductService, req *api.GetProductRequest) {
-				s.EXPECT().GetProduct(
+				s.EXPECT().GetById(
 					gomock.Any(),
 					gomock.Eq(generatedUUID),
 				).Return(nil, assert.AnError).Times(1)
@@ -306,89 +306,8 @@ func TestProductHandler_GetProduct(t *testing.T) {
 	}
 }
 
-func TestProductHandler_GetAllProducts(t *testing.T) {
-	type mockFunc func(s *mock_interfaces.MockProductService, req *emptypb.Empty)
-
-	fixedTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
-	generatedUUID := uuid.New()
-	testCtx := context.Background()
-
-	tests := []struct {
-		name         string
-		ctx          context.Context
-		mockFunc     mockFunc
-		expectedResp *api.GetProductsResponse
-		expectedErr  error
-	}{
-		{
-			name: "OK",
-			ctx:  testCtx,
-			mockFunc: func(s *mock_interfaces.MockProductService, req *emptypb.Empty) {
-				s.EXPECT().GetAllProducts(
-					gomock.Any(),
-				).Return([]*domain.Product{
-					{
-						ID:        generatedUUID,
-						Name:      "test",
-						Desc:      "test",
-						Category:  "test",
-						Price:     25.05,
-						CreatedAt: fixedTime,
-						UpdatedAt: fixedTime,
-					},
-				}, nil).Times(1)
-			},
-			expectedResp: &api.GetProductsResponse{
-				Products: []*api.Product{
-					{
-						Id:        generatedUUID.String(),
-						Category:  "test",
-						Name:      "test",
-						Desc:      "test",
-						Price:     25.05,
-						CreatedAt: timestamppb.New(fixedTime),
-						UpdatedAt: timestamppb.New(fixedTime),
-					},
-				},
-			},
-			expectedErr: nil,
-		},
-		{
-			name: "Internal Error",
-			ctx:  testCtx,
-			mockFunc: func(s *mock_interfaces.MockProductService, req *emptypb.Empty) {
-				s.EXPECT().GetAllProducts(
-					gomock.Any(),
-				).Return(nil, assert.AnError).Times(1)
-			},
-			expectedResp: nil,
-			expectedErr:  assert.AnError,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := gomock.NewController(t)
-			defer c.Finish()
-
-			s := mock_interfaces.NewMockProductService(c)
-
-			tt.mockFunc(s, &emptypb.Empty{})
-
-			ctrl := NewProductHandler(s)
-
-			resp, err := ctrl.GetProducts(tt.ctx, &emptypb.Empty{})
-
-			if tt.expectedErr != nil {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.expectedErr.Error())
-			} else {
-				require.NoError(t, err)
-				assert.True(t, proto.Equal(tt.expectedResp, resp),
-					"Expected:\n%v\nActual:\n%v", tt.expectedResp, resp)
-			}
-		})
-	}
+func TestProductHandler_SearchProducts(t *testing.T) {
+	// TODO
 }
 
 func TestProductHandler_UpdateProduct(t *testing.T) {
@@ -414,6 +333,7 @@ func TestProductHandler_UpdateProduct(t *testing.T) {
 				Name:     "test",
 				Category: "test",
 				Desc:     "test",
+				IsActive: true,
 				Price:    25.05,
 			},
 			mockFunc: func(s *mock_interfaces.MockProductService, req *api.UpdateProductRequest) {
@@ -423,6 +343,7 @@ func TestProductHandler_UpdateProduct(t *testing.T) {
 					gomock.Eq(req.GetName()),
 					gomock.Eq(req.GetDesc()),
 					gomock.Eq(req.GetCategory()),
+					gomock.Eq(req.GetIsActive()),
 					gomock.Eq(req.GetPrice()),
 				).Return(&domain.Product{
 					ID:        generatedUUID,
@@ -476,6 +397,7 @@ func TestProductHandler_UpdateProduct(t *testing.T) {
 					gomock.Eq(req.GetName()),
 					gomock.Eq(req.GetDesc()),
 					gomock.Eq(req.GetCategory()),
+					gomock.Eq(req.GetIsActive()),
 					gomock.Eq(req.GetPrice()),
 				).Return(nil, domain.ErrProductNotFound).Times(1)
 			},
@@ -501,6 +423,7 @@ func TestProductHandler_UpdateProduct(t *testing.T) {
 					gomock.Eq(req.GetName()),
 					gomock.Eq(req.GetDesc()),
 					gomock.Eq(req.GetCategory()),
+					gomock.Eq(req.GetIsActive()),
 					gomock.Eq(req.GetPrice()),
 				).Return(nil, assert.AnError).Times(1)
 			},
@@ -534,8 +457,8 @@ func TestProductHandler_UpdateProduct(t *testing.T) {
 	}
 }
 
-func TestProductHandler_DeleteProduct(t *testing.T) {
-	type mockFunc func(s *mock_interfaces.MockProductService, req *api.DeleteProductRequest)
+func TestProductHandler_DeactivateProduct(t *testing.T) {
+	type mockFunc func(s *mock_interfaces.MockProductService, req *api.DeactivateProductRequest)
 
 	fixedTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
 	generatedUUID := uuid.New()
@@ -544,19 +467,19 @@ func TestProductHandler_DeleteProduct(t *testing.T) {
 	tests := []struct {
 		name         string
 		ctx          context.Context
-		req          *api.DeleteProductRequest
+		req          *api.DeactivateProductRequest
 		mockFunc     mockFunc
-		expectedResp *api.DeleteProductResponse
+		expectedResp *api.DeactivateProductResponse
 		expectedErr  error
 	}{
 		{
 			name: "OK",
 			ctx:  testCtx,
-			req: &api.DeleteProductRequest{
+			req: &api.DeactivateProductRequest{
 				Id: generatedUUID.String(),
 			},
-			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeleteProductRequest) {
-				s.EXPECT().DeleteProduct(
+			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeactivateProductRequest) {
+				s.EXPECT().DeactivateProduct(
 					gomock.Any(),
 					gomock.Eq(generatedUUID),
 				).Return(&domain.Product{
@@ -569,7 +492,7 @@ func TestProductHandler_DeleteProduct(t *testing.T) {
 					UpdatedAt: fixedTime,
 				}, nil).Times(1)
 			},
-			expectedResp: &api.DeleteProductResponse{
+			expectedResp: &api.DeactivateProductResponse{
 				Product: &api.Product{
 					Id:        generatedUUID.String(),
 					Category:  "test",
@@ -585,21 +508,21 @@ func TestProductHandler_DeleteProduct(t *testing.T) {
 		{
 			name: "Invalid Product ID",
 			ctx:  testCtx,
-			req: &api.DeleteProductRequest{
+			req: &api.DeactivateProductRequest{
 				Id: "invalid",
 			},
-			mockFunc:     func(s *mock_interfaces.MockProductService, req *api.DeleteProductRequest) {},
+			mockFunc:     func(s *mock_interfaces.MockProductService, req *api.DeactivateProductRequest) {},
 			expectedResp: nil,
 			expectedErr:  status.Error(codes.InvalidArgument, "invalid grpc id"),
 		},
 		{
 			name: "Product Not Found",
 			ctx:  testCtx,
-			req: &api.DeleteProductRequest{
+			req: &api.DeactivateProductRequest{
 				Id: generatedUUID.String(),
 			},
-			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeleteProductRequest) {
-				s.EXPECT().DeleteProduct(
+			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeactivateProductRequest) {
+				s.EXPECT().DeactivateProduct(
 					gomock.Any(),
 					gomock.Eq(generatedUUID),
 				).Return(nil, domain.ErrProductNotFound).Times(1)
@@ -610,11 +533,11 @@ func TestProductHandler_DeleteProduct(t *testing.T) {
 		{
 			name: "Internal Error",
 			ctx:  testCtx,
-			req: &api.DeleteProductRequest{
+			req: &api.DeactivateProductRequest{
 				Id: generatedUUID.String(),
 			},
-			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeleteProductRequest) {
-				s.EXPECT().DeleteProduct(
+			mockFunc: func(s *mock_interfaces.MockProductService, req *api.DeactivateProductRequest) {
+				s.EXPECT().DeactivateProduct(
 					gomock.Any(),
 					gomock.Eq(generatedUUID),
 				).Return(nil, assert.AnError).Times(1)
@@ -635,7 +558,7 @@ func TestProductHandler_DeleteProduct(t *testing.T) {
 
 			ctrl := NewProductHandler(s)
 
-			resp, err := ctrl.DeleteProduct(tt.ctx, tt.req)
+			resp, err := ctrl.DeactivateProduct(tt.ctx, tt.req)
 
 			if tt.expectedErr != nil {
 				require.Error(t, err)

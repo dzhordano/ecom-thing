@@ -2,9 +2,10 @@ package infrastructure
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"net/http"
 )
 
 var (
@@ -28,7 +29,7 @@ var (
 		prometheus.HistogramOpts{
 			Name:    "request_duration_seconds",
 			Help:    "Request duration in seconds",
-			Buckets: []float64{.1, .3, .5, .7, 1, 3, 5, 7, 10},
+			Buckets: prometheus.ExponentialBuckets(0.0001, 2, 16),
 		},
 		[]string{"method", "status"},
 	)

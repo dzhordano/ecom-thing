@@ -1,6 +1,15 @@
 package integration
 
 import (
+	"context"
+	"log"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"runtime"
+	"testing"
+	"time"
+
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
@@ -13,17 +22,6 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/joho/godotenv"
 	"github.com/stretchr/testify/suite"
-	"log"
-	"log/slog"
-	"os"
-	"path/filepath"
-	"runtime"
-	"testing"
-)
-
-import (
-	"context"
-	"time"
 )
 
 type IntegrationSuite struct {
@@ -155,7 +153,7 @@ func (s *IntegrationSuite) TestA_CreateProduct() {
 }
 
 func (s *IntegrationSuite) TestB_GetProduct() {
-	resp, err := s.productService.GetProduct(
+	resp, err := s.productService.GetById(
 		context.Background(),
 		s.testProduct1.ID,
 	)
@@ -168,18 +166,8 @@ func (s *IntegrationSuite) TestB_GetProduct() {
 	}
 }
 
-func (s *IntegrationSuite) TestC_GetAllProducts() {
-	resp, err := s.productService.GetAllProducts(context.Background())
-
-	if s.Assert().NoError(err) {
-		s.Assert().NotNil(resp)
-		s.Assert().Equal(3, len(resp))
-
-		for _, product := range resp {
-			err = product.Validate()
-			s.Assert().NoError(err)
-		}
-	}
+func (s *IntegrationSuite) TestC_SearchProducts() {
+	// TODO
 }
 
 func (s *IntegrationSuite) TestD_UpdateProduct() {
@@ -189,6 +177,7 @@ func (s *IntegrationSuite) TestD_UpdateProduct() {
 		"NewDummy1",
 		"NewDummy1",
 		"NewDummy1",
+		true,
 		12.12,
 	)
 
@@ -201,8 +190,8 @@ func (s *IntegrationSuite) TestD_UpdateProduct() {
 
 }
 
-func (s *IntegrationSuite) TestE_DeleteProduct() {
-	resp, err := s.productService.DeleteProduct(context.Background(), s.testProduct1.ID)
+func (s *IntegrationSuite) TestE_DeactivateProduct() {
+	resp, err := s.productService.DeactivateProduct(context.Background(), s.testProduct1.ID)
 
 	if s.Assert().NoError(err) {
 		s.Assert().NotNil(resp)

@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc/converter"
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"

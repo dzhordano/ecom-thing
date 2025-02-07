@@ -5,6 +5,7 @@ volumes:
 
 services:
     product-app:
+        container_name: product-app
         hostname: product-app
         build:
             context: .
@@ -14,11 +15,13 @@ services:
         ports:
             - "${GRPC_PORT}:${GRPC_PORT}"
             - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
+            - "${PPROF_PORT}:${PPROF_PORT}"
         depends_on:
             - product-db
         networks:
             - default
     product-db:
+        container_name: product-db
         hostname: product-db
         image: postgres
         environment:
