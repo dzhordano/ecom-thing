@@ -54,7 +54,14 @@ func main() {
 
 	handler := grpc.NewProductHandler(productService)
 
-	server := grpc.MustNew(log, cfg.GRPC.Addr(), cfg.RateLimiter.MaxRequests, handler)
+	server := grpc.MustNew(log, handler,
+		grpc.WithAddr(net.JoinHostPort(cfg.GRPC.Host, cfg.GRPC.Port)),
+		grpc.WithRateLimiter(cfg.RateLimiter.Limit, cfg.RateLimiter.Burst),
+		grpc.WithCircuitBreakerSettings(
+			cfg.CircuitBreaker.MaxRequests,
+			cfg.CircuitBreaker.Interval,
+			cfg.CircuitBreaker.Timeout),
+	)
 
 	// Run Metrics Server
 	go infrastructure.RunMetricsServer(net.JoinHostPort(cfg.GRPC.Host, cfg.Prometheus.Port))

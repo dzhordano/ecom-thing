@@ -4,14 +4,16 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"github.com/joho/godotenv"
 	"log"
+	"time"
 )
 
 type Config struct {
-	GRPC        GRPCConfig
-	PG          PostgresConfig
-	Prometheus  PrometheusConfig
-	Pprof       PprofConfig
-	RateLimiter RateLimiterConfig
+	GRPC           GRPCConfig
+	PG             PostgresConfig
+	Prometheus     PrometheusConfig
+	Pprof          PprofConfig
+	RateLimiter    RateLimiterConfig
+	CircuitBreaker CircuitBreakerConfig
 }
 
 type GRPCConfig struct {
@@ -45,7 +47,14 @@ type PprofConfig struct {
 }
 
 type RateLimiterConfig struct {
-	MaxRequests uint16 `env:"RATE_LIMITER_MAX_REQUESTS" env_default:"100"`
+	Limit int `env:"RATE_LIMITER_LIMIT" env_default:"150"`
+	Burst int `env:"RATE_LIMITER_BURST" env_default:"150"`
+}
+
+type CircuitBreakerConfig struct {
+	MaxRequests uint32        `env:"CIRCUIT_BREAKER_MAX_REQUESTS" env_default:"5"`
+	Interval    time.Duration `env:"CIRCUIT_BREAKER_INTERVAL" env_default:"60s"`
+	Timeout     time.Duration `env:"CIRCUIT_BREAKER_TIMEOUT" env_default:"5s"`
 }
 
 // MustNew Reads .env file and returns Config.

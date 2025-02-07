@@ -12,9 +12,9 @@ type RateLimiter struct {
 	rl *rate.Limiter
 }
 
-func NewRateLimiter(rps uint16) *RateLimiter {
+func NewRateLimiter(limit, burst int) *RateLimiter {
 	return &RateLimiter{
-		rl: rate.NewLimiter(rate.Limit(rps), int(rps)),
+		rl: rate.NewLimiter(rate.Limit(limit), burst),
 	}
 }
 
