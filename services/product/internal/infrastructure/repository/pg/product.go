@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+
 	sq "github.com/Masterminds/squirrel"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain/repository"

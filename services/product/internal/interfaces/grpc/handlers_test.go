@@ -306,8 +306,128 @@ func TestProductHandler_GetProduct(t *testing.T) {
 	}
 }
 
+func ptrVal[T any](t *testing.T, val T) *T {
+	t.Helper()
+	return &val
+}
+
 func TestProductHandler_SearchProducts(t *testing.T) {
-	// TODO
+	type mockFunc func(s *mock_interfaces.MockProductService, req *api.SearchProductsRequest)
+
+	fixedTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	generatedUUID := uuid.New()
+	testCtx := context.Background()
+
+	tests := []struct {
+		name         string
+		ctx          context.Context
+		req          *api.SearchProductsRequest
+		mockFunc     mockFunc
+		expectedResp *api.SearchProductsResponse
+		expectedErr  error
+	}{
+		{
+			name: "OK",
+			ctx:  testCtx,
+			req: &api.SearchProductsRequest{
+				Query:    ptrVal(t, "test"),
+				Category: ptrVal(t, "test"),
+				MinPrice: ptrVal(t, 25.05),
+				MaxPrice: ptrVal(t, 25.05),
+				Limit:    10,
+				Offset:   0,
+			},
+			mockFunc: func(s *mock_interfaces.MockProductService, req *api.SearchProductsRequest) {
+				s.EXPECT().SearchProducts(
+					gomock.Any(),
+					map[string]any{
+						"query":    req.Query,
+						"category": req.Category,
+						"minPrice": req.MinPrice,
+						"maxPrice": req.MaxPrice,
+					},
+					gomock.Eq(req.GetLimit()),
+					gomock.Eq(req.GetOffset()),
+				).Return([]*domain.Product{
+					{
+						ID:        generatedUUID,
+						Name:      "test",
+						Desc:      "test",
+						Category:  "test",
+						Price:     25.05,
+						CreatedAt: fixedTime,
+						UpdatedAt: fixedTime,
+					},
+				}, nil).Times(1)
+			},
+			expectedResp: &api.SearchProductsResponse{
+				Products: []*api.Product{
+					{
+						Id:        generatedUUID.String(),
+						Category:  "test",
+						Name:      "test",
+						Desc:      "test",
+						Price:     25.05,
+						CreatedAt: timestamppb.New(fixedTime),
+						UpdatedAt: timestamppb.New(fixedTime),
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		// TODO: add more tests
+		{
+			name: "Internal Error",
+			ctx:  testCtx,
+			req: &api.SearchProductsRequest{
+				Query:    ptrVal(t, "test"),
+				Category: ptrVal(t, "test"),
+				MinPrice: ptrVal(t, 25.05),
+				MaxPrice: ptrVal(t, 25.05),
+				Limit:    10,
+				Offset:   0,
+			},
+			mockFunc: func(s *mock_interfaces.MockProductService, req *api.SearchProductsRequest) {
+				s.EXPECT().SearchProducts(
+					gomock.Any(),
+					map[string]any{
+						"query":    req.Query,
+						"category": req.Category,
+						"minPrice": req.MinPrice,
+						"maxPrice": req.MaxPrice,
+					},
+					gomock.Eq(req.GetLimit()),
+					gomock.Eq(req.GetOffset()),
+				).Return(nil, assert.AnError).Times(1)
+			},
+			expectedResp: nil,
+			expectedErr:  assert.AnError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			c := gomock.NewController(t)
+			defer c.Finish()
+
+			s := mock_interfaces.NewMockProductService(c)
+
+			tt.mockFunc(s, tt.req)
+
+			ctrl := NewProductHandler(s)
+
+			resp, err := ctrl.SearchProducts(tt.ctx, tt.req)
+
+			if tt.expectedErr != nil {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErr.Error())
+			} else {
+				require.NoError(t, err)
+				assert.True(t, proto.Equal(tt.expectedResp, resp),
+					"Expected:\n%v\nActual:\n%v", tt.expectedResp, resp)
+			}
+		})
+	}
 }
 
 func TestProductHandler_UpdateProduct(t *testing.T) {

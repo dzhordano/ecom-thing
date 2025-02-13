@@ -72,6 +72,7 @@ generate.mocks.handlers:
 
 test.integration:
 	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
+	@sleep 1
 	@bash -c 'trap "make stop.db.test" EXIT; \
 		go test ./tests/integration -v; RESULT=$$?; \
 		exit $$RESULT'
@@ -81,3 +82,10 @@ test.load:
 	--rps 100 --total 3000 \
 	-d '{"id": "0cea4c9f-e4bd-11ef-8035-0242ac120005"}' \
 	localhost:50001
+
+PHONY: \
+	run run.pprof run.rebuild run.pprof.rebuild run.nodocker run.nodocker.pprof \
+	generate generate-product-api-v1 \
+	generate-rsa256-keypair \
+	generate.mocks.handlers \
+	test.integration test.load

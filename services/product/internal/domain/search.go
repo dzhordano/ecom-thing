@@ -13,12 +13,22 @@ type SearchOptions struct {
 }
 
 func NewSearchOptions(query *string, category *string, minPrice *float64, maxPrice *float64) SearchOptions {
-	return SearchOptions{
-		Query:    query,
-		Category: category,
-		MinPrice: minPrice,
-		MaxPrice: maxPrice,
+	s := SearchOptions{}
+
+	if query != nil {
+		s.Query = query
 	}
+	if category != nil {
+		s.Category = category
+	}
+	if minPrice != nil {
+		s.MinPrice = minPrice
+	}
+	if maxPrice != nil {
+		s.MaxPrice = maxPrice
+	}
+
+	return s
 }
 
 func (o *SearchOptions) Validate() error {

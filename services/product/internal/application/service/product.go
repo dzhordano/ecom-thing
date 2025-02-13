@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"errors"
+	"log/slog"
+
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain/repository"
 	"github.com/google/uuid"
-	"log/slog"
 )
 
 type ProductService struct {
@@ -99,12 +100,27 @@ func (p *ProductService) GetById(ctx context.Context, id uuid.UUID) (*domain.Pro
 }
 
 func (p *ProductService) SearchProducts(ctx context.Context, filters map[string]any, limit, offset uint64) ([]*domain.Product, error) {
-	options := domain.NewSearchOptions(
-		filters["query"].(*string),
-		filters["category"].(*string),
-		filters["minPrice"].(*float64),
-		filters["maxPrice"].(*float64),
-	)
+	q, ok := filters["query"].(*string)
+	if !ok {
+		q = nil
+	}
+
+	c, ok := filters["category"].(*string)
+	if !ok {
+		c = nil
+	}
+
+	mn, ok := filters["minPrice"].(*float64)
+	if !ok {
+		mn = nil
+	}
+
+	mx, ok := filters["maxPrice"].(*float64)
+	if !ok {
+		mx = nil
+	}
+
+	options := domain.NewSearchOptions(q, c, mn, mx)
 
 	if err := options.Validate(); err != nil {
 		p.log.Error("failed to search products", slog.String("error", err.Error()))
