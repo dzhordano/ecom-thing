@@ -1,0 +1,17 @@
+# Here to be: Надо поднять скрейпинг метрик со всех сервисов + отрисовка. TODO трейсинг (хз пока поч не собирается).
+global:
+  scrape_interval: 2s  # Интервал опроса
+  evaluation_interval: 2s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ['localhost:9090']
+  - job_name: "inventory-app"
+    honor_labels: true
+    static_configs:
+      - targets: ['localhost:50001']
+  - job_name: "product-app"
+    honor_labels: true
+    static_configs:
+      - targets: ['localhost:50002']

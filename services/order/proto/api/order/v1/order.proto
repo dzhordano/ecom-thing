@@ -1,0 +1,189 @@
+syntax = "proto3";
+
+package api.order.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "dzhordano/ecom-thing/services/order/pkg/api/order/v1;order_v1";
+
+// OrderService provides basic operations with orders.
+service OrderService {
+  // CreateOrder creates a new order.
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {}
+  // GetOrder returns Order object with requested id.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
+  // List order returns a list of user's orders.
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}
+  // UpdateOrder updates an order.
+  rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {} // Not for users.
+  // DeleteOrder soft deletes an order.
+  rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse) {} // Not for users.
+
+  // SearchOrders returns a list of user's orders with applied filters.
+  rpc SearchOrders(SearchOrdersRequest) returns (SearchOrdersResponse) {} // Not for users.
+  // CompleteOrder marks order as completed.
+  rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse) {}
+  // CancelOrder marks order as canceled.
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {}
+}
+
+// Item represent an item in user's order.
+message Item {
+  // ProductID.
+  string item_id = 1;
+  // Quantity of product.
+  uint64 quantity = 2;
+}
+
+// Order contains all information about user's order.
+message Order {
+  // UUID.
+  string order_id = 1;
+  // UUID.
+  string user_id = 2;
+  // Order status.
+  string status = 3;
+  // Order currency.
+  string currency = 4;
+  // Total price in order currency.
+  double total_price = 5;
+  // Total discount in order currency.
+  double total_discount = 6;
+  // Payment method.
+  string payment_method = 7;
+  // Delivery method.
+  string delivery_method = 8;
+  // Delivery address.
+  string delivery_address = 9;
+  // Delivery date.
+  google.protobuf.Timestamp delivery_date = 10;
+  // Order items.
+  repeated Item items = 11;
+  // Order creation date.
+  google.protobuf.Timestamp created_at = 12;
+  // Order last update date.
+  google.protobuf.Timestamp updated_at = 13;
+}
+
+// CreateOrderRequest is a request to create a new order.
+message CreateOrderRequest {
+  // Order currency.
+  string currency = 1;
+  // Payment method.
+  string payment_method = 2;
+  // Delivery method.
+  string delivery_method = 3;
+  // Delivery address.
+  string delivery_address = 4;
+  // Delivery date.
+  google.protobuf.Timestamp delivery_date = 5;
+  // Order items.
+  repeated Item items = 6;
+}
+
+// CreateOrderResponse is a response to create a new order.
+message CreateOrderResponse {
+  // Order.
+  Order order = 1;
+}
+
+// GetOrderRequest is a request to get an order.
+message GetOrderRequest {
+  // UUID.
+  string order_id = 1;
+}
+
+// GetOrderResponse is a response to get an order.
+message GetOrderResponse {
+  // Order.
+  Order order = 1;
+}
+
+// ListOrdersRequest is a request to list orders.
+message ListOrdersRequest {
+  // Limit.
+  uint64 limit = 1;
+  // Offset.
+  uint64 offset = 2;
+}
+
+// ListOrdersResponse is a response to list orders.
+message ListOrdersResponse {
+  // Orders.
+  repeated Order orders = 1;
+}
+
+// UpdateOrderRequest is a request to update an order.
+message UpdateOrderRequest {
+  // UUID.
+  string order_id = 1;
+  // Order currency.
+  optional string status = 2;
+  // Payment method.
+  optional string payment_method = 3;
+  // Delivery method.
+  optional string delivery_method = 4;
+  // Delivery address.
+  optional string delivery_address = 5;
+  // Delivery date.
+  optional google.protobuf.Timestamp delivery_date = 6;
+}
+
+// UpdateOrderResponse is a response to update an order.
+message UpdateOrderResponse {
+  // Order.
+  Order order = 1;
+}
+
+// DeleteOrderRequest is a request to delete an order.
+message DeleteOrderRequest {
+  // UUID.
+  string order_id = 1;
+}
+
+// DeleteOrderResponse is a response to delete an order.
+message DeleteOrderResponse {}
+
+// SearchOrdersRequest is a request to search orders.
+message SearchOrdersRequest {
+  // Limit.
+  uint64 limit = 1;
+  // Offset.
+  uint64 offset = 2;
+  // Status.
+  optional string status = 3;
+  // Currency.
+  optional string currency = 4;
+  // Payment method.
+  optional string payment_method = 5;
+  // Delivery method.
+  optional string delivery_method = 6;
+  // Delivery address.
+  optional string delivery_address = 7;
+  // Delivery date.
+  optional google.protobuf.Timestamp delivery_date = 8;
+}
+
+// SearchOrdersResponse is a response to search orders.
+message SearchOrdersResponse {
+  // Orders.
+  repeated Order orders = 1;
+}
+
+// CompleteOrderRequest is a request to complete an order.
+message CompleteOrderRequest {
+  // UUID.
+  string order_id = 1;
+}
+
+// CompleteOrderResponse is a response to complete an order.
+message CompleteOrderResponse {}
+
+// CancelOrderRequest is a request to cancel an order.
+message CancelOrderRequest {
+  // UUID.
+  string order_id = 1;
+}
+
+// CancelOrderResponse is a response to cancel an order.
+message CancelOrderResponse {}

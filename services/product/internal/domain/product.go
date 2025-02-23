@@ -2,10 +2,20 @@ package domain
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
+)
+
+const (
+	MaxProdCategoryLength = 32
+	MaxProdNameLength     = 256
+	MaxProdDescLength     = 2048
+
+	MinPrice = 0.01
+	MaxPrice = 128000
 )
 
 type Product struct {
@@ -41,15 +51,6 @@ func NewProduct(id uuid.UUID, name, description, category string, price float64)
 		UpdatedAt: time.Now(),
 	}
 }
-
-const (
-	MaxProdCategoryLength = 32
-	MaxProdNameLength     = 256
-	MaxProdDescLength     = 2048
-
-	MinPrice = 0.01
-	MaxPrice = 128000
-)
 
 func (c *Product) Validate() error {
 	var errs []string

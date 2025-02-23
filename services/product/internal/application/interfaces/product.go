@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+
 	"github.com/google/uuid"
 
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"

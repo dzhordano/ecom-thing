@@ -3,7 +3,6 @@ package integration
 import (
 	"context"
 	"log"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -15,6 +14,7 @@ import (
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain/repository"
 	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
+	"github.com/dzhordano/ecom-thing/services/product/pkg/logger"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
@@ -76,7 +76,7 @@ func (s *IntegrationSuite) SetupSuite() {
 		panic(err)
 	}
 
-	nilLogger := slog.New(slog.NewJSONHandler(nil, nil))
+	nilLogger := logger.NewZapLogger("warn", nil, nil)
 
 	s.db = pool
 	s.productRepo = pg.NewProductRepository(s.db)

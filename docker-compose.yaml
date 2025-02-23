@@ -1,0 +1,24 @@
+version: "3"
+
+volumes:
+  prometheus_data:
+  grafana_data:
+services:
+  prometheus:
+      hostname: prometheus
+      image: prom/prometheus
+      network_mode: host
+      ports:
+          - "9090:9090"
+      volumes:
+          - prometheus_data:/prometheus
+          - ./alerts.yaml:/etc/prometheus/alerts.yml
+          - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+  grafana:
+      hostname: grafana
+      image: grafana/grafana
+      network_mode: host
+      ports:
+         - "3000:3000"
+      volumes:
+          - grafana_data:/var/lib/grafana

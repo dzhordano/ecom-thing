@@ -3,17 +3,18 @@ package main
 import (
 	"context"
 	"fmt"
-	product_v1 "github.com/dzhordano/ecom-thing/services/product/pkg/grpc/product/v1"
-	"github.com/tjarratt/babble"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"math/rand/v2"
 	"sync"
 	"time"
+
+	product_v1 "github.com/dzhordano/ecom-thing/services/product/pkg/api/product/v1"
+	"github.com/tjarratt/babble"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 func main() {
-	conn, err := grpc.NewClient("0.0.0.0:50001", grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient("localhost:50002", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		panic(err)
 	}
@@ -23,7 +24,7 @@ func main() {
 		}
 	}()
 
-	c := product_v1.NewProductServiceV1Client(conn)
+	c := product_v1.NewProductServiceClient(conn)
 
 	b := babble.NewBabbler()
 	b.Separator = " "

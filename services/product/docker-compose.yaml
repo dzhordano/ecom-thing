@@ -14,32 +14,10 @@ services:
             - .env:/app/.env
         ports:
             - "${GRPC_PORT}:${GRPC_PORT}"
-            - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
         depends_on:
             - product-db
         networks:
             - default
-        profiles:
-            - default
-    product-app-profiled:
-        container_name: product-app
-        hostname: product-app
-        build:
-            context: .
-            dockerfile: Dockerfile
-        volumes:
-            - .env:/app/.env
-        command: ["./main", "--pprof"]
-        ports:
-            - "${GRPC_PORT}:${GRPC_PORT}"
-            - "${PROMETHEUS_PORT}:${PROMETHEUS_PORT}"
-            - "${PPROF_PORT}:${PPROF_PORT}"
-        depends_on:
-            - product-db
-        networks:
-            - default
-        profiles:
-            - pprof
     product-db:
         container_name: product-db
         hostname: product-db
@@ -58,9 +36,6 @@ services:
             test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DBNAME}"]
             interval: 5s
             timeout: 5s
-        profiles:
-            - default
-            - pprof
     migrate:
         image: migrate/migrate
         command: -source file://migrations -database ${PG_MIGRATIONS_URL} up
@@ -68,22 +43,16 @@ services:
             - ./migrations:/migrations
         depends_on:
             - product-db
-        profiles:
-            - default
-            - pprof
     prometheus:
         image: prom/prometheus
         ports:
             - "9090:9090"
         volumes:
             - prometheus_data:/prometheus
-            - ./prometheus.yml:/etc/prometheus/prometheus.yaml
-            - ./alerts.yml:/etc/prometheus/alerts.yaml
+            - ./prometheus.yaml:/etc/prometheus/prometheus.yml
+            - ./alerts.yaml:/etc/prometheus/alerts.yml
         networks:
             - default
-        profiles:
-            - default
-            - pprof
     grafana:
         image: grafana/grafana
         ports:
@@ -92,9 +61,6 @@ services:
             - grafana_data:/var/lib/grafana
         networks:
             - default
-        profiles:
-            - default
-            - pprof
 networks:
     default:
         driver: bridge

@@ -5,6 +5,10 @@ import (
 	"strings"
 )
 
+const (
+	MaxQueryLength = 256
+)
+
 type SearchOptions struct {
 	Query    *string
 	Category *string
@@ -34,7 +38,7 @@ func NewSearchOptions(query *string, category *string, minPrice *float64, maxPri
 func (o *SearchOptions) Validate() error {
 	var errs []string
 
-	if o.Query != nil && *o.Query == "" {
+	if o.Query != nil && (*o.Query == "" || len(*o.Query) > MaxQueryLength) {
 		errs = append(errs, "invalid query")
 	}
 

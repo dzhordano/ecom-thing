@@ -1,27 +1,16 @@
 LOCAL_BIN:=$(CURDIR)/.bin
 
 run:
-	@docker compose --profile default up --remove-orphans
-
-run.pprof:
-	@docker compose --profile pprof up --remove-orphans
+	@docker compose up --remove-orphans
 
 run.rebuild:
-	@docker compose --profile default up --build --remove-orphans --force-recreate
-
-run.pprof.rebuild:
-	@docker compose --profile pprof up --build --remove-orphans --force-recreate
+	@docker compose up --build --remove-orphans --force-recreate
 
 run.nodocker:
 	@make init.db
 	@go build -o .bin/main cmd/app/main.go
 	@.bin/main
 
-run.nodocker.pprof:
-	@make init.db
-	@go build -o .bin/main cmd/app/main.go
-	@.bin/main --pprof
-	
 install-deps:
 	@GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	@GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
@@ -30,17 +19,20 @@ get-deps:
 	@go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 	@go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
+generate-buf:
+	@buf generate
+
 generate:
 	@make generate-product-api-v1
 
 generate-product-api-v1:
-	@mkdir -p pkg/grpc/product/v1
-	@protoc --proto_path api/grpc/product/v1 \
-	--go_out=pkg/grpc/product/v1 --go_opt=paths=source_relative \
+	@mkdir -p pkg/api/product/v1
+	@protoc --proto_path proto/api/product/v1 \
+	--go_out=pkg/api/product/v1 --go_opt=paths=source_relative \
 	--plugin=protoc-gen-go=.bin/protoc-gen-go \
-	--go-grpc_out=pkg/grpc/product/v1 --go-grpc_opt=paths=source_relative \
+	--go-grpc_out=pkg/api/product/v1 --go-grpc_opt=paths=source_relative \
 	--plugin=protoc-gen-go-grpc=.bin/protoc-gen-go-grpc \
-	api/grpc/product/v1/product.proto
+	proto/api/product/v1/product.proto
 
 generate-rsa256-keypair:
 	@ssh-keygen -t rsa -b 4096 -m PEM -f jwt.key
@@ -49,8 +41,6 @@ generate-rsa256-keypair:
 include .env
 init.db:
 	@docker run --name=product-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_PORT}:5432 -d postgres
-	@sleep 2
-	@make migrate.up
 
 stop.db:
 	@docker rm -f product-db
@@ -78,7 +68,7 @@ test.integration:
 		exit $$RESULT'
 
 test.load:
-	@ghz --insecure --proto api/grpc/product/v1/product.proto --call product.v1.ProductServiceV1/GetProduct \
+	@ghz --insecure --proto proto/api/product/v1/product.proto --call product.v1.ProductServiceV1/GetProduct \
 	--rps 100 --total 3000 \
 	-d '{"id": "0cea4c9f-e4bd-11ef-8035-0242ac120005"}' \
 	localhost:50001
