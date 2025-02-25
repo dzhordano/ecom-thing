@@ -47,8 +47,8 @@ message Order {
   string currency = 4;
   // Total price in order currency.
   double total_price = 5;
-  // Total discount in order currency.
-  double total_discount = 6;
+  // Coupon for discount.
+  string coupon = 6;
   // Payment method.
   string payment_method = 7;
   // Delivery method.
@@ -69,16 +69,20 @@ message Order {
 message CreateOrderRequest {
   // Order currency.
   string currency = 1;
+  // Total price in order currency.
+  double total_price = 2;
+  // Coupon for discount.
+  optional string coupon = 3;
   // Payment method.
-  string payment_method = 2;
+  string payment_method = 4;
   // Delivery method.
-  string delivery_method = 3;
+  string delivery_method = 5;
   // Delivery address.
-  string delivery_address = 4;
+  string delivery_address = 6;
   // Delivery date.
-  google.protobuf.Timestamp delivery_date = 5;
+  google.protobuf.Timestamp delivery_date = 7;
   // Order items.
-  repeated Item items = 6;
+  repeated Item items = 8;
 }
 
 // CreateOrderResponse is a response to create a new order.

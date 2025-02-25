@@ -1,0 +1,4 @@
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS coupons;
+
+DROP EXTENSION IF EXISTS "uuid-ossp";

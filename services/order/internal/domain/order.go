@@ -21,6 +21,8 @@ var (
 	ErrInvalidDeliveryAddress = errors.New("invalid delivery address")
 	ErrInvalidDeliveryDate    = errors.New("invalid delivery date")
 	ErrInvalidOrderItems      = errors.New("invalid order items")
+
+	ErrCouponExpired = errors.New("coupon expired")
 )
 
 type Order struct {
@@ -33,14 +35,14 @@ type Order struct {
 	DeliveryMethod  DeliveryMethod
 	DeliveryAddress string
 	DeliveryDate    time.Time
-	Items           []Item
+	Items           []*Item
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
 func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscount float64,
 	paymentMethod, deliveryMethod, deliveryAddress string, deliveryDate time.Time,
-	items []Item) (*Order, error) {
+	items []*Item) (*Order, error) {
 
 	s, err := NewStatus(status)
 	if err != nil {
@@ -250,4 +252,12 @@ func (d DeliveryMethod) String() string {
 
 func ApplyDiscountTo(price, discount float64) float64 {
 	return price - (price * discount / 100)
+}
+
+type Coupon struct {
+	ID        uint
+	Code      string
+	Discount  float64
+	ValidFrom time.Time
+	ValidTo   time.Time
 }
