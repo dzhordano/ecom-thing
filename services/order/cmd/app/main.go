@@ -23,7 +23,7 @@ func main() {
 
 	repo := pg.NewOrderRepository(db)
 
-	svc := service.NewOrderService( /*log,*/ repo)
+	svc := service.NewOrderService(log, repo)
 
 	handler := grpc_server.NewItemHandler(svc)
 

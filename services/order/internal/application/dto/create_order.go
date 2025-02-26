@@ -16,18 +16,18 @@ type CreateOrderRequest struct {
 	DeliveryMethod  string
 	DeliveryAddress string
 	DeliveryDate    time.Time
-	Items           []*domain.Item
+	Items           []domain.Item
 }
 
-func RPCItemsToDomain(items []*order_v1.Item) ([]*domain.Item, error) {
-	var result []*domain.Item
+func RPCItemsToDomain(items []*order_v1.Item) ([]domain.Item, error) {
+	var result []domain.Item
 	for _, item := range items {
 		id, err := uuid.Parse(item.ItemId)
 		if err != nil {
 			return nil, domain.ErrInvalidUUID // FIXME too obscure
 		}
 
-		result = append(result, &domain.Item{
+		result = append(result, domain.Item{
 			ProductID: id,
 			Quantity:  item.GetQuantity(),
 		})

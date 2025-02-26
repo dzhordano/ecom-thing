@@ -8,32 +8,44 @@ import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain/repository"
+	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
 	"github.com/google/uuid"
 )
 
 type OrderService struct {
+	log  logger.BaseLogger
 	repo repository.OrderRepository
 }
 
-func NewOrderService(repo repository.OrderRepository) interfaces.OrderService {
+func NewOrderService(log logger.BaseLogger, repo repository.OrderRepository) interfaces.OrderService {
 	return &OrderService{
+		log:  log,
 		repo: repo,
 	}
 }
 
 // CreateOrder implements interfaces.OrderService.
 func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequest) (*domain.Order, error) {
-	disc, err := o.repo.GetCoupon(ctx, info.Coupon)
-	if err != nil {
-		return nil, err
-	}
+	var disc *domain.Coupon
+	var err error
 
-	if disc.ValidTo.Before(time.Now()) {
-		return nil, domain.ErrCouponExpired
+	if info.Coupon == "" {
+		disc = &domain.Coupon{
+			Discount: 0,
+		}
+	} else {
+		disc, err = o.repo.GetCoupon(ctx, info.Coupon)
+		if err != nil {
+			return nil, err
+		}
+
+		if disc.ValidTo.Before(time.Now()) {
+			return nil, domain.ErrCouponExpired
+		}
 	}
 
 	order, err := domain.NewOrder(
-		uuid.New(),
+		uuid.New(), // FIXME Щас рандомный пользотель. Потом получать из контекста.
 		domain.OrderPending.String(),
 		info.Currency,
 		info.TotalPrice,
@@ -48,26 +60,35 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		return nil, err
 	}
 
-	if err := o.repo.Create(ctx, order); err != nil {
+	if err := o.repo.Save(ctx, order); err != nil {
 		return nil, err
 	}
 
 	return order, nil
 }
 
-// Delete implements interfaces.OrderService.
-func (o *OrderService) Delete(ctx context.Context, orderId uuid.UUID) error {
-	panic("unimplemented")
-}
-
 // GetById implements interfaces.OrderService.
 func (o *OrderService) GetById(ctx context.Context, orderId uuid.UUID) (*domain.Order, error) {
-	panic("unimplemented")
+	order, err := o.repo.GetById(ctx, orderId.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	return order, nil
 }
 
 // ListByUser implements interfaces.OrderService.
 func (o *OrderService) ListByUser(ctx context.Context, limit uint64, offset uint64) ([]*domain.Order, error) {
-	panic("unimplemented")
+	// FIXME Щас тут рандомный uuid, потом из контекста.
+
+	randUUID, err := uuid.NewRandom()
+	if err != nil {
+		return nil, err
+	}
+
+	return o.repo.ListByUser(ctx, randUUID.String())
 }
 
 // Search implements interfaces.OrderService.
@@ -80,12 +101,61 @@ func (o *OrderService) Update(ctx context.Context) {
 	panic("unimplemented")
 }
 
-// CancelOrder implements interfaces.OrderService.
-func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error {
-	panic("unimplemented")
+// Delete implements interfaces.OrderService.
+func (o *OrderService) Delete(ctx context.Context, orderId uuid.UUID) error {
+	order, err := o.repo.GetById(ctx, orderId.String())
+	if err != nil {
+		return err
+	}
+
+	// Чтобы компилятор не жаловался...
+	if order.ID == uuid.Nil {
+		return domain.ErrOrderNotFound
+	}
+
+	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	if err := o.repo.Delete(ctx, orderId.String()); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // CompleteOrder implements interfaces.OrderService.
 func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) error {
-	panic("unimplemented")
+	order, err := o.repo.GetById(ctx, orderId.String())
+	if err != nil {
+		return err
+	}
+
+	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	order.Status = domain.OrderCompleted
+	order.UpdatedAt = time.Now()
+
+	if err := o.repo.Update(ctx, order); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CancelOrder implements interfaces.OrderService.
+func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error {
+	order, err := o.repo.GetById(ctx, orderId.String())
+	if err != nil {
+		return err
+	}
+
+	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	order.Status = domain.OrderCancelled
+	order.UpdatedAt = time.Now()
+
+	if err := o.repo.Update(ctx, order); err != nil {
+		return err
+	}
+
+	return nil
 }

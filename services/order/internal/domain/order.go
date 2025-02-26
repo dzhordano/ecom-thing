@@ -1,7 +1,10 @@
 package domain
 
 import (
+	"database/sql/driver"
 	"errors"
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -9,6 +12,7 @@ import (
 
 // Ошибки для валидации.
 var (
+	ErrOrderNotFound         = errors.New("order not found")
 	ErrInvalidOrderStatus    = errors.New("invalid order status")
 	ErrInvalidCurrency       = errors.New("invalid currency")
 	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
@@ -22,7 +26,8 @@ var (
 	ErrInvalidDeliveryDate    = errors.New("invalid delivery date")
 	ErrInvalidOrderItems      = errors.New("invalid order items")
 
-	ErrCouponExpired = errors.New("coupon expired")
+	ErrCouponExpired  = errors.New("coupon expired")
+	ErrCouponNotFound = errors.New("coupon not found")
 )
 
 type Order struct {
@@ -35,14 +40,14 @@ type Order struct {
 	DeliveryMethod  DeliveryMethod
 	DeliveryAddress string
 	DeliveryDate    time.Time
-	Items           []*Item
+	Items           Items
 	CreatedAt       time.Time
 	UpdatedAt       time.Time
 }
 
 func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscount float64,
 	paymentMethod, deliveryMethod, deliveryAddress string, deliveryDate time.Time,
-	items []*Item) (*Order, error) {
+	items Items) (*Order, error) {
 
 	s, err := NewStatus(status)
 	if err != nil {
@@ -155,6 +160,27 @@ func (s Status) String() string {
 type Item struct {
 	ProductID uuid.UUID
 	Quantity  uint64
+}
+
+func (i Item) Value() (driver.Value, error) {
+	return fmt.Sprintf("\"(%s,%d)\"", i.ProductID, i.Quantity), nil
+}
+
+type Items []Item
+
+func (items Items) Value() (driver.Value, error) {
+	parts := make([]string, len(items))
+	for i, item := range items {
+		v, err := item.Value()
+		if err != nil {
+			return nil, err
+		}
+		parts[i] = v.(string)
+	}
+
+	s := strings.Join(parts, ",")
+
+	return fmt.Sprintf("{%s}", s), nil
 }
 
 type Currency string

@@ -47,8 +47,6 @@ message Order {
   string currency = 4;
   // Total price in order currency.
   double total_price = 5;
-  // Coupon for discount.
-  string coupon = 6;
   // Payment method.
   string payment_method = 7;
   // Delivery method.

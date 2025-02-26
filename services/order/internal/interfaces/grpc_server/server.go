@@ -57,7 +57,7 @@ func WithRateLimiter(limit, burst int) Option {
 func WithCircuitBreakerSettings(maxRequests uint32, interval, timeout time.Duration) Option {
 	return func(s *Server) {
 		s.cb = &gobreaker.Settings{
-			Name:        "product-app-cb",
+			Name:        "order-app-cb",
 			MaxRequests: maxRequests,
 			Interval:    interval,
 			Timeout:     timeout,
@@ -71,7 +71,7 @@ func MustNew(log logger.BaseLogger, handler api.OrderServiceServer, opts ...Opti
 		ratelimiterLimit: 100, // TODO магические числа
 		ratelimiterBurst: 100,
 		cb: &gobreaker.Settings{
-			Name:        "inventory-app-cb",
+			Name:        "order-app-cb",
 			MaxRequests: 5,
 			Interval:    60 * time.Second,
 			Timeout:     5 * time.Second,
@@ -100,7 +100,7 @@ func MustNew(log logger.BaseLogger, handler api.OrderServiceServer, opts ...Opti
 	}
 
 	cb := gobreaker.NewCircuitBreaker[any](gobreaker.Settings{
-		Name:        "inventory-app-cb",
+		Name:        "order-app-cb",
 		MaxRequests: s.cb.MaxRequests,
 		Interval:    s.cb.Interval,
 		Timeout:     s.cb.Timeout,

@@ -5,10 +5,12 @@ import (
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
+	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
+	"github.com/dzhordano/ecom-thing/services/order/internal/interfaces/grpc_server/converter"
 	api "github.com/dzhordano/ecom-thing/services/order/pkg/api/order/v1"
+	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ItemHandler struct {
@@ -45,37 +47,26 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 	}
 
 	resp := &api.CreateOrderResponse{
-		Order: &api.Order{
-			OrderId:         order.ID.String(),
-			UserId:          order.UserID.String(),
-			Status:          order.Status.String(),
-			Currency:        order.Currency.String(),
-			TotalPrice:      order.TotalPrice,
-			Coupon:          req.GetCoupon(),
-			PaymentMethod:   order.PaymentMethod.String(),
-			DeliveryMethod:  order.DeliveryMethod.String(),
-			DeliveryAddress: order.DeliveryAddress,
-			DeliveryDate: &timestamppb.Timestamp{
-				Seconds: order.DeliveryDate.Unix(),
-				Nanos:   int32(order.DeliveryDate.Nanosecond()),
-			},
-			Items: req.Items,
-			CreatedAt: &timestamppb.Timestamp{
-				Seconds: order.CreatedAt.Unix(),
-				Nanos:   int32(order.CreatedAt.Nanosecond()),
-			},
-			UpdatedAt: &timestamppb.Timestamp{
-				Seconds: order.UpdatedAt.Unix(),
-				Nanos:   int32(order.UpdatedAt.Nanosecond()),
-			},
-		},
+		Order: converter.FromDomainToProto_OrderWItems(order, req.Items),
 	}
 
 	return resp, nil
 }
 
 func (h *ItemHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (*api.GetOrderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	orderId, err := uuid.Parse(req.GetOrderId())
+	if err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	order, err := h.service.GetById(ctx, orderId)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &api.GetOrderResponse{Order: converter.FromDomainToProto_Order(order)}
+
+	return resp, nil
 }
 
 func (h *ItemHandler) ListOrders(ctx context.Context, req *api.ListOrdersRequest) (*api.ListOrdersResponse, error) {

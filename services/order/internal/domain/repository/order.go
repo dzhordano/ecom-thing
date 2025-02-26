@@ -7,7 +7,7 @@ import (
 )
 
 type OrderRepository interface {
-	Create(ctx context.Context, order *domain.Order) error
+	Save(ctx context.Context, order *domain.Order) error
 	GetById(ctx context.Context, orderId string) (*domain.Order, error)
 	ListByUser(ctx context.Context, userId string) ([]*domain.Order, error)
 
@@ -16,4 +16,5 @@ type OrderRepository interface {
 	Delete(ctx context.Context, orderId string) error
 
 	GetCoupon(ctx context.Context, code string) (*domain.Coupon, error)
+	// CreateCoupon(ctx context.Context, coupon *domain.Coupon) error
 }
