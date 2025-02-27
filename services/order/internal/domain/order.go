@@ -75,10 +75,6 @@ func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscou
 		return nil, ErrInternal
 	}
 
-	if totalDiscount < 0 || totalDiscount > 100 {
-		return nil, ErrInvalidDiscount
-	}
-
 	o := &Order{
 		ID:              orderId,
 		UserID:          userId,
@@ -108,7 +104,8 @@ func (o *Order) Validate() error {
 		err = errors.Join(err, ErrInvalidPrice)
 	}
 
-	if len(o.DeliveryAddress) < 1 {
+	// TODO Нужен REGEX или что-то такое. Мб вообще проверять на существование такой улицы...
+	if len(o.DeliveryAddress) < 2 {
 		err = errors.Join(err, ErrInvalidDeliveryAddress)
 	}
 

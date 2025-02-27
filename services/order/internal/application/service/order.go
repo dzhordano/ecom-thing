@@ -96,13 +96,69 @@ func (o *OrderService) Search(ctx context.Context, filters map[string]any) ([]*d
 	panic("unimplemented")
 }
 
-// Update implements interfaces.OrderService.
-func (o *OrderService) Update(ctx context.Context) {
-	panic("unimplemented")
+// UpdateOrder implements interfaces.OrderService.
+func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequest) (*domain.Order, error) {
+	order, err := o.repo.GetById(ctx, info.OrderID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	if info.Status != nil {
+		s, err := domain.NewStatus(*info.Status)
+		if err != nil {
+			return nil, err
+		}
+		order.Status = s
+	}
+
+	if info.TotalPrice != nil {
+		order.TotalPrice = *info.TotalPrice
+	}
+
+	if info.PaymentMethod != nil {
+		pm, err := domain.NewPaymentMethod(*info.PaymentMethod)
+		if err != nil {
+			return nil, err
+		}
+		order.PaymentMethod = pm
+	}
+
+	if info.DeliveryMethod != nil {
+		dm, err := domain.NewDeliveryMethod(*info.DeliveryMethod)
+		if err != nil {
+			return nil, err
+		}
+		order.DeliveryMethod = dm
+	}
+
+	if info.DeliveryAddress != nil {
+		order.DeliveryAddress = *info.DeliveryAddress
+	}
+
+	if !info.DeliveryDate.IsZero() {
+		order.DeliveryDate = info.DeliveryDate
+	}
+
+	if len(info.Items) > 0 {
+		order.Items = info.Items
+	}
+
+	// Допроверить поля на валидность.
+	if err = order.Validate(); err != nil {
+		return nil, err
+	}
+
+	if err := o.repo.Update(ctx, order); err != nil {
+		return nil, err
+	}
+
+	return order, nil
 }
 
-// Delete implements interfaces.OrderService.
-func (o *OrderService) Delete(ctx context.Context, orderId uuid.UUID) error {
+// DeleteOrder implements interfaces.OrderService.
+func (o *OrderService) DeleteOrder(ctx context.Context, orderId uuid.UUID) error {
 	order, err := o.repo.GetById(ctx, orderId.String())
 	if err != nil {
 		return err

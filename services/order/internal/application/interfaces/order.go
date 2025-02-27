@@ -14,8 +14,8 @@ type OrderService interface {
 	GetById(ctx context.Context, orderId uuid.UUID) (*domain.Order, error)
 	ListByUser(ctx context.Context, limit, offset uint64) ([]*domain.Order, error)
 
-	Update(ctx context.Context /*TODO DTO*/)
-	Delete(ctx context.Context, orderId uuid.UUID) error
+	UpdateOrder(ctx context.Context, info dto.UpdateOrderRequest) (*domain.Order, error)
+	DeleteOrder(ctx context.Context, orderId uuid.UUID) error
 
 	Search(ctx context.Context, filters map[string]any) ([]*domain.Order, error) // TODO Своя структура вместо any
 	CompleteOrder(ctx context.Context, orderId uuid.UUID) error

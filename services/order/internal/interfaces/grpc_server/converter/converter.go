@@ -3,6 +3,7 @@ package converter
 import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
 	order_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/order/v1"
+	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -68,4 +69,20 @@ func FromDomainToProto_Items(items []domain.Item) []*order_v1.Item {
 		})
 	}
 	return result
+}
+
+func RPCItemsToDomain(items []*order_v1.Item) ([]domain.Item, error) {
+	var result []domain.Item
+	for _, item := range items {
+		id, err := uuid.Parse(item.ItemId)
+		if err != nil {
+			return nil, domain.ErrInvalidUUID // FIXME too obscure
+		}
+
+		result = append(result, domain.Item{
+			ProductID: id,
+			Quantity:  item.GetQuantity(),
+		})
+	}
+	return result, nil
 }

@@ -121,14 +121,18 @@ message UpdateOrderRequest {
   string order_id = 1;
   // Order currency.
   optional string status = 2;
+  // Total price in order currency.
+  optional double total_price = 3;
   // Payment method.
-  optional string payment_method = 3;
+  optional string payment_method = 4;
   // Delivery method.
-  optional string delivery_method = 4;
+  optional string delivery_method = 5;
   // Delivery address.
-  optional string delivery_address = 5;
+  optional string delivery_address = 6;
   // Delivery date.
-  optional google.protobuf.Timestamp delivery_date = 6;
+  optional google.protobuf.Timestamp delivery_date = 7;
+  // Order items.
+  repeated Item items = 8;
 }
 
 // UpdateOrderResponse is a response to update an order.

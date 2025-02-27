@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"context"
+	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
@@ -25,7 +26,7 @@ func NewItemHandler(s interfaces.OrderService) *ItemHandler {
 }
 
 func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderRequest) (*api.CreateOrderResponse, error) {
-	items, err := dto.RPCItemsToDomain(req.GetItems())
+	items, err := converter.RPCItemsToDomain(req.GetItems())
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +75,42 @@ func (h *ItemHandler) ListOrders(ctx context.Context, req *api.ListOrdersRequest
 }
 
 func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderRequest) (*api.UpdateOrderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	items, err := converter.RPCItemsToDomain(req.GetItems())
+	if err != nil {
+		return nil, err
+	}
+
+	oid, err := uuid.Parse(req.GetOrderId())
+	if err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	var t time.Time
+	if req.DeliveryDate.IsValid() {
+		t = req.DeliveryDate.AsTime()
+	}
+
+	info := dto.UpdateOrderRequest{
+		OrderID:         oid,
+		Status:          req.Status,
+		TotalPrice:      req.TotalPrice,
+		PaymentMethod:   req.PaymentMethod,
+		DeliveryMethod:  req.DeliveryMethod,
+		DeliveryAddress: req.DeliveryAddress,
+		DeliveryDate:    t,
+		Items:           items,
+	}
+
+	o, err := h.service.UpdateOrder(ctx, info)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &api.UpdateOrderResponse{
+		Order: converter.FromDomainToProto_Order(o),
+	}
+
+	return resp, nil
 }
 
 func (h *ItemHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequest) (*api.DeleteOrderResponse, error) {
