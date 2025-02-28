@@ -11,7 +11,7 @@ type OrderRepository interface {
 	GetById(ctx context.Context, orderId string) (*domain.Order, error)
 	ListByUser(ctx context.Context, userId string) ([]*domain.Order, error)
 
-	// Search(ctx context.Context, ...) ([]*domain.Order, error)
+	Search(ctx context.Context, params domain.SearchParams) ([]*domain.Order, error)
 	Update(ctx context.Context, order *domain.Order) error
 	Delete(ctx context.Context, orderId string) error
 

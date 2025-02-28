@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
@@ -12,6 +13,7 @@ import (
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type ItemHandler struct {
@@ -31,7 +33,10 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 		return nil, err
 	}
 
+	fmt.Println("DESCRIPTION", req.GetDescription())
+
 	info := dto.CreateOrderRequest{
+		Description:     req.GetDescription(),
 		Currency:        req.GetCurrency(),
 		TotalPrice:      req.GetTotalPrice(),
 		Coupon:          req.GetCoupon(),
@@ -92,6 +97,7 @@ func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderReque
 
 	info := dto.UpdateOrderRequest{
 		OrderID:         oid,
+		Description:     req.Description,
 		Status:          req.Status,
 		TotalPrice:      req.TotalPrice,
 		PaymentMethod:   req.PaymentMethod,
@@ -114,17 +120,83 @@ func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderReque
 }
 
 func (h *ItemHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequest) (*api.DeleteOrderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	oid, err := uuid.Parse(req.GetOrderId())
+	if err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	err = h.service.DeleteOrder(ctx, oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.DeleteOrderResponse{}, nil
 }
 
 func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersRequest) (*api.SearchOrdersResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	orders, err := h.service.SearchOrders(ctx, map[string]any{
+		"limit":            req.Limit,
+		"offset":           req.Offset,
+		"query":            req.Query,
+		"description":      req.Description,
+		"status":           req.Status,
+		"currency":         req.Currency,
+		"minPrice":         req.MinPrice,
+		"maxPrice":         req.MaxPrice,
+		"deliveryMethod":   req.DeliveryMethod,
+		"paymentMethod":    req.PaymentMethod,
+		"deliveryAddress":  req.DeliveryAddress,
+		"deliveryDateFrom": timeFromProtoIfNotZero(req.DeliveryDateFrom),
+		"deliveryDateTo":   timeFromProtoIfNotZero(req.DeliveryDateTo),
+		"minItemsAmount":   req.MinItemsAmount,
+		"maxItemsAmount":   req.MaxItemsAmount,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	resp := &api.SearchOrdersResponse{
+		Orders: converter.FromDomainToProto_Orders(orders),
+	}
+
+	return resp, nil
 }
 
 func (h *ItemHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrderRequest) (*api.CompleteOrderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	oid, err := uuid.Parse(req.GetOrderId())
+	if err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	err = h.service.CompleteOrder(ctx, oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.CompleteOrderResponse{}, nil
 }
 
 func (h *ItemHandler) CancelOrder(ctx context.Context, req *api.CancelOrderRequest) (*api.CancelOrderResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "not implemented")
+	oid, err := uuid.Parse(req.GetOrderId())
+	if err != nil {
+		return nil, domain.ErrInvalidUUID
+	}
+
+	err = h.service.CancelOrder(ctx, oid)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.CancelOrderResponse{}, nil
+}
+
+// This func checks if input time of proto type is zero. If it - returns nil time.
+//
+// Using because when you use t.AsTime() it applies 1970-01-01 00:00:00 +0000 UTC. Idk why.
+// TODO видимо отчет из-за устройства чисел..? узнать почему.
+func timeFromProtoIfNotZero(t *timestamppb.Timestamp) time.Time {
+	if t == nil || (t.Nanos == 0 && t.Seconds == 0) {
+		return time.Time{}
+	}
+	return t.AsTime()
 }

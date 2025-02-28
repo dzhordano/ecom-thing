@@ -100,35 +100,16 @@ func (p *ProductService) GetById(ctx context.Context, id uuid.UUID) (*domain.Pro
 	return product, nil
 }
 
-func (p *ProductService) SearchProducts(ctx context.Context, filters map[string]any, limit, offset uint64) ([]*domain.Product, error) {
-	q, ok := filters["query"].(*string)
-	if !ok {
-		q = nil
-	}
+func (p *ProductService) SearchProducts(ctx context.Context, filters map[string]any) ([]*domain.Product, error) {
 
-	c, ok := filters["category"].(*string)
-	if !ok {
-		c = nil
-	}
+	params := domain.NewSearchParams(filters)
 
-	mn, ok := filters["minPrice"].(*float64)
-	if !ok {
-		mn = nil
-	}
-
-	mx, ok := filters["maxPrice"].(*float64)
-	if !ok {
-		mx = nil
-	}
-
-	options := domain.NewSearchOptions(q, c, mn, mx)
-
-	if err := options.Validate(); err != nil {
+	if err := params.Validate(); err != nil {
 		p.log.Error("failed to search products", zap.Error(err))
 		return nil, err
 	}
 
-	products, err := p.repo.Search(ctx, options, limit, offset)
+	products, err := p.repo.Search(ctx, params)
 	if err != nil {
 		p.log.Error("failed to search products", zap.Error(err))
 		return nil, errors.Unwrap(err)

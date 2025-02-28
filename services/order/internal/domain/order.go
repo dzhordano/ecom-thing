@@ -10,6 +10,12 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	MaxDescriptionLength = 255
+
+	MinAddressLength = 5
+)
+
 // Ошибки для валидации.
 var (
 	ErrOrderNotFound         = errors.New("order not found")
@@ -17,6 +23,8 @@ var (
 	ErrInvalidCurrency       = errors.New("invalid currency")
 	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
 	ErrInvalidDeliveryMethod = errors.New("invalid delivery method")
+	ErrInvalidArgument       = errors.New("invalid argument")
+	ErrInvalidDescription    = errors.New("invalid description")
 
 	ErrInternal               = errors.New("internal error")
 	ErrInvalidUUID            = errors.New("invalid uuid")
@@ -26,6 +34,9 @@ var (
 	ErrInvalidDeliveryDate    = errors.New("invalid delivery date")
 	ErrInvalidOrderItems      = errors.New("invalid order items")
 
+	ErrOrderAlreadyCompleted = errors.New("order already completed")
+	ErrOrderAlreadyCancelled = errors.New("order already cancelled")
+
 	ErrCouponExpired  = errors.New("coupon expired")
 	ErrCouponNotFound = errors.New("coupon not found")
 )
@@ -33,6 +44,7 @@ var (
 type Order struct {
 	ID              uuid.UUID
 	UserID          uuid.UUID
+	Description     string
 	Status          Status
 	Currency        Currency
 	TotalPrice      float64
@@ -45,7 +57,7 @@ type Order struct {
 	UpdatedAt       time.Time
 }
 
-func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscount float64,
+func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice, totalDiscount float64,
 	paymentMethod, deliveryMethod, deliveryAddress string, deliveryDate time.Time,
 	items Items) (*Order, error) {
 
@@ -78,6 +90,7 @@ func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscou
 	o := &Order{
 		ID:              orderId,
 		UserID:          userId,
+		Description:     description,
 		Status:          s,
 		Currency:        c,
 		TotalPrice:      ApplyDiscountTo(totalPrice, totalDiscount),
@@ -100,12 +113,16 @@ func NewOrder(userId uuid.UUID, status, currency string, totalPrice, totalDiscou
 func (o *Order) Validate() error {
 	var err error
 
+	if len(o.Description) > MaxDescriptionLength {
+		err = errors.Join(err, ErrInvalidDescription)
+	}
+
 	if o.TotalPrice < 0 {
 		err = errors.Join(err, ErrInvalidPrice)
 	}
 
 	// TODO Нужен REGEX или что-то такое. Мб вообще проверять на существование такой улицы...
-	if len(o.DeliveryAddress) < 2 {
+	if len(o.DeliveryAddress) < MinAddressLength {
 		err = errors.Join(err, ErrInvalidDeliveryAddress)
 	}
 

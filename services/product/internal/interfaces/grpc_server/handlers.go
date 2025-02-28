@@ -87,7 +87,9 @@ func (h *ProductHandler) SearchProducts(ctx context.Context, req *api.SearchProd
 		"category": req.Category,
 		"minPrice": req.MinPrice,
 		"maxPrice": req.MaxPrice,
-	}, req.GetLimit(), req.GetOffset())
+		"limit":    req.Limit,
+		"offset":   req.Offset,
+	})
 	if err != nil {
 		return nil, err
 	}

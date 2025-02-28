@@ -17,7 +17,7 @@ type OrderService interface {
 	UpdateOrder(ctx context.Context, info dto.UpdateOrderRequest) (*domain.Order, error)
 	DeleteOrder(ctx context.Context, orderId uuid.UUID) error
 
-	Search(ctx context.Context, filters map[string]any) ([]*domain.Order, error) // TODO Своя структура вместо any
+	SearchOrders(ctx context.Context, filters map[string]any) ([]*domain.Order, error) // TODO Своя структура вместо any
 	CompleteOrder(ctx context.Context, orderId uuid.UUID) error
 	CancelOrder(ctx context.Context, orderId uuid.UUID) error
 }

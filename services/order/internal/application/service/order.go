@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
@@ -10,6 +11,7 @@ import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain/repository"
 	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 type OrderService struct {
@@ -46,6 +48,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 
 	order, err := domain.NewOrder(
 		uuid.New(), // FIXME Щас рандомный пользотель. Потом получать из контекста.
+		info.Description,
 		domain.OrderPending.String(),
 		info.Currency,
 		info.TotalPrice,
@@ -92,8 +95,23 @@ func (o *OrderService) ListByUser(ctx context.Context, limit uint64, offset uint
 }
 
 // Search implements interfaces.OrderService.
-func (o *OrderService) Search(ctx context.Context, filters map[string]any) ([]*domain.Order, error) {
-	panic("unimplemented")
+func (o *OrderService) SearchOrders(ctx context.Context, filters map[string]any) ([]*domain.Order, error) {
+	params := domain.NewSearchParams(filters)
+
+	if err := params.Validate(); err != nil {
+		o.log.Error("failed to search orders", zap.Error(err))
+		return nil, err
+	}
+
+	orders, err := o.repo.Search(ctx, params)
+	if err != nil {
+		o.log.Error("failed to search orders", zap.Error(err))
+		return nil, errors.Unwrap(err)
+	}
+
+	o.log.Debug("orders retrieved", zap.Int("count", len(orders)))
+
+	return orders, nil
 }
 
 // UpdateOrder implements interfaces.OrderService.
@@ -104,6 +122,10 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	}
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	if info.Description != nil {
+		order.Description = *info.Description
+	}
 
 	if info.Status != nil {
 		s, err := domain.NewStatus(*info.Status)
@@ -187,6 +209,10 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
 
+	if order.Status == domain.OrderCancelled {
+		return domain.ErrOrderAlreadyCancelled
+	}
+
 	order.Status = domain.OrderCompleted
 	order.UpdatedAt = time.Now()
 
@@ -205,6 +231,10 @@ func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error
 	}
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	if order.Status == domain.OrderCompleted {
+		return domain.ErrOrderAlreadyCompleted
+	}
 
 	order.Status = domain.OrderCancelled
 	order.UpdatedAt = time.Now()

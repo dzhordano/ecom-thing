@@ -14,5 +14,5 @@ type ProductService interface {
 	DeactivateProduct(ctx context.Context, id uuid.UUID) (*domain.Product, error)
 
 	GetById(ctx context.Context, id uuid.UUID) (*domain.Product, error)
-	SearchProducts(ctx context.Context, filters map[string]any, limit, offset uint64) ([]*domain.Product, error)
+	SearchProducts(ctx context.Context, filters map[string]any) ([]*domain.Product, error)
 }

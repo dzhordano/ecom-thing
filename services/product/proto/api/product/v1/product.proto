@@ -63,8 +63,8 @@ message SearchProductsRequest {
   optional string category = 2;
   optional double min_price = 3;
   optional double max_price = 4;
-  uint64 limit = 5;
-  uint64 offset = 6;
+  optional uint64 limit = 5;
+  optional uint64 offset = 6;
 }
 
 message SearchProductsResponse {

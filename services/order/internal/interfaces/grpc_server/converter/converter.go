@@ -1,6 +1,8 @@
 package converter
 
 import (
+	"fmt"
+
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
 	order_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/order/v1"
 	"github.com/google/uuid"
@@ -8,9 +10,12 @@ import (
 )
 
 func FromDomainToProto_Order(order *domain.Order) *order_v1.Order {
+	fmt.Printf("ORDER %+v\n\n\n\n\n\n", order)
+
 	return &order_v1.Order{
 		OrderId:         order.ID.String(),
 		UserId:          order.UserID.String(),
+		Description:     order.Description,
 		Status:          order.Status.String(),
 		Currency:        order.Currency.String(),
 		TotalPrice:      order.TotalPrice,
@@ -33,11 +38,20 @@ func FromDomainToProto_Order(order *domain.Order) *order_v1.Order {
 	}
 }
 
+func FromDomainToProto_Orders(orders []*domain.Order) []*order_v1.Order {
+	var result []*order_v1.Order
+	for _, order := range orders {
+		result = append(result, FromDomainToProto_Order(order))
+	}
+	return result
+}
+
 // FromDomainToProto_OrderWItems is same as FromDomainToProto_Order but with items for better performance.
 func FromDomainToProto_OrderWItems(order *domain.Order, items []*order_v1.Item) *order_v1.Order {
 	return &order_v1.Order{
 		OrderId:         order.ID.String(),
 		UserId:          order.UserID.String(),
+		Description:     order.Description,
 		Status:          order.Status.String(),
 		Currency:        order.Currency.String(),
 		TotalPrice:      order.TotalPrice,

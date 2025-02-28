@@ -147,36 +147,34 @@ func (p ProductRepository) GetById(ctx context.Context, id uuid.UUID) (*domain.P
 	return &product, nil
 }
 
-func (p ProductRepository) Search(ctx context.Context, options domain.SearchOptions, limit, offset uint64) ([]*domain.Product, error) {
+func (p ProductRepository) Search(ctx context.Context, params domain.SearchParams) ([]*domain.Product, error) {
 	const op = "repository.ProductRepository.Search"
 
 	selectBuilder := sq.Select("id", "name", "description", "category", "is_active", "price", "created_at", "updated_at").
 		From(productsTableName).
-		PlaceholderFormat(sq.Dollar)
+		PlaceholderFormat(sq.Dollar).
+		Offset(params.Offset).
+		Limit(params.Limit)
 
-	if options.Query != nil {
+	if params.Query != nil {
 		selectBuilder = selectBuilder.Where(sq.Or{
-			sq.Like{"name": fmt.Sprintf("%%%s%%", *options.Query)},
-			sq.Like{"description": fmt.Sprintf("%%%s%%", *options.Query)},
-			sq.Like{"category": fmt.Sprintf("%%%s%%", *options.Query)},
+			sq.Like{"name": fmt.Sprintf("%%%s%%", *params.Query)},
+			sq.Like{"description": fmt.Sprintf("%%%s%%", *params.Query)},
+			sq.Like{"category": fmt.Sprintf("%%%s%%", *params.Query)},
 		})
 	}
 
-	if options.Category != nil {
-		selectBuilder = selectBuilder.Where(sq.Eq{"category": *options.Category})
+	if params.Category != nil {
+		selectBuilder = selectBuilder.Where(sq.Eq{"category": *params.Category})
 	}
 
-	if options.MinPrice != nil {
-		selectBuilder = selectBuilder.Where(sq.GtOrEq{"price": *options.MinPrice})
+	if params.MinPrice != nil {
+		selectBuilder = selectBuilder.Where(sq.GtOrEq{"price": *params.MinPrice})
 	}
 
-	if options.MaxPrice != nil {
-		selectBuilder = selectBuilder.Where(sq.LtOrEq{"price": *options.MaxPrice})
+	if params.MaxPrice != nil {
+		selectBuilder = selectBuilder.Where(sq.LtOrEq{"price": *params.MaxPrice})
 	}
-
-	selectBuilder = selectBuilder.
-		Offset(offset).
-		Limit(limit)
 
 	query, args, err := selectBuilder.ToSql()
 	if err != nil {

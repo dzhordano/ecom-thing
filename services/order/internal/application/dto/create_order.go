@@ -7,6 +7,7 @@ import (
 )
 
 type CreateOrderRequest struct {
+	Description     string
 	Currency        string
 	TotalPrice      float64
 	Coupon          string

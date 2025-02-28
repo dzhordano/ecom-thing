@@ -2,7 +2,6 @@ package migrate
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"path/filepath"
 	"runtime"
@@ -21,8 +20,6 @@ func MustMigrateUpWithNoChange(url string) {
 	projectDir := filepath.Join(currDir, "..", "..")
 
 	migrationsPath := filepath.Join(projectDir, "migrations")
-
-	fmt.Println("m", migrationsPath, "\nurl", url)
 
 	m, err := migrate.New("file://"+migrationsPath, url)
 	if err != nil {

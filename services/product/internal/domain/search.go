@@ -7,35 +7,63 @@ import (
 
 const (
 	MaxQueryLength = 256
+
+	MaxLimit = 100
+
+	DefaultLimit  = 20
+	DefaultOffset = 0
 )
 
-type SearchOptions struct {
+type SearchParams struct {
 	Query    *string
 	Category *string
 	MinPrice *float64
 	MaxPrice *float64
+	Limit    uint64
+	Offset   uint64
 }
 
-func NewSearchOptions(query *string, category *string, minPrice *float64, maxPrice *float64) SearchOptions {
-	s := SearchOptions{}
+func NewSearchParams(filters map[string]any) SearchParams {
+	s := SearchParams{}
 
-	if query != nil {
-		s.Query = query
+	q, ok := filters["query"].(*string)
+	if ok {
+		s.Query = q
 	}
-	if category != nil {
-		s.Category = category
+
+	c, ok := filters["category"].(*string)
+	if ok {
+		s.Category = c
 	}
-	if minPrice != nil {
-		s.MinPrice = minPrice
+
+	mn, ok := filters["minPrice"].(*float64)
+	if ok {
+		s.MinPrice = mn
 	}
-	if maxPrice != nil {
-		s.MaxPrice = maxPrice
+
+	mx, ok := filters["maxPrice"].(*float64)
+	if ok {
+		s.MaxPrice = mx
+	}
+
+	l := filters["limit"].(*uint64)
+	if l != nil {
+		s.Limit = min(*l, MaxLimit)
+	} else {
+		s.Limit = DefaultLimit
+	}
+
+	o := filters["offset"].(*uint64)
+	if o != nil {
+		s.Offset = *o
+	} else {
+		s.Offset = DefaultOffset
 	}
 
 	return s
 }
 
-func (o *SearchOptions) Validate() error {
+func (o *SearchParams) Validate() error {
 	var errs []string
 
 	if o.Query != nil && (*o.Query == "" || len(*o.Query) > MaxQueryLength) {

@@ -41,12 +41,14 @@ message Order {
   string order_id = 1;
   // UUID.
   string user_id = 2;
+  // Order description.
+  string description = 3;
   // Order status.
-  string status = 3;
+  string status = 4;
   // Order currency.
-  string currency = 4;
+  string currency = 5;
   // Total price in order currency.
-  double total_price = 5;
+  double total_price = 6;
   // Payment method.
   string payment_method = 7;
   // Delivery method.
@@ -65,22 +67,24 @@ message Order {
 
 // CreateOrderRequest is a request to create a new order.
 message CreateOrderRequest {
+  // Order description.
+  optional string description = 1;
   // Order currency.
-  string currency = 1;
+  string currency = 2;
   // Total price in order currency.
-  double total_price = 2;
+  double total_price = 3;
   // Coupon for discount.
-  optional string coupon = 3;
+  optional string coupon = 4;
   // Payment method.
-  string payment_method = 4;
+  string payment_method = 5;
   // Delivery method.
-  string delivery_method = 5;
+  string delivery_method = 6;
   // Delivery address.
-  string delivery_address = 6;
+  string delivery_address = 7;
   // Delivery date.
-  google.protobuf.Timestamp delivery_date = 7;
+  google.protobuf.Timestamp delivery_date = 8;
   // Order items.
-  repeated Item items = 8;
+  repeated Item items = 9;
 }
 
 // CreateOrderResponse is a response to create a new order.
@@ -119,20 +123,22 @@ message ListOrdersResponse {
 message UpdateOrderRequest {
   // UUID.
   string order_id = 1;
-  // Order currency.
-  optional string status = 2;
+  // Order description.
+  optional string description = 2;
+  // Order status.
+  optional string status = 3;
   // Total price in order currency.
-  optional double total_price = 3;
+  optional double total_price = 4;
   // Payment method.
-  optional string payment_method = 4;
+  optional string payment_method = 5;
   // Delivery method.
-  optional string delivery_method = 5;
+  optional string delivery_method = 6;
   // Delivery address.
-  optional string delivery_address = 6;
+  optional string delivery_address = 7;
   // Delivery date.
-  optional google.protobuf.Timestamp delivery_date = 7;
+  optional google.protobuf.Timestamp delivery_date = 8;
   // Order items.
-  repeated Item items = 8;
+  repeated Item items = 9;
 }
 
 // UpdateOrderResponse is a response to update an order.
@@ -153,21 +159,35 @@ message DeleteOrderResponse {}
 // SearchOrdersRequest is a request to search orders.
 message SearchOrdersRequest {
   // Limit.
-  uint64 limit = 1;
+  optional uint64 limit = 1;
   // Offset.
-  uint64 offset = 2;
+  optional uint64 offset = 2;
   // Status.
-  optional string status = 3;
+  optional string query = 3;
+  // Order description.
+  optional string description = 4;
+  // Status.
+  optional string status = 5;
   // Currency.
-  optional string currency = 4;
-  // Payment method.
-  optional string payment_method = 5;
+  optional string currency = 6;
+  // Order's total price min from.
+  optional double min_price = 7;
+  // Order's total price max to.
+  optional double max_price = 8;
+  // Payment method in order.
+  optional string payment_method = 9;
   // Delivery method.
-  optional string delivery_method = 6;
+  optional string delivery_method = 10;
   // Delivery address.
-  optional string delivery_address = 7;
-  // Delivery date.
-  optional google.protobuf.Timestamp delivery_date = 8;
+  optional string delivery_address = 11;
+  // Delivery date from.
+  optional google.protobuf.Timestamp delivery_date_from = 12;
+  // Delivery date to.
+  optional google.protobuf.Timestamp delivery_date_to = 13;
+  // Min items amount.
+  optional uint64 min_items_amount = 14;
+  // Max items amount.
+  optional uint64 max_items_amount = 15;
 }
 
 // SearchOrdersResponse is a response to search orders.

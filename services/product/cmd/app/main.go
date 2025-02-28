@@ -59,7 +59,6 @@ func main() {
 	signal.Notify(q, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
 
 	go func() {
-		log.Info("starting grpc server")
 		if err := server.Run(); err != nil {
 			log.Error("failed to run grpc server", zap.Error(err))
 		}

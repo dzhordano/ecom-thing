@@ -9,6 +9,7 @@ import (
 
 type UpdateOrderRequest struct {
 	OrderID         uuid.UUID
+	Description     *string
 	Status          *string
 	TotalPrice      *float64
 	PaymentMethod   *string

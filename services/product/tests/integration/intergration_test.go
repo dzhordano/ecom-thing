@@ -177,7 +177,7 @@ func (s *IntegrationSuite) TestC_SearchProducts() {
 		context.Background(),
 		map[string]any{
 			"query": ptrVal("Dummy"),
-		}, 10, 0)
+		})
 
 	if s.Assert().NoError(err) {
 		s.Assert().Len(resp1, 2)
@@ -187,7 +187,7 @@ func (s *IntegrationSuite) TestC_SearchProducts() {
 		context.Background(),
 		map[string]any{
 			"query": ptrVal("1"),
-		}, 10, 0)
+		})
 
 	if s.Assert().NoError(err) {
 		s.Assert().Len(resp2, 1)
@@ -197,7 +197,7 @@ func (s *IntegrationSuite) TestC_SearchProducts() {
 		context.Background(),
 		map[string]any{
 			"category": ptrVal("Dummy2"),
-		}, 10, 0)
+		})
 
 	if s.Assert().NoError(err) {
 		s.Assert().Len(resp3, 1)
@@ -207,7 +207,7 @@ func (s *IntegrationSuite) TestC_SearchProducts() {
 		context.Background(),
 		map[string]any{
 			"minPrice": ptrVal(10.09),
-		}, 10, 0)
+		})
 
 	if s.Assert().NoError(err) {
 		s.Assert().Len(resp4, 3)
@@ -217,11 +217,13 @@ func (s *IntegrationSuite) TestC_SearchProducts() {
 		context.Background(),
 		map[string]any{
 			"maxPrice": ptrVal(10.11),
-		}, 10, 0)
+		})
 
 	if s.Assert().NoError(err) {
 		s.Assert().Len(resp5, 2)
 	}
+
+	// TODO With offset
 }
 
 func (s *IntegrationSuite) TestD_UpdateProduct() {
