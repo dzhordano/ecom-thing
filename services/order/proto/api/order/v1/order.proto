@@ -71,20 +71,18 @@ message CreateOrderRequest {
   optional string description = 1;
   // Order currency.
   string currency = 2;
-  // Total price in order currency.
-  double total_price = 3;
   // Coupon for discount.
-  optional string coupon = 4;
+  optional string coupon = 3;
   // Payment method.
-  string payment_method = 5;
+  string payment_method = 4;
   // Delivery method.
-  string delivery_method = 6;
+  string delivery_method = 5;
   // Delivery address.
-  string delivery_address = 7;
+  string delivery_address = 6;
   // Delivery date.
-  google.protobuf.Timestamp delivery_date = 8;
+  google.protobuf.Timestamp delivery_date = 7;
   // Order items.
-  repeated Item items = 9;
+  repeated Item items = 8;
 }
 
 // CreateOrderResponse is a response to create a new order.

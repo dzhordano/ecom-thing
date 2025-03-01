@@ -27,4 +27,6 @@ var (
 	ErrCouponExpired   = errors.New("coupon expired")
 	ErrCouponNotFound  = errors.New("coupon not found")
 	ErrCouponNotActive = errors.New("coupon not active")
+
+	ErrProductUnavailable = errors.New("product unavailable")
 )

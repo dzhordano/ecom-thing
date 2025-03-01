@@ -21,3 +21,16 @@ type OrderService interface {
 	CompleteOrder(ctx context.Context, orderId uuid.UUID) error
 	CancelOrder(ctx context.Context, orderId uuid.UUID) error
 }
+
+type ProductService interface {
+	GetProductInfo(ctx context.Context, orderId uuid.UUID) (float64, bool, error)
+}
+
+type InventoryService interface {
+	// Lock product quantity.
+	ReserveQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
+	// Release reserved product quantity
+	ReleaseQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
+	// Release and subtract quantity.
+	SubReservedQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
+}

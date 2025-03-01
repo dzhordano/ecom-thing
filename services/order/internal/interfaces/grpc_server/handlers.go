@@ -2,7 +2,6 @@ package grpc_server
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
@@ -33,12 +32,9 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 		return nil, err
 	}
 
-	fmt.Println("DESCRIPTION", req.GetDescription())
-
 	info := dto.CreateOrderRequest{
 		Description:     req.GetDescription(),
 		Currency:        req.GetCurrency(),
-		TotalPrice:      req.GetTotalPrice(),
 		Coupon:          req.GetCoupon(),
 		PaymentMethod:   req.GetPaymentMethod(),
 		DeliveryMethod:  req.GetDeliveryMethod(),

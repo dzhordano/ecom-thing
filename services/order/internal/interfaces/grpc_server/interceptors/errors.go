@@ -35,6 +35,8 @@ var (
 		domain.ErrCouponExpired:   codes.InvalidArgument,
 		domain.ErrCouponNotFound:  codes.InvalidArgument,
 		domain.ErrCouponNotActive: codes.InvalidArgument,
+
+		domain.ErrProductUnavailable: codes.NotFound,
 	}
 )
 

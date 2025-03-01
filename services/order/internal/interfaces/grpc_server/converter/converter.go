@@ -1,8 +1,6 @@
 package converter
 
 import (
-	"fmt"
-
 	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
 	order_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/order/v1"
 	"github.com/google/uuid"
@@ -10,8 +8,6 @@ import (
 )
 
 func FromDomainToProto_Order(order *domain.Order) *order_v1.Order {
-	fmt.Printf("ORDER %+v\n\n\n\n\n\n", order)
-
 	return &order_v1.Order{
 		OrderId:         order.ID.String(),
 		UserId:          order.UserID.String(),

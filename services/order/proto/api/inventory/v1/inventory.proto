@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package api.inventory.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1;inventory_v1";
+
+// InventoryService provides basic operations with product inventory.
+service InventoryService {
+  // GetItem returns Item object with requested id.
+  rpc GetItem(GetItemRequest) returns (GetItemResponse);
+  // AddQuantity adds quantity to the product. If the product is not present, it will be created with the given quantity.
+  rpc AddQuantity(AddQuantityRequest) returns (google.protobuf.Empty);
+  // SubQuantity subtracts quantity from the product.
+  rpc SubQuantity(SubQuantityRequest) returns (google.protobuf.Empty);
+  // Reserve certain amount of product quantity.
+  rpc LockQuantity(LockQuantityRequest) returns (google.protobuf.Empty);
+  // Release certain amount of product quantity that is reserved.
+  rpc UnlockQuantity(UnlockQuantityRequest) returns (google.protobuf.Empty);
+  // Subtract certain amount of product quantity that is reserved.
+  rpc SubLockedQuantity(SubQuantityRequest) returns (google.protobuf.Empty);
+}
+
+// Item represents an item in the inventory.
+message Item {
+  // UUID of the product.
+  string product_id = 1;
+  // Available quantity of the product.
+  uint64 available_quantity = 2;
+  // Reserved (locked) quantity of the product.
+  uint64 reserved_quantity = 3;
+}
+
+// Takes UUID of the item.
+message GetItemRequest {
+  // UUID.
+  string id = 1;
+}
+
+// Returns Item object with requested id.
+message GetItemResponse {
+  // Item object.
+  Item item = 1;
+}
+
+// Takes UUID of the item and quantity to add.
+message AddQuantityRequest {
+  // UUID.
+  string id = 1;
+  // Quantity to add.
+  uint64 quantity = 2;
+}
+
+// Takes UUID of the item and quantity to subtract.
+message SubQuantityRequest {
+  // UUID.
+  string id = 1;
+  // Quantity to subtract.
+  uint64 quantity = 2;
+}
+
+// Takes UUID of the item and quantity to lock (reserve).
+message LockQuantityRequest {
+  // UUID.
+  string id = 1;
+  // Quantity to lock.
+  uint64 quantity = 2;
+}
+
+// Takes UUID of the item and quantity to unlock (release).
+message UnlockQuantityRequest {
+  // UUID.
+  string id = 1;
+  // Quantity to unlock.
+  uint64 quantity = 2;
+}
+
+// Takes UUID of the item and quantity to subtract.
+message SubLockedQuantityRequest {
+  // UUID.
+  string id = 1;
+  // Quantity to subtract.
+  uint64 quantity = 2;
+}

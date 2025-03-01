@@ -127,8 +127,6 @@ func NewSearchParams(filters map[string]any) SearchParams {
 func (o *SearchParams) Validate() error {
 	var errs []string
 
-	fmt.Println("HERE 1")
-
 	if o.Query != nil && (*o.Query == "" || len(*o.Query) > MaxQueryLength) {
 		errs = append(errs, "invalid query")
 	}

@@ -45,7 +45,7 @@ func NewZapLogger(logLvl string, outputPaths, errOutputPaths []string) BaseLogge
 	zapConfig.Development = true                       // TODO убрать хардкод
 	zapConfig.Encoding = "json"                        // TODO хардкод
 	zapConfig.InitialFields = map[string]interface{}{} // TODO
-	zapConfig.OutputPaths = outputPaths                // TODO добавлять также вывод в файл, если указан флаг в контрукторе
+	zapConfig.OutputPaths = outputPaths
 	zapConfig.ErrorOutputPaths = errOutputPaths
 	logger, err := zapConfig.Build()
 

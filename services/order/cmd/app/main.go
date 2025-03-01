@@ -5,6 +5,8 @@ import (
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/order/internal/config"
+	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/grpc/inventory"
+	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/grpc/product"
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/order/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
@@ -12,7 +14,7 @@ import (
 )
 
 // TODO to finish
-// клиенты. метрики. трейсы. тесты. деплой. очередь.
+// клиенты. трейсы. тесты. деплой. очередь (после payment apiшки).
 // улучшить логгер.
 
 func main() {
@@ -21,13 +23,23 @@ func main() {
 
 	cfg := config.MustNew()
 
-	log := logger.NewZapLogger(cfg.LogLevel, []string{"stdout"}, []string{"stderr"}) // FIXME опять хардкод
+	// WARNING.
+	// When specifying file path for logs to save, logger WONT create a file.
+	log := logger.NewZapLogger(
+		cfg.Logger.Level,
+		cfg.Logger.OutputPaths,
+		cfg.Logger.ErrorOutputPaths,
+	)
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 
 	repo := pg.NewOrderRepository(db)
 
-	svc := service.NewOrderService(log, repo)
+	ps := product.NewProductClient("localhost:50002")
+
+	is := inventory.NewInventoryClient("localhost:50001")
+
+	svc := service.NewOrderService(log, ps, is, repo)
 
 	handler := grpc_server.NewItemHandler(svc)
 

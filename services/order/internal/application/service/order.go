@@ -15,23 +15,28 @@ import (
 )
 
 type OrderService struct {
-	log  logger.BaseLogger
-	repo repository.OrderRepository
+	log              logger.BaseLogger
+	productService   interfaces.ProductService
+	inventoryService interfaces.InventoryService
+	repo             repository.OrderRepository
 }
 
-func NewOrderService(log logger.BaseLogger, repo repository.OrderRepository) interfaces.OrderService {
+func NewOrderService(l logger.BaseLogger, ps interfaces.ProductService, is interfaces.InventoryService, r repository.OrderRepository) interfaces.OrderService {
 	return &OrderService{
-		log:  log,
-		repo: repo,
+		log:              l,
+		productService:   ps,
+		inventoryService: is,
+		repo:             r,
 	}
 }
 
 // CreateOrder implements interfaces.OrderService.
 func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequest) (*domain.Order, error) {
 	disc := &domain.Coupon{}
+	var err error
 
 	if info.Coupon != "" {
-		disc, err := o.repo.GetCoupon(ctx, info.Coupon)
+		disc, err = o.repo.GetCoupon(ctx, info.Coupon)
 		if err != nil {
 			o.log.Error("failed to get coupon", zap.Error(err))
 			return nil, err
@@ -50,12 +55,28 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		}
 	}
 
+	var totalPrice float64
+	for _, item := range info.Items {
+		price, isActive, err := o.productService.GetProductInfo(ctx, item.ProductID)
+		if err != nil {
+			o.log.Error("failed to get product info", zap.Error(err))
+			return nil, err
+		}
+
+		if !isActive {
+			o.log.Error("failed to get product info", zap.Error(domain.ErrProductUnavailable))
+			return nil, domain.ErrProductUnavailable
+		}
+
+		totalPrice += float64(item.Quantity) * price
+	}
+
 	order, err := domain.NewOrder(
 		uuid.New(), // FIXME Щас рандомный пользотель. Потом получать из контекста.
 		info.Description,
 		domain.OrderPending.String(),
 		info.Currency,
-		info.TotalPrice,
+		totalPrice,
 		disc.Discount,
 		info.PaymentMethod,
 		info.DeliveryMethod,
@@ -68,8 +89,22 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		return nil, domain.ErrInternal // Internal так как не хочу давать контекста туда куда-то.
 	}
 
+	for _, item := range info.Items {
+		if err := o.inventoryService.ReserveQuantity(ctx, item.ProductID, item.Quantity); err != nil {
+			o.log.Error("failed to reserve product", zap.Error(err))
+			return nil, err
+		}
+	}
+
 	if err = o.repo.Save(ctx, order); err != nil {
 		o.log.Error("failed to save order", zap.Error(err))
+
+		for _, item := range info.Items {
+			if err := o.inventoryService.ReleaseQuantity(ctx, item.ProductID, item.Quantity); err != nil {
+				o.log.Error("failed to release product", zap.Error(err))
+			}
+		}
+
 		return nil, err
 	}
 
