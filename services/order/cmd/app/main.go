@@ -14,7 +14,7 @@ import (
 )
 
 // TODO to finish
-// клиенты. трейсы. тесты. деплой. очередь (после payment apiшки).
+// трейсы. тесты. деплой. очередь (после payment apiшки).
 // улучшить логгер.
 
 func main() {
@@ -35,9 +35,9 @@ func main() {
 
 	repo := pg.NewOrderRepository(db)
 
-	ps := product.NewProductClient("localhost:50002")
+	ps := product.NewProductClient(cfg.GRPCProduct.Addr())
 
-	is := inventory.NewInventoryClient("localhost:50001")
+	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr())
 
 	svc := service.NewOrderService(log, ps, is, repo)
 

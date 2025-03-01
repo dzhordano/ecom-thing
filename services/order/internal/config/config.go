@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"net"
 	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
@@ -11,7 +12,9 @@ import (
 type Config struct {
 	Environment      string `env:"APP_ENV" env-default:"local"`
 	Logger           LoggerConfig
-	GRPC             GRPCConfig
+	GRPC             GRPCServiceConfig   `env-prefix:"GRPC_"`
+	GRPCProduct      GRPCProductConfig   `env-prefix:"GRPC_PRODUCT_"`
+	GRPCInventory    GRPCInventoryConfig `env-prefix:"GRPC_INVENTORY_"`
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
@@ -25,13 +28,25 @@ type LoggerConfig struct {
 	Encoding         string   `env:"LOG_ENCODING" env-default:"console"`
 }
 
-type GRPCConfig struct {
-	Host string `env:"GRPC_HOST" env-default:"localhost"`
-	Port string `env:"GRPC_PORT"`
+// Базовая конфигурация для gRPC-сервисов.
+type GRPCServiceConfig struct {
+	Host string `env:"HOST" env-default:"localhost"`
+	Port string `env:"PORT"`
 }
 
-func (g *GRPCConfig) Addr() string {
-	return g.Host + ":" + g.Port
+// Addr возвращает корректно сформированный адрес.
+func (g GRPCServiceConfig) Addr() string {
+	return net.JoinHostPort(g.Host, g.Port)
+}
+
+// Если нужно, можно определить отдельные типы для разных сервисов,
+// чтобы задать им разные env-теги.
+type GRPCProductConfig struct {
+	GRPCServiceConfig
+}
+
+type GRPCInventoryConfig struct {
+	GRPCServiceConfig
 }
 
 // TODO maybe порт тестовой бд тоже нужен

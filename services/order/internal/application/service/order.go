@@ -19,6 +19,7 @@ type OrderService struct {
 	productService   interfaces.ProductService
 	inventoryService interfaces.InventoryService
 	repo             repository.OrderRepository
+	// kafkaQueue    someInterface..?
 }
 
 func NewOrderService(l logger.BaseLogger, ps interfaces.ProductService, is interfaces.InventoryService, r repository.OrderRepository) interfaces.OrderService {
@@ -287,6 +288,13 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 	order.Status = domain.OrderCompleted
 	order.UpdatedAt = time.Now()
 
+	for _, item := range order.Items {
+		if err := o.inventoryService.SubReservedQuantity(ctx, item.ProductID, item.Quantity); err != nil {
+			o.log.Error("failed to complete order", zap.Error(err))
+			return err
+		}
+	}
+
 	if err := o.repo.Update(ctx, order); err != nil {
 		o.log.Error("failed to complete order", zap.Error(err))
 		return err
@@ -314,6 +322,13 @@ func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error
 
 	order.Status = domain.OrderCancelled
 	order.UpdatedAt = time.Now()
+
+	for _, item := range order.Items {
+		if err := o.inventoryService.ReleaseQuantity(ctx, item.ProductID, item.Quantity); err != nil {
+			o.log.Error("failed to cancel order", zap.Error(err))
+			return err
+		}
+	}
 
 	if err := o.repo.Update(ctx, order); err != nil {
 		o.log.Error("failed to cancel order", zap.Error(err))
