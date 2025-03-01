@@ -11,14 +11,18 @@ import (
 	"go.uber.org/zap"
 )
 
+// TODO to finish
+// клиенты. метрики. трейсы. тесты. деплой. очередь.
+// улучшить логгер.
+
 func main() {
 
 	ctx := context.Background()
 
 	cfg := config.MustNew()
-	// Logger
+
 	log := logger.NewZapLogger(cfg.LogLevel, []string{"stdout"}, []string{"stderr"}) // FIXME опять хардкод
-	// Deps
+
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 
 	repo := pg.NewOrderRepository(db)
@@ -28,8 +32,9 @@ func main() {
 	handler := grpc_server.NewItemHandler(svc)
 
 	srv := grpc_server.MustNew(log, handler,
-		grpc_server.WithAddr(cfg.GRPC.Addr()))
-	// Run
+		grpc_server.WithAddr(cfg.GRPC.Addr()),
+	)
+
 	if err := srv.Run(); err != nil {
 		log.Panic("errors running grpc server", zap.Error(err))
 	}

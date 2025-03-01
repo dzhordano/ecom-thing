@@ -16,31 +16,6 @@ const (
 	MinAddressLength = 5
 )
 
-// Ошибки для валидации.
-var (
-	ErrOrderNotFound         = errors.New("order not found")
-	ErrInvalidOrderStatus    = errors.New("invalid order status")
-	ErrInvalidCurrency       = errors.New("invalid currency")
-	ErrInvalidPaymentMethod  = errors.New("invalid payment method")
-	ErrInvalidDeliveryMethod = errors.New("invalid delivery method")
-	ErrInvalidArgument       = errors.New("invalid argument")
-	ErrInvalidDescription    = errors.New("invalid description")
-
-	ErrInternal               = errors.New("internal error")
-	ErrInvalidUUID            = errors.New("invalid uuid")
-	ErrInvalidPrice           = errors.New("invalid price")
-	ErrInvalidDiscount        = errors.New("invalid discount")
-	ErrInvalidDeliveryAddress = errors.New("invalid delivery address")
-	ErrInvalidDeliveryDate    = errors.New("invalid delivery date")
-	ErrInvalidOrderItems      = errors.New("invalid order items")
-
-	ErrOrderAlreadyCompleted = errors.New("order already completed")
-	ErrOrderAlreadyCancelled = errors.New("order already cancelled")
-
-	ErrCouponExpired  = errors.New("coupon expired")
-	ErrCouponNotFound = errors.New("coupon not found")
-)
-
 type Order struct {
 	ID              uuid.UUID
 	UserID          uuid.UUID
@@ -83,8 +58,7 @@ func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice
 
 	orderId, err := uuid.NewUUID()
 	if err != nil {
-		// FIXME Логировать ТУТ ЖБ.
-		return nil, ErrInternal
+		return nil, err
 	}
 
 	o := &Order{

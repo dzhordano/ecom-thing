@@ -28,21 +28,25 @@ func NewOrderService(log logger.BaseLogger, repo repository.OrderRepository) int
 
 // CreateOrder implements interfaces.OrderService.
 func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequest) (*domain.Order, error) {
-	var disc *domain.Coupon
-	var err error
+	disc := &domain.Coupon{}
 
-	if info.Coupon == "" {
-		disc = &domain.Coupon{
-			Discount: 0,
-		}
-	} else {
-		disc, err = o.repo.GetCoupon(ctx, info.Coupon)
+	if info.Coupon != "" {
+		disc, err := o.repo.GetCoupon(ctx, info.Coupon)
 		if err != nil {
+			o.log.Error("failed to get coupon", zap.Error(err))
 			return nil, err
 		}
 
+		// Если купон просрочен - ошибка.
 		if disc.ValidTo.Before(time.Now()) {
+			o.log.Error("failed to get coupon", zap.Error(domain.ErrCouponExpired))
 			return nil, domain.ErrCouponExpired
+		}
+
+		// Купон есть, но не активен.
+		if disc.ValidFrom.After(time.Now()) {
+			o.log.Error("failed to get coupon", zap.Error(domain.ErrCouponNotActive))
+			return nil, domain.ErrCouponNotActive
 		}
 	}
 
@@ -60,12 +64,16 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		info.Items,
 	)
 	if err != nil {
+		o.log.Error("failed to create order", zap.Error(err))
+		return nil, domain.ErrInternal // Internal так как не хочу давать контекста туда куда-то.
+	}
+
+	if err = o.repo.Save(ctx, order); err != nil {
+		o.log.Error("failed to save order", zap.Error(err))
 		return nil, err
 	}
 
-	if err := o.repo.Save(ctx, order); err != nil {
-		return nil, err
-	}
+	o.log.Debug("order created", zap.String("order_id", order.ID.String()))
 
 	return order, nil
 }
@@ -74,10 +82,13 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 func (o *OrderService) GetById(ctx context.Context, orderId uuid.UUID) (*domain.Order, error) {
 	order, err := o.repo.GetById(ctx, orderId.String())
 	if err != nil {
+		o.log.Error("failed to get order", zap.Error(err))
 		return nil, err
 	}
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
+
+	o.log.Debug("order retrieved", zap.String("order_id", order.ID.String()))
 
 	return order, nil
 }
@@ -88,10 +99,19 @@ func (o *OrderService) ListByUser(ctx context.Context, limit uint64, offset uint
 
 	randUUID, err := uuid.NewRandom()
 	if err != nil {
+		o.log.Error("failed to list orders", zap.Error(err))
 		return nil, err
 	}
 
-	return o.repo.ListByUser(ctx, randUUID.String())
+	orders, err := o.repo.ListByUser(ctx, randUUID.String())
+	if err != nil {
+		o.log.Error("failed to list orders", zap.Error(err))
+		return nil, err
+	}
+
+	o.log.Debug("orders retrieved", zap.Int("count", len(orders)))
+
+	return orders, nil
 }
 
 // Search implements interfaces.OrderService.
@@ -118,6 +138,7 @@ func (o *OrderService) SearchOrders(ctx context.Context, filters map[string]any)
 func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequest) (*domain.Order, error) {
 	order, err := o.repo.GetById(ctx, info.OrderID.String())
 	if err != nil {
+		o.log.Error("failed to update order", zap.Error(err))
 		return nil, err
 	}
 
@@ -130,8 +151,10 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	if info.Status != nil {
 		s, err := domain.NewStatus(*info.Status)
 		if err != nil {
+			o.log.Error("failed to update order", zap.Error(err))
 			return nil, err
 		}
+
 		order.Status = s
 	}
 
@@ -142,6 +165,7 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	if info.PaymentMethod != nil {
 		pm, err := domain.NewPaymentMethod(*info.PaymentMethod)
 		if err != nil {
+			o.log.Error("failed to update order", zap.Error(err))
 			return nil, err
 		}
 		order.PaymentMethod = pm
@@ -150,6 +174,7 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	if info.DeliveryMethod != nil {
 		dm, err := domain.NewDeliveryMethod(*info.DeliveryMethod)
 		if err != nil {
+			o.log.Error("failed to update order", zap.Error(err))
 			return nil, err
 		}
 		order.DeliveryMethod = dm
@@ -169,12 +194,16 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 
 	// Допроверить поля на валидность.
 	if err = order.Validate(); err != nil {
+		o.log.Error("failed to update order", zap.Error(err))
 		return nil, err
 	}
 
 	if err := o.repo.Update(ctx, order); err != nil {
+		o.log.Error("failed to update order", zap.Error(err))
 		return nil, err
 	}
+
+	o.log.Debug("order updated", zap.String("order_id", order.ID.String()))
 
 	return order, nil
 }
@@ -183,10 +212,12 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 func (o *OrderService) DeleteOrder(ctx context.Context, orderId uuid.UUID) error {
 	order, err := o.repo.GetById(ctx, orderId.String())
 	if err != nil {
+		o.log.Error("failed to delete order", zap.Error(err))
 		return err
 	}
 
 	// Чтобы компилятор не жаловался...
+	// FIXME не забыть убрать
 	if order.ID == uuid.Nil {
 		return domain.ErrOrderNotFound
 	}
@@ -194,8 +225,11 @@ func (o *OrderService) DeleteOrder(ctx context.Context, orderId uuid.UUID) error
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
 
 	if err := o.repo.Delete(ctx, orderId.String()); err != nil {
+		o.log.Error("failed to delete order", zap.Error(err))
 		return err
 	}
+
+	o.log.Debug("order deleted", zap.String("order_id", order.ID.String()))
 
 	return nil
 }
@@ -204,12 +238,14 @@ func (o *OrderService) DeleteOrder(ctx context.Context, orderId uuid.UUID) error
 func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) error {
 	order, err := o.repo.GetById(ctx, orderId.String())
 	if err != nil {
+		o.log.Error("failed to complete order", zap.Error(err))
 		return err
 	}
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
 
 	if order.Status == domain.OrderCancelled {
+		o.log.Error("failed to complete order", zap.Error(domain.ErrOrderAlreadyCancelled))
 		return domain.ErrOrderAlreadyCancelled
 	}
 
@@ -217,8 +253,11 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 	order.UpdatedAt = time.Now()
 
 	if err := o.repo.Update(ctx, order); err != nil {
+		o.log.Error("failed to complete order", zap.Error(err))
 		return err
 	}
+
+	o.log.Debug("order completed", zap.String("order_id", order.ID.String()))
 
 	return nil
 }
@@ -227,12 +266,14 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error {
 	order, err := o.repo.GetById(ctx, orderId.String())
 	if err != nil {
+		o.log.Error("failed to cancel order", zap.Error(err))
 		return err
 	}
 
 	// FIXME Тут проверка на принадлежность пользователю. Получение Id пользователя из контекста.
 
 	if order.Status == domain.OrderCompleted {
+		o.log.Error("failed to cancel order", zap.Error(domain.ErrOrderAlreadyCompleted))
 		return domain.ErrOrderAlreadyCompleted
 	}
 
@@ -240,8 +281,11 @@ func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error
 	order.UpdatedAt = time.Now()
 
 	if err := o.repo.Update(ctx, order); err != nil {
+		o.log.Error("failed to cancel order", zap.Error(err))
 		return err
 	}
+
+	o.log.Debug("order cancelled", zap.String("order_id", order.ID.String()))
 
 	return nil
 }

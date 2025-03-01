@@ -161,6 +161,9 @@ func (o *OrderRepository) Update(ctx context.Context, order *domain.Order) error
 
 	_, err = o.db.Exec(ctx, query, args...)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -183,6 +186,9 @@ func (o *OrderRepository) Delete(ctx context.Context, orderId string) error {
 
 	_, err = o.db.Exec(ctx, query, args...)
 	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+		}
 		return fmt.Errorf("%s: %w", op, err)
 	}
 
@@ -329,6 +335,9 @@ func parseItems(order *domain.Order, items []string) {
 	}
 }
 
+// Эта функция подразумевает уже "правильный" ввод, так как поле заведомо валидно.
+//
+// НЕ использовать если это не так.
 func uint64FromString(s string) uint64 {
 	i, _ := strconv.ParseUint(s, 10, 64)
 	return i
