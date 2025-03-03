@@ -18,6 +18,9 @@ import (
 var (
 	ordersTable  = "orders"
 	couponsTable = "coupons"
+	outboxTable  = "outbox"
+
+	kafkaOrdersTopic = "orders-events"
 )
 
 type OrderRepository struct {
@@ -31,27 +34,46 @@ func NewOrderRepository(db *pgxpool.Pool) repository.OrderRepository {
 }
 
 // Save implements repository.OrderRepository.
+//
+// TODO Tx IMPROVE BRUDDA
 func (o *OrderRepository) Save(ctx context.Context, order *domain.Order) error {
 	const op = "repository.OrderRepository.Create"
 
-	insertQuery := sq.Insert(ordersTable).
-		Columns("id", "user_id", "description", "status", "currency", "total_price", "payment_method",
-			"delivery_method", "delivery_address", "delivery_date", "items", "created_at", "updated_at").
-		Values(order.ID.String(), order.UserID.String(), order.Description, order.Status, order.Currency, order.TotalPrice, order.PaymentMethod,
-			order.DeliveryMethod, order.DeliveryAddress, order.DeliveryDate, order.Items, order.CreatedAt, order.UpdatedAt).
-		PlaceholderFormat(sq.Dollar)
+	return o.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		insertQuery := sq.Insert(ordersTable).
+			Columns("id", "user_id", "description", "status", "currency", "total_price", "payment_method",
+				"delivery_method", "delivery_address", "delivery_date", "items", "created_at", "updated_at").
+			Values(order.ID.String(), order.UserID.String(), order.Description, order.Status, order.Currency, order.TotalPrice, order.PaymentMethod,
+				order.DeliveryMethod, order.DeliveryAddress, order.DeliveryDate, order.Items, order.CreatedAt, order.UpdatedAt).
+			PlaceholderFormat(sq.Dollar)
 
-	query, args, err := insertQuery.ToSql()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
+		query, args, err := insertQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
 
-	_, err = o.db.Exec(ctx, query, args...)
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
 
-	return nil
+		insertQuery = sq.Insert(outboxTable).
+			Columns("order_id", "topic", "event_type", "currency", "total_price").
+			Values(order.ID.String(), kafkaOrdersTopic, "created", order.Currency, order.TotalPrice).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insertQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return nil
+	})
 }
 
 // GetById implements repository.OrderRepository.
@@ -140,34 +162,36 @@ func (o *OrderRepository) ListByUser(ctx context.Context, userId string) ([]*dom
 func (o *OrderRepository) Update(ctx context.Context, order *domain.Order) error {
 	const op = "repository.OrderRepository.Update"
 
-	updateQuery := sq.Update(ordersTable).
-		Set("description", order.Description).
-		Set("status", order.Status).
-		Set("currency", order.Currency).
-		Set("total_price", order.TotalPrice).
-		Set("payment_method", order.PaymentMethod).
-		Set("delivery_method", order.DeliveryMethod).
-		Set("delivery_address", order.DeliveryAddress).
-		Set("delivery_date", order.DeliveryDate).
-		Set("items", order.Items).
-		Set("updated_at", order.UpdatedAt).
-		Where(sq.Eq{"id": order.ID}).
-		PlaceholderFormat(sq.Dollar)
+	return o.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		updateQuery := sq.Update(ordersTable).
+			Set("description", order.Description).
+			Set("status", order.Status).
+			Set("currency", order.Currency).
+			Set("total_price", order.TotalPrice).
+			Set("payment_method", order.PaymentMethod).
+			Set("delivery_method", order.DeliveryMethod).
+			Set("delivery_address", order.DeliveryAddress).
+			Set("delivery_date", order.DeliveryDate).
+			Set("items", order.Items).
+			Set("updated_at", order.UpdatedAt).
+			Where(sq.Eq{"id": order.ID}).
+			PlaceholderFormat(sq.Dollar)
 
-	query, args, err := updateQuery.ToSql()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	_, err = o.db.Exec(ctx, query, args...)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+		query, args, err := updateQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
 		}
-		return fmt.Errorf("%s: %w", op, err)
-	}
 
-	return nil
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+			}
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return nil
+	})
 }
 
 // TODO Тут пока просто удаляем.
@@ -175,24 +199,26 @@ func (o *OrderRepository) Update(ctx context.Context, order *domain.Order) error
 func (o *OrderRepository) Delete(ctx context.Context, orderId string) error {
 	const op = "repository.OrderRepository.Delete"
 
-	deleteQuery := sq.Delete(ordersTable).
-		Where(sq.Eq{"id": orderId}).
-		PlaceholderFormat(sq.Dollar)
+	return o.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		deleteQuery := sq.Delete(ordersTable).
+			Where(sq.Eq{"id": orderId}).
+			PlaceholderFormat(sq.Dollar)
 
-	query, args, err := deleteQuery.ToSql()
-	if err != nil {
-		return fmt.Errorf("%s: %w", op, err)
-	}
-
-	_, err = o.db.Exec(ctx, query, args...)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+		query, args, err := deleteQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
 		}
-		return fmt.Errorf("%s: %w", op, err)
-	}
 
-	return nil
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				return fmt.Errorf("%s: %w", op, domain.ErrOrderNotFound)
+			}
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		return nil
+	})
 }
 
 // GetCoupon implements repository.OrderRepository.
@@ -341,4 +367,20 @@ func parseItems(order *domain.Order, items []string) {
 func uint64FromString(s string) uint64 {
 	i, _ := strconv.ParseUint(s, 10, 64)
 	return i
+}
+
+func (o *OrderRepository) withTx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
+	tx, err := o.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(ctx, tx); err != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return rbErr
+		}
+		return err
+	}
+
+	return tx.Commit(ctx)
 }

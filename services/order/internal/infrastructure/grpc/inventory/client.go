@@ -34,8 +34,8 @@ func NewInventoryClient(addr string) interfaces.InventoryService {
 }
 
 // ReserveQuantity implements interfaces.InventoryService.
-func (i *inventoryClient) ReserveQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := i.c.LockQuantity(ctx, &inventory_v1.LockQuantityRequest{
+func (c *inventoryClient) ReserveQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
+	_, err := c.c.LockQuantity(ctx, &inventory_v1.LockQuantityRequest{
 		Id:       id.String(),
 		Quantity: quantity,
 	})
@@ -44,8 +44,8 @@ func (i *inventoryClient) ReserveQuantity(ctx context.Context, id uuid.UUID, qua
 }
 
 // ReleaseQuantity implements interfaces.InventoryService.
-func (i *inventoryClient) ReleaseQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := i.c.UnlockQuantity(ctx, &inventory_v1.UnlockQuantityRequest{
+func (c *inventoryClient) ReleaseQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
+	_, err := c.c.UnlockQuantity(ctx, &inventory_v1.UnlockQuantityRequest{
 		Id:       id.String(),
 		Quantity: quantity,
 	})
@@ -54,8 +54,8 @@ func (i *inventoryClient) ReleaseQuantity(ctx context.Context, id uuid.UUID, qua
 }
 
 // SubReservedQuantity implements interfaces.InventoryService.
-func (i *inventoryClient) SubReservedQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := i.c.SubLockedQuantity(ctx, &inventory_v1.SubQuantityRequest{
+func (c *inventoryClient) SubReservedQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
+	_, err := c.c.SubLockedQuantity(ctx, &inventory_v1.SubQuantityRequest{
 		Id:       id.String(),
 		Quantity: quantity,
 	})

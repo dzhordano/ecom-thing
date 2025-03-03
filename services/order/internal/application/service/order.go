@@ -19,7 +19,6 @@ type OrderService struct {
 	productService   interfaces.ProductService
 	inventoryService interfaces.InventoryService
 	repo             repository.OrderRepository
-	// kafkaQueue    someInterface..?
 }
 
 func NewOrderService(l logger.BaseLogger, ps interfaces.ProductService, is interfaces.InventoryService, r repository.OrderRepository) interfaces.OrderService {

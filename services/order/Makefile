@@ -25,4 +25,9 @@ test.load:
 	-d '{"order_id": "00000000-0000-0000-0000-000000000001"}' \
 	localhost:50003
 
+generate.mocks.handlers:
+	@mockgen -source=internal/application/interfaces/order.go -destination=internal/interfaces/grpc/mocks/mocks.go
+	@mockgen -source=internal/application/interfaces/order.go -destination=internal/interfaces/grpc/mocks/mocks.go
+	@mockgen -source=internal/application/interfaces/order.go -destination=internal/interfaces/grpc/mocks/mocks.go
+	
 .PHONY: init.db stop.db exec.db migrate.up migrate.down

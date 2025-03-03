@@ -29,18 +29,31 @@ CREATE TABLE IF NOT EXISTS coupons(
   valid_to TIMESTAMP NOT NULL
 );
 
+-- OUTBOX TABLE 
+-- TODO думаю лучше тут не генерить значения
+CREATE TABLE IF NOT EXISTS outbox (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL,
+  topic VARCHAR(100) NOT NULL,
+  event_type VARCHAR(100) NOT NULL,
+  currency VARCHAR(255) NOT NULL,
+  total_price DECIMAL(10, 2) NOT NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT now(),
+  processed_at TIMESTAMP
+);
+
 
 -- test coupon
-INSERT INTO coupons (id, code, discount, valid_from, valid_to)
-VALUES (1, 'TEST', 50.0, '2025-01-01 00:00:00', '2025-12-31 23:59:59');
+-- INSERT INTO coupons (id, code, discount, valid_from, valid_to)
+-- VALUES (1, 'TEST', 50.0, '2025-01-01 00:00:00', '2025-12-31 23:59:59');
 
 -- test order
-INSERT INTO orders (id, user_id, description, status, currency, total_price, payment_method, delivery_method, delivery_address, delivery_date, items, created_at, updated_at)
-VALUES ('00000000-0000-0000-0000-000000000001',
- '00000000-0000-0000-0000-000000000002',
- 'Test Description For Test Order Bruh Test Test Test Test Test',
- 'pending', 'RUB', 100.00, 'card', 'standard', 'Address', '2077-01-01 00:00:00',
- ARRAY[
-  ('00000000-0000-0000-0000-000000000003',1), 
-  ('00000000-0000-0000-0000-000000000004',2)]::item[],
-  '2025-01-01 00:00:00', '2025-01-01 00:00:00');
+-- INSERT INTO orders (id, user_id, description, status, currency, total_price, payment_method, delivery_method, delivery_address, delivery_date, items, created_at, updated_at)
+-- VALUES ('00000000-0000-0000-0000-000000000001',
+--  '00000000-0000-0000-0000-000000000002',
+--  'Test Description For Test Order Bruh Test Test Test Test Test',
+--  'pending', 'RUB', 100.00, 'card', 'standard', 'Address', '2077-01-01 00:00:00',
+--  ARRAY[
+--   ('00000000-0000-0000-0000-000000000003',1), 
+--   ('00000000-0000-0000-0000-000000000004',2)]::item[],
+--   '2025-01-01 00:00:00', '2025-01-01 00:00:00');
