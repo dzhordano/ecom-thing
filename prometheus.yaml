@@ -15,3 +15,7 @@ scrape_configs:
     honor_labels: true
     static_configs:
       - targets: ['localhost:50002']
+  - job_name: "order-app"
+    honor_labels: true
+    static_configs:
+      - targets: ['localhost:50003']

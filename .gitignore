@@ -24,4 +24,6 @@
 *.env
 *.idea
 
-*.bin/
+*.bin
+*logs
+TODO.md

@@ -57,7 +57,7 @@ func WithRateLimiter(limit, burst int) Option {
 func WithCircuitBreakerSettings(maxRequests uint32, interval, timeout time.Duration) Option {
 	return func(s *Server) {
 		s.cb = &gobreaker.Settings{
-			Name:        "product-app-cb",
+			Name:        "inventory-app-cb",
 			MaxRequests: maxRequests,
 			Interval:    interval,
 			Timeout:     timeout,

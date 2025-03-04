@@ -14,6 +14,15 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	// Operations used in inventory service here. Idk maybe fix, looks bad enough.
+	OperationAdd       = "add"
+	OperationSub       = "sub"
+	OperationLock      = "lock"
+	OperationUnlock    = "unlock"
+	OperationSubLocked = "sub_locked"
+)
+
 type OrderService struct {
 	log              logger.BaseLogger
 	productService   interfaces.ProductService
@@ -89,20 +98,24 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		return nil, domain.ErrInternal // Internal так как не хочу давать контекста туда куда-то.
 	}
 
+	items := map[string]uint64{}
 	for _, item := range info.Items {
-		if err := o.inventoryService.ReserveQuantity(ctx, item.ProductID, item.Quantity); err != nil {
-			o.log.Error("failed to reserve product", zap.Error(err))
-			return nil, err
-		}
+		items[item.ProductID.String()] = item.Quantity
+	}
+
+	// FIXME THIS ADDS TON OF INCOSISTENCY.
+	//
+	// Сделать через outbox. (pub: inventory-events -> reservation-request) в outbox.go
+	if err := o.inventoryService.SetItemsWithOp(ctx, items, OperationLock); err != nil {
+		o.log.Error("failed to reserve product", zap.Error(err))
+		return nil, err
 	}
 
 	if err = o.repo.Save(ctx, order); err != nil {
 		o.log.Error("failed to save order", zap.Error(err))
 
-		for _, item := range info.Items {
-			if err := o.inventoryService.ReleaseQuantity(ctx, item.ProductID, item.Quantity); err != nil {
-				o.log.Error("failed to release product", zap.Error(err))
-			}
+		if err := o.inventoryService.SetItemsWithOp(ctx, items, OperationUnlock); err != nil {
+			o.log.Error("failed to remove reserved product", zap.Error(err))
 		}
 
 		return nil, err
@@ -287,11 +300,21 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 	order.Status = domain.OrderCompleted
 	order.UpdatedAt = time.Now()
 
+	// for _, item := range order.Items {
+	// 	if err := o.inventoryService.SubReservedQuantity(ctx, item.ProductID, item.Quantity); err != nil {
+	// 		o.log.Error("failed to complete order", zap.Error(err))
+	// 		return err
+	// 	}
+	// }
+
+	items := map[string]uint64{}
 	for _, item := range order.Items {
-		if err := o.inventoryService.SubReservedQuantity(ctx, item.ProductID, item.Quantity); err != nil {
-			o.log.Error("failed to complete order", zap.Error(err))
-			return err
-		}
+		items[item.ProductID.String()] = item.Quantity
+	}
+
+	if err = o.inventoryService.SetItemsWithOp(ctx, items, OperationSubLocked); err != nil {
+		o.log.Error("failed to complete order", zap.Error(err))
+		return err
 	}
 
 	if err := o.repo.Update(ctx, order); err != nil {
@@ -322,13 +345,15 @@ func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error
 	order.Status = domain.OrderCancelled
 	order.UpdatedAt = time.Now()
 
+	items := map[string]uint64{}
 	for _, item := range order.Items {
-		if err := o.inventoryService.ReleaseQuantity(ctx, item.ProductID, item.Quantity); err != nil {
-			o.log.Error("failed to cancel order", zap.Error(err))
-			return err
-		}
+		items[item.ProductID.String()] = item.Quantity
 	}
 
+	if err = o.inventoryService.SetItemsWithOp(ctx, items, OperationUnlock); err != nil {
+		o.log.Error("failed to complete order", zap.Error(err))
+		return err
+	}
 	if err := o.repo.Update(ctx, order); err != nil {
 		o.log.Error("failed to cancel order", zap.Error(err))
 		return err

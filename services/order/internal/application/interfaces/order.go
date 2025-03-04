@@ -27,10 +27,5 @@ type ProductService interface {
 }
 
 type InventoryService interface {
-	// Lock product quantity.
-	ReserveQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
-	// Release reserved product quantity
-	ReleaseQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
-	// Release and subtract quantity.
-	SubReservedQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error
+	SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error
 }

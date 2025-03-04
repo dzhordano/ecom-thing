@@ -58,7 +58,7 @@ func (op *OutboxProcessor) Start(ctx context.Context) {
 func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	tx, err := op.db.Begin(ctx)
 	if err != nil {
-		op.log.Error("Failed to start transaction", zap.Error(err))
+		op.log.Error("failed to start transaction", zap.Error(err))
 		return
 	}
 

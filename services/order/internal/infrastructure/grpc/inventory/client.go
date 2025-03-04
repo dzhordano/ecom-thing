@@ -6,7 +6,6 @@ import (
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
 	inventory_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/inventory/v1"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -33,32 +32,42 @@ func NewInventoryClient(addr string) interfaces.InventoryService {
 	}
 }
 
-// ReserveQuantity implements interfaces.InventoryService.
-func (c *inventoryClient) ReserveQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := c.c.LockQuantity(ctx, &inventory_v1.LockQuantityRequest{
-		Id:       id.String(),
-		Quantity: quantity,
+// SetItemsWithOp implements interfaces.InventoryService.
+func (i *inventoryClient) SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error {
+	_, err := i.c.SetItems(ctx, &inventory_v1.SetItemsRequest{
+		OperationType: operationToProtoType(op),
+		Items:         convertMapToItemOPs(items),
 	})
-
 	return err
 }
 
-// ReleaseQuantity implements interfaces.InventoryService.
-func (c *inventoryClient) ReleaseQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := c.c.UnlockQuantity(ctx, &inventory_v1.UnlockQuantityRequest{
-		Id:       id.String(),
-		Quantity: quantity,
-	})
-
-	return err
+// Convert map with UUID's and quantities to []*ItemOP.
+//
+// This does NOT check if the UUID is valid.
+func convertMapToItemOPs(items map[string]uint64) []*inventory_v1.ItemOP {
+	ops := make([]*inventory_v1.ItemOP, 0, len(items))
+	for id, quantity := range items {
+		ops = append(ops, &inventory_v1.ItemOP{
+			ProductId: id,
+			Quantity:  quantity,
+		})
+	}
+	return ops
 }
 
-// SubReservedQuantity implements interfaces.InventoryService.
-func (c *inventoryClient) SubReservedQuantity(ctx context.Context, id uuid.UUID, quantity uint64) error {
-	_, err := c.c.SubLockedQuantity(ctx, &inventory_v1.SubQuantityRequest{
-		Id:       id.String(),
-		Quantity: quantity,
-	})
-
-	return err
+func operationToProtoType(op string) inventory_v1.OperationType {
+	switch op {
+	case "add":
+		return inventory_v1.OperationType_OPERATION_TYPE_ADD
+	case "sub":
+		return inventory_v1.OperationType_OPERATION_TYPE_SUB
+	case "lock":
+		return inventory_v1.OperationType_OPERATION_TYPE_LOCK
+	case "unlock":
+		return inventory_v1.OperationType_OPERATION_TYPE_UNLOCK
+	case "sub_locked":
+		return inventory_v1.OperationType_OPERATION_TYPE_SUB_LOCKED
+	default:
+		return inventory_v1.OperationType_OPERATION_TYPE_ADD
+	}
 }

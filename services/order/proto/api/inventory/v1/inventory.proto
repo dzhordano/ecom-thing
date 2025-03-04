@@ -2,24 +2,16 @@ syntax = "proto3";
 
 package api.inventory.v1;
 
-import "google/protobuf/empty.proto";
-
-option go_package = "dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1;inventory_v1";
+option go_package = "dzhordano/ecom-thing/services/order/pkg/api/inventory/v1;inventory_v1";
 
 // InventoryService provides basic operations with product inventory.
 service InventoryService {
   // GetItem returns Item object with requested id.
   rpc GetItem(GetItemRequest) returns (GetItemResponse);
-  // AddQuantity adds quantity to the product. If the product is not present, it will be created with the given quantity.
-  rpc AddQuantity(AddQuantityRequest) returns (google.protobuf.Empty);
-  // SubQuantity subtracts quantity from the product.
-  rpc SubQuantity(SubQuantityRequest) returns (google.protobuf.Empty);
-  // Reserve certain amount of product quantity.
-  rpc LockQuantity(LockQuantityRequest) returns (google.protobuf.Empty);
-  // Release certain amount of product quantity that is reserved.
-  rpc UnlockQuantity(UnlockQuantityRequest) returns (google.protobuf.Empty);
-  // Subtract certain amount of product quantity that is reserved.
-  rpc SubLockedQuantity(SubQuantityRequest) returns (google.protobuf.Empty);
+  // SetItem sets (according to provided operation) Item'm quantity amount for requested id.
+  rpc SetItem(SetItemRequest) returns (SetItemResponse);
+  // SetItems works like SetItem, but for multiple items.
+  rpc SetItems(SetItemsRequest) returns (SetItemsResponse);
 }
 
 // Item represents an item in the inventory.
@@ -30,6 +22,34 @@ message Item {
   uint64 available_quantity = 2;
   // Reserved (locked) quantity of the product.
   uint64 reserved_quantity = 3;
+}
+
+// ItemOP represents an item in the inventory with quantity.
+//
+// Used for perforimng operations (adding, subtracting, locking, unlocking).
+message ItemOP {
+  // UUID of the product.
+  string product_id = 1;
+  // Quantity of the product.
+  uint64 quantity = 2;
+}
+
+// Operation type represents operation that is going to be performed.
+//
+// Used for perforimng operations (adding, subtracting, locking, unlocking) on the item's quantity.
+enum OperationType {
+  // Unspecified.
+  OPERATION_TYPE_UNSPECIFIED = 0;
+  // Add item quantity.
+  OPERATION_TYPE_ADD = 1;
+  // Subtract item quantity.
+  OPERATION_TYPE_SUB = 2;
+  // Lock item quantity.
+  OPERATION_TYPE_LOCK = 3;
+  // Unlock item quantity.
+  OPERATION_TYPE_UNLOCK = 4;
+  // Subtract locked item quantity.
+  OPERATION_TYPE_SUB_LOCKED = 5;
 }
 
 // Takes UUID of the item.
@@ -44,42 +64,24 @@ message GetItemResponse {
   Item item = 1;
 }
 
-// Takes UUID of the item and quantity to add.
-message AddQuantityRequest {
-  // UUID.
-  string id = 1;
-  // Quantity to add.
-  uint64 quantity = 2;
+// Takes UUID of the item and quantity to set.
+message SetItemRequest {
+  // Items with UUID and quantity to set.
+  ItemOP item = 1;
+  // Operation type.
+  OperationType operation_type = 2;
 }
 
-// Takes UUID of the item and quantity to subtract.
-message SubQuantityRequest {
-  // UUID.
-  string id = 1;
-  // Quantity to subtract.
-  uint64 quantity = 2;
+// Empty.
+message SetItemResponse {}
+
+// Takes UUID of the item and quantity to set.
+message SetItemsRequest {
+  // Items with UUID and quantity to set.
+  repeated ItemOP items = 1;
+  // Operation type.
+  OperationType operation_type = 2;
 }
 
-// Takes UUID of the item and quantity to lock (reserve).
-message LockQuantityRequest {
-  // UUID.
-  string id = 1;
-  // Quantity to lock.
-  uint64 quantity = 2;
-}
-
-// Takes UUID of the item and quantity to unlock (release).
-message UnlockQuantityRequest {
-  // UUID.
-  string id = 1;
-  // Quantity to unlock.
-  uint64 quantity = 2;
-}
-
-// Takes UUID of the item and quantity to subtract.
-message SubLockedQuantityRequest {
-  // UUID.
-  string id = 1;
-  // Quantity to subtract.
-  uint64 quantity = 2;
-}
+// Empty.
+message SetItemsResponse {}

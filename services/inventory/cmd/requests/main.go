@@ -30,9 +30,12 @@ func main() {
 	// t, ccl := context.WithTimeout(context.Background(), 2*time.Second)
 	// defer ccl()
 
-	_, err = c.AddQuantity(context.Background(), &inventory_v1.AddQuantityRequest{
-		Id:       "00000000-0000-0000-0000-000000000000",
-		Quantity: 1,
+	_, err = c.SetItem(context.Background(), &inventory_v1.SetItemRequest{
+		Item: &inventory_v1.ItemOP{
+			ProductId: "00000000-0000-0000-0000-000000000000",
+			Quantity:  1,
+		},
+		OperationType: inventory_v1.OperationType_OPERATION_TYPE_ADD,
 	})
 	if err != nil {
 		panic(err)
@@ -46,9 +49,12 @@ func main() {
 
 		defer wg.Done()
 		for i := 0; i < 25000; i++ {
-			_, err = c.AddQuantity(context.Background(), &inventory_v1.AddQuantityRequest{
-				Id:       "00000000-0000-0000-0000-000000000000",
-				Quantity: 1,
+			_, err = c.SetItem(context.Background(), &inventory_v1.SetItemRequest{
+				Item: &inventory_v1.ItemOP{
+					ProductId: "00000000-0000-0000-0000-000000000000",
+					Quantity:  1,
+				},
+				OperationType: inventory_v1.OperationType_OPERATION_TYPE_ADD,
 			})
 			if err != nil {
 				fmt.Println("failed to create grpc:", err)

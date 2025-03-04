@@ -68,7 +68,7 @@ test.integration:
 		exit $$RESULT'
 
 test.load:
-	@ghz --insecure --proto proto/api/product/v1/product.proto --call product.v1.ProductServiceV1/GetProduct \
+	@ghz --insecure --proto proto/api/product/v1/product.proto --call api.product.v1.ProductService/GetProduct \
 	--rps 100 --total 3000 \
 	-d '{"id": "0cea4c9f-e4bd-11ef-8035-0242ac120005"}' \
 	localhost:50001

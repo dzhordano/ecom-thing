@@ -153,8 +153,8 @@ func (p ProductRepository) Search(ctx context.Context, params domain.SearchParam
 	selectBuilder := sq.Select("id", "name", "description", "category", "is_active", "price", "created_at", "updated_at").
 		From(productsTableName).
 		PlaceholderFormat(sq.Dollar).
-		Offset(params.Offset).
-		Limit(params.Limit)
+		Limit(params.Limit).
+		Offset(params.Offset)
 
 	if params.Query != nil {
 		selectBuilder = selectBuilder.Where(sq.Or{

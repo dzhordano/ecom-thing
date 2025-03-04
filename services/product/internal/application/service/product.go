@@ -101,7 +101,6 @@ func (p *ProductService) GetById(ctx context.Context, id uuid.UUID) (*domain.Pro
 }
 
 func (p *ProductService) SearchProducts(ctx context.Context, filters map[string]any) ([]*domain.Product, error) {
-
 	params := domain.NewSearchParams(filters)
 
 	if err := params.Validate(); err != nil {

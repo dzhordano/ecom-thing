@@ -8,6 +8,9 @@ import (
 	"github.com/IBM/sarama"
 )
 
+// TODO сделать async
+// как использовать partitions?
+
 type OrdersProducer interface {
 	Produce(topic string, partition int32, values map[string]any) error
 }

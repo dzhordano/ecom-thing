@@ -7,8 +7,18 @@ import (
 )
 
 var (
+	ErrOperationUnknown  = errors.New("operation unknown")
 	ErrProductNotFound   = errors.New("product not found")
 	ErrNotEnoughQuantity = errors.New("not enough quantity")
+)
+
+const (
+	OperationAdd       = "add"
+	OperationSub       = "sub"
+	OperationLock      = "lock"
+	OperationUnlock    = "unlock"
+	OperationSubLocked = "sub_locked"
+	OperationUnknown   = "unknown"
 )
 
 type Item struct {
@@ -17,10 +27,11 @@ type Item struct {
 	ReservedQuantity  uint64
 }
 
-func NewItem(productID uuid.UUID, availableQuantity uint64) *Item {
+func NewItem(productID uuid.UUID) *Item {
 	return &Item{
 		ProductID:         productID,
-		AvailableQuantity: availableQuantity,
+		AvailableQuantity: 0,
+		ReservedQuantity:  0,
 	}
 }
 

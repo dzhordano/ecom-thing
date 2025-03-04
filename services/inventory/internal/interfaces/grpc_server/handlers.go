@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
+	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server/converter"
 	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type ItemHandler struct {
@@ -39,68 +39,36 @@ func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (*ap
 	}, nil
 }
 
-func (h *ItemHandler) AddQuantity(ctx context.Context, req *api.AddQuantityRequest) (*emptypb.Empty, error) {
-	itemId, err := parseUUID(req.GetId())
+func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*api.SetItemResponse, error) {
+	itemId, err := parseUUID(req.Item.GetProductId())
 	if err != nil {
 		return nil, err
 	}
 
-	if err = h.service.AddItemQuantity(ctx, itemId, req.GetQuantity()); err != nil {
+	err = h.service.SetItemWithOp(ctx, itemId, req.Item.GetQuantity(), protoOpToString(req.OperationType))
+	if err != nil {
 		return nil, err
 	}
 
-	return &emptypb.Empty{}, nil
+	return &api.SetItemResponse{}, nil
 }
 
-func (h *ItemHandler) SubQuantity(ctx context.Context, req *api.SubQuantityRequest) (*emptypb.Empty, error) {
-	itemId, err := parseUUID(req.GetId())
+func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*api.SetItemsResponse, error) {
+	pItems := map[string]uint64{}
+	for _, item := range req.Items {
+		if err := validUUID(item.GetProductId()); err != nil {
+			return nil, err
+		}
+
+		pItems[item.ProductId] = item.GetQuantity()
+	}
+
+	err := h.service.SetItemsWithOp(ctx, pItems, protoOpToString(req.OperationType))
 	if err != nil {
 		return nil, err
 	}
 
-	if err = h.service.SubItemQuantity(ctx, itemId, req.GetQuantity()); err != nil {
-		return nil, err
-	}
-
-	return &emptypb.Empty{}, nil
-}
-
-func (h *ItemHandler) LockQuantity(ctx context.Context, req *api.LockQuantityRequest) (*emptypb.Empty, error) {
-	itemId, err := parseUUID(req.GetId())
-	if err != nil {
-		return nil, err
-	}
-	if err = h.service.LockItemQuantity(ctx, itemId, req.GetQuantity()); err != nil {
-		return nil, err
-	}
-
-	return &emptypb.Empty{}, nil
-}
-
-func (h *ItemHandler) UnlockQuantity(ctx context.Context, req *api.UnlockQuantityRequest) (*emptypb.Empty, error) {
-	itemId, err := parseUUID(req.GetId())
-	if err != nil {
-		return nil, err
-	}
-
-	if err = h.service.UnlockItemQuantity(ctx, itemId, req.GetQuantity()); err != nil {
-		return nil, err
-	}
-
-	return &emptypb.Empty{}, nil
-}
-
-func (h *ItemHandler) SubLockedQuantity(ctx context.Context, req *api.SubQuantityRequest) (*emptypb.Empty, error) {
-	itemId, err := parseUUID(req.GetId())
-	if err != nil {
-		return nil, err
-	}
-
-	if err = h.service.SubLockedItemQuantity(ctx, itemId, req.GetQuantity()); err != nil {
-		return nil, err
-	}
-
-	return &emptypb.Empty{}, nil
+	return &api.SetItemsResponse{}, nil
 }
 
 func parseUUID(id string) (uuid.UUID, error) {
@@ -110,4 +78,30 @@ func parseUUID(id string) (uuid.UUID, error) {
 	}
 
 	return out, nil
+}
+
+func validUUID(id string) error {
+	_, err := uuid.Parse(id)
+	if err != nil {
+		return status.Error(codes.InvalidArgument, "invalid uuid")
+	}
+
+	return nil
+}
+
+func protoOpToString(op api.OperationType) string {
+	switch op {
+	case api.OperationType_OPERATION_TYPE_ADD:
+		return domain.OperationAdd
+	case api.OperationType_OPERATION_TYPE_SUB:
+		return domain.OperationSub
+	case api.OperationType_OPERATION_TYPE_LOCK:
+		return domain.OperationLock
+	case api.OperationType_OPERATION_TYPE_UNLOCK:
+		return domain.OperationUnlock
+	case api.OperationType_OPERATION_TYPE_SUB_LOCKED:
+		return domain.OperationSubLocked
+	default:
+		return domain.OperationUnknown
+	}
 }

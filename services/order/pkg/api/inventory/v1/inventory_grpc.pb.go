@@ -11,7 +11,6 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
-	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -20,12 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InventoryService_GetItem_FullMethodName           = "/api.inventory.v1.InventoryService/GetItem"
-	InventoryService_AddQuantity_FullMethodName       = "/api.inventory.v1.InventoryService/AddQuantity"
-	InventoryService_SubQuantity_FullMethodName       = "/api.inventory.v1.InventoryService/SubQuantity"
-	InventoryService_LockQuantity_FullMethodName      = "/api.inventory.v1.InventoryService/LockQuantity"
-	InventoryService_UnlockQuantity_FullMethodName    = "/api.inventory.v1.InventoryService/UnlockQuantity"
-	InventoryService_SubLockedQuantity_FullMethodName = "/api.inventory.v1.InventoryService/SubLockedQuantity"
+	InventoryService_GetItem_FullMethodName  = "/api.inventory.v1.InventoryService/GetItem"
+	InventoryService_SetItem_FullMethodName  = "/api.inventory.v1.InventoryService/SetItem"
+	InventoryService_SetItems_FullMethodName = "/api.inventory.v1.InventoryService/SetItems"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -36,16 +32,10 @@ const (
 type InventoryServiceClient interface {
 	// GetItem returns Item object with requested id.
 	GetItem(ctx context.Context, in *GetItemRequest, opts ...grpc.CallOption) (*GetItemResponse, error)
-	// AddQuantity adds quantity to the product. If the product is not present, it will be created with the given quantity.
-	AddQuantity(ctx context.Context, in *AddQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// SubQuantity subtracts quantity from the product.
-	SubQuantity(ctx context.Context, in *SubQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Reserve certain amount of product quantity.
-	LockQuantity(ctx context.Context, in *LockQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Release certain amount of product quantity that is reserved.
-	UnlockQuantity(ctx context.Context, in *UnlockQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	// Subtract certain amount of product quantity that is reserved.
-	SubLockedQuantity(ctx context.Context, in *SubQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	// SetItem sets (according to provided operation) Item'm quantity amount for requested id.
+	SetItem(ctx context.Context, in *SetItemRequest, opts ...grpc.CallOption) (*SetItemResponse, error)
+	// SetItems works like SetItem, but for multiple items.
+	SetItems(ctx context.Context, in *SetItemsRequest, opts ...grpc.CallOption) (*SetItemsResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -66,50 +56,20 @@ func (c *inventoryServiceClient) GetItem(ctx context.Context, in *GetItemRequest
 	return out, nil
 }
 
-func (c *inventoryServiceClient) AddQuantity(ctx context.Context, in *AddQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *inventoryServiceClient) SetItem(ctx context.Context, in *SetItemRequest, opts ...grpc.CallOption) (*SetItemResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, InventoryService_AddQuantity_FullMethodName, in, out, cOpts...)
+	out := new(SetItemResponse)
+	err := c.cc.Invoke(ctx, InventoryService_SetItem_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *inventoryServiceClient) SubQuantity(ctx context.Context, in *SubQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+func (c *inventoryServiceClient) SetItems(ctx context.Context, in *SetItemsRequest, opts ...grpc.CallOption) (*SetItemsResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, InventoryService_SubQuantity_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *inventoryServiceClient) LockQuantity(ctx context.Context, in *LockQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, InventoryService_LockQuantity_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *inventoryServiceClient) UnlockQuantity(ctx context.Context, in *UnlockQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, InventoryService_UnlockQuantity_FullMethodName, in, out, cOpts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *inventoryServiceClient) SubLockedQuantity(ctx context.Context, in *SubQuantityRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, InventoryService_SubLockedQuantity_FullMethodName, in, out, cOpts...)
+	out := new(SetItemsResponse)
+	err := c.cc.Invoke(ctx, InventoryService_SetItems_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -124,16 +84,10 @@ func (c *inventoryServiceClient) SubLockedQuantity(ctx context.Context, in *SubQ
 type InventoryServiceServer interface {
 	// GetItem returns Item object with requested id.
 	GetItem(context.Context, *GetItemRequest) (*GetItemResponse, error)
-	// AddQuantity adds quantity to the product. If the product is not present, it will be created with the given quantity.
-	AddQuantity(context.Context, *AddQuantityRequest) (*emptypb.Empty, error)
-	// SubQuantity subtracts quantity from the product.
-	SubQuantity(context.Context, *SubQuantityRequest) (*emptypb.Empty, error)
-	// Reserve certain amount of product quantity.
-	LockQuantity(context.Context, *LockQuantityRequest) (*emptypb.Empty, error)
-	// Release certain amount of product quantity that is reserved.
-	UnlockQuantity(context.Context, *UnlockQuantityRequest) (*emptypb.Empty, error)
-	// Subtract certain amount of product quantity that is reserved.
-	SubLockedQuantity(context.Context, *SubQuantityRequest) (*emptypb.Empty, error)
+	// SetItem sets (according to provided operation) Item'm quantity amount for requested id.
+	SetItem(context.Context, *SetItemRequest) (*SetItemResponse, error)
+	// SetItems works like SetItem, but for multiple items.
+	SetItems(context.Context, *SetItemsRequest) (*SetItemsResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -147,20 +101,11 @@ type UnimplementedInventoryServiceServer struct{}
 func (UnimplementedInventoryServiceServer) GetItem(context.Context, *GetItemRequest) (*GetItemResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetItem not implemented")
 }
-func (UnimplementedInventoryServiceServer) AddQuantity(context.Context, *AddQuantityRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method AddQuantity not implemented")
+func (UnimplementedInventoryServiceServer) SetItem(context.Context, *SetItemRequest) (*SetItemResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetItem not implemented")
 }
-func (UnimplementedInventoryServiceServer) SubQuantity(context.Context, *SubQuantityRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SubQuantity not implemented")
-}
-func (UnimplementedInventoryServiceServer) LockQuantity(context.Context, *LockQuantityRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method LockQuantity not implemented")
-}
-func (UnimplementedInventoryServiceServer) UnlockQuantity(context.Context, *UnlockQuantityRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method UnlockQuantity not implemented")
-}
-func (UnimplementedInventoryServiceServer) SubLockedQuantity(context.Context, *SubQuantityRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method SubLockedQuantity not implemented")
+func (UnimplementedInventoryServiceServer) SetItems(context.Context, *SetItemsRequest) (*SetItemsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SetItems not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -201,92 +146,38 @@ func _InventoryService_GetItem_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InventoryService_AddQuantity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(AddQuantityRequest)
+func _InventoryService_SetItem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetItemRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).AddQuantity(ctx, in)
+		return srv.(InventoryServiceServer).SetItem(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_AddQuantity_FullMethodName,
+		FullMethod: InventoryService_SetItem_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).AddQuantity(ctx, req.(*AddQuantityRequest))
+		return srv.(InventoryServiceServer).SetItem(ctx, req.(*SetItemRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _InventoryService_SubQuantity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SubQuantityRequest)
+func _InventoryService_SetItems_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetItemsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(InventoryServiceServer).SubQuantity(ctx, in)
+		return srv.(InventoryServiceServer).SetItems(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: InventoryService_SubQuantity_FullMethodName,
+		FullMethod: InventoryService_SetItems_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).SubQuantity(ctx, req.(*SubQuantityRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _InventoryService_LockQuantity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LockQuantityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InventoryServiceServer).LockQuantity(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: InventoryService_LockQuantity_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).LockQuantity(ctx, req.(*LockQuantityRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _InventoryService_UnlockQuantity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(UnlockQuantityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InventoryServiceServer).UnlockQuantity(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: InventoryService_UnlockQuantity_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).UnlockQuantity(ctx, req.(*UnlockQuantityRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _InventoryService_SubLockedQuantity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SubQuantityRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(InventoryServiceServer).SubLockedQuantity(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: InventoryService_SubLockedQuantity_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(InventoryServiceServer).SubLockedQuantity(ctx, req.(*SubQuantityRequest))
+		return srv.(InventoryServiceServer).SetItems(ctx, req.(*SetItemsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -303,24 +194,12 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _InventoryService_GetItem_Handler,
 		},
 		{
-			MethodName: "AddQuantity",
-			Handler:    _InventoryService_AddQuantity_Handler,
+			MethodName: "SetItem",
+			Handler:    _InventoryService_SetItem_Handler,
 		},
 		{
-			MethodName: "SubQuantity",
-			Handler:    _InventoryService_SubQuantity_Handler,
-		},
-		{
-			MethodName: "LockQuantity",
-			Handler:    _InventoryService_LockQuantity_Handler,
-		},
-		{
-			MethodName: "UnlockQuantity",
-			Handler:    _InventoryService_UnlockQuantity_Handler,
-		},
-		{
-			MethodName: "SubLockedQuantity",
-			Handler:    _InventoryService_SubLockedQuantity_Handler,
+			MethodName: "SetItems",
+			Handler:    _InventoryService_SetItems_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
