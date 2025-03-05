@@ -18,13 +18,11 @@ type OutboxProcessor struct {
 }
 
 type OutboxMessage struct {
-	ID         string
-	OrderID    string
-	Topic      string
-	EventType  string
-	Currency   string
-	TotalPrice float64
-	CreatedAt  time.Time
+	ID        string
+	Topic     string
+	EventType string
+	Payload   []byte
+	CreatedAt time.Time
 }
 
 func NewOutboxProcessor(log logger.BaseLogger, db *pgxpool.Pool, prod kafka.OrdersProducer, interval time.Duration) *OutboxProcessor {
@@ -63,7 +61,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	}
 
 	rows, err := tx.Query(ctx,
-		`SELECT id, order_id, topic, event_type, currency, total_price, created_at 
+		`SELECT id, topic, event_type, payload, created_at 
 		FROM outbox 
 		WHERE processed_at IS NULL 
 		ORDER BY created_at ASC LIMIT 10`)
@@ -78,7 +76,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	var messages []OutboxMessage
 	for rows.Next() {
 		var msg OutboxMessage
-		if err := rows.Scan(&msg.ID, &msg.OrderID, &msg.Topic, &msg.EventType, &msg.Currency, &msg.TotalPrice, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.Topic, &msg.EventType, &msg.Payload, &msg.CreatedAt); err != nil {
 			op.log.Error("failed to scan outbox row", zap.Error(err))
 			continue
 		}
@@ -86,19 +84,12 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	}
 
 	if len(messages) == 0 {
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			op.log.Error("failed to rollback outbox transaction", zap.Error(rbErr))
-		}
 		return
 	}
 
 	for _, msg := range messages {
-
-		err = op.prod.Produce(msg.Topic, -1, map[string]any{
-			"order_id":    msg.OrderID,
-			"currency":    msg.Currency,
-			"total_price": msg.TotalPrice,
-		})
+		// FIXME теперь ЧО!? (партишины какие...)
+		err = op.prod.Produce(msg.Topic, -1, msg.Payload)
 		if err != nil {
 			op.log.Error("failed to send Kafka message", zap.Error(err))
 			continue

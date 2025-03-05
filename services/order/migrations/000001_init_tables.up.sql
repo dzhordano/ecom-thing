@@ -29,19 +29,14 @@ CREATE TABLE IF NOT EXISTS coupons(
   valid_to TIMESTAMP NOT NULL
 );
 
--- OUTBOX TABLE 
--- TODO думаю лучше тут не генерить значения
 CREATE TABLE IF NOT EXISTS outbox (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  order_id UUID NOT NULL,
   topic VARCHAR(100) NOT NULL,
   event_type VARCHAR(100) NOT NULL,
-  currency VARCHAR(255) NOT NULL,
-  total_price DECIMAL(10, 2) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT now(),
+  payload JSONB NOT NULL,
+  created_at TIMESTAMP NOT NULL,
   processed_at TIMESTAMP
 );
-
 
 -- test coupon
 -- INSERT INTO coupons (id, code, discount, valid_from, valid_to)

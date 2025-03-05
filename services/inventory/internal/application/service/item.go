@@ -33,6 +33,29 @@ func (s *ItemService) GetItem(ctx context.Context, id uuid.UUID) (*domain.Item, 
 	return item, nil
 }
 
+// IsReservable implements interfaces.ItemService.
+func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64) (bool, error) {
+	keys := make([]string, 0, len(items))
+
+	for k := range items {
+		keys = append(keys, k)
+	}
+
+	resItems, err := s.repo.GetManyItems(ctx, keys)
+	if err != nil {
+		s.log.Error("error getting items", zap.Error(err))
+		return false, err
+	}
+
+	for i := range keys {
+		if resItems[i].AvailableQuantity < items[keys[i]] {
+			return false, nil
+		}
+	}
+
+	return true, nil
+}
+
 // SetItemWithOp implements interfaces.ItemService.
 func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity uint64, op string) error {
 	item, err := s.repo.GetItem(ctx, id.String())

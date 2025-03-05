@@ -20,7 +20,14 @@ var (
 	couponsTable = "coupons"
 	outboxTable  = "outbox"
 
-	kafkaOrdersTopic = "orders-events"
+	kafkaEventOrderCreated       = "order-created"
+	kafkaEventOrderCancelled     = "order-cancelled"
+	kafkaEventQuantityRequested  = "quantity-requested"
+	kafkaEventQuantityReleased   = "quantity-released"
+	kafkaEventQuantitySubtracted = "quantity-subtracted"
+
+	kafkaOrderTopic     = "order-events"
+	kafkaInventoryTopic = "inventory-events"
 )
 
 type OrderRepository struct {
@@ -58,8 +65,23 @@ func (o *OrderRepository) Save(ctx context.Context, order *domain.Order) error {
 		}
 
 		insertQuery = sq.Insert(outboxTable).
-			Columns("order_id", "topic", "event_type", "currency", "total_price").
-			Values(order.ID.String(), kafkaOrdersTopic, "created", order.Currency, order.TotalPrice).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaOrderTopic, kafkaEventOrderCreated, order.OrderEvent(), order.CreatedAt).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insertQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		insertQuery = sq.Insert(outboxTable).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaInventoryTopic, kafkaEventQuantityRequested, order.InventoryEvent(), order.CreatedAt).
 			PlaceholderFormat(sq.Dollar)
 
 		query, args, err = insertQuery.ToSql()
@@ -190,11 +212,56 @@ func (o *OrderRepository) Update(ctx context.Context, order *domain.Order) error
 			return fmt.Errorf("%s: %w", op, err)
 		}
 
+		var kafkaEvent string
+		switch order.Status {
+		case domain.OrderCancelled:
+			kafkaEvent = kafkaEventQuantityReleased // When we cancel order we expected quantity to be released.
+		case domain.OrderCompleted:
+			kafkaEvent = kafkaEventQuantitySubtracted // And when order is completed we expected quantity to be removed at all.
+		}
+
+		// insert to inventory outbox
+		insertQuery := sq.Insert(outboxTable).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaInventoryTopic, kafkaEvent, order.InventoryEvent(), order.UpdatedAt).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insertQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		// If order isn't cancelled - we're not sending event for payment service's digestion.
+		if order.Status != domain.OrderCancelled {
+			return nil
+		}
+
+		// insert to payment outbox
+		insertQuery = sq.Insert(outboxTable).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaOrderTopic, kafkaEvent, order.OrderEvent(), order.UpdatedAt).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insertQuery.ToSql()
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
+		_, err = tx.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("%s: %w", op, err)
+		}
+
 		return nil
 	})
 }
 
-// TODO Тут пока просто удаляем.
+// TODO Тут пока просто удаляем. Также не отправляется никаких событий.
 // Delete implements repository.OrderRepository.
 func (o *OrderRepository) Delete(ctx context.Context, orderId string) error {
 	const op = "repository.OrderRepository.Delete"

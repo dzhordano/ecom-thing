@@ -58,6 +58,30 @@ func (r *PGRepostory) SetItem(ctx context.Context, id string, availableQuantity,
 	return nil
 }
 
+func (r *PGRepostory) GetManyItems(ctx context.Context, ids []string) ([]*domain.Item, error) {
+	const op = "repository.PGRepostory.GetManyItems"
+
+	query := fmt.Sprintf(
+		`SELECT product_id, available_quantity, reserved_quantity FROM %s WHERE product_id = ANY($1)`,
+		itemsTable)
+
+	rows, err := r.db.Query(ctx, query, ids)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	var items []*domain.Item
+	for rows.Next() {
+		var item domain.Item
+		if err := rows.Scan(&item.ProductID, &item.AvailableQuantity, &item.ReservedQuantity); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+		items = append(items, &item)
+	}
+
+	return items, nil
+}
+
 func (r *PGRepostory) SetManyItems(ctx context.Context, items []domain.Item) error {
 	const op = "repository.PGRepostory.SetManyItems"
 

@@ -27,5 +27,5 @@ type ProductService interface {
 }
 
 type InventoryService interface {
-	SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error
+	IsReservable(ctx context.Context, items map[string]uint64) (bool, error)
 }

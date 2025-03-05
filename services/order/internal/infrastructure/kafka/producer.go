@@ -1,7 +1,6 @@
 package kafka
 
 import (
-	"encoding/json"
 	"log"
 	"sync"
 
@@ -12,7 +11,7 @@ import (
 // как использовать partitions?
 
 type OrdersProducer interface {
-	Produce(topic string, partition int32, values map[string]any) error
+	Produce(topic string, partition int32, payload []byte) error
 }
 
 const (
@@ -35,19 +34,15 @@ func NewOrderdSyncProducer(brokers []string, producerConfigurationProvider func(
 	return &OrdersSyncProducer{producer: producer}
 }
 
-func (p *OrdersSyncProducer) Produce(topic string, partition int32, values map[string]any) error {
+func (p *OrdersSyncProducer) Produce(topic string, partition int32, payload []byte) error {
 	p.producerLock.Lock()
 	defer p.producerLock.Unlock()
 
-	payloadBytes, err := json.Marshal(values)
-	if err != nil {
-		return err
-	}
-
-	_, _, err = p.producer.SendMessage(&sarama.ProducerMessage{
+	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
-		Value: sarama.ByteEncoder(payloadBytes),
+		Value: sarama.ByteEncoder(payload),
 	})
+
 	return err
 }
 

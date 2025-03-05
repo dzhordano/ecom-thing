@@ -32,42 +32,23 @@ func NewInventoryClient(addr string) interfaces.InventoryService {
 	}
 }
 
-// SetItemsWithOp implements interfaces.InventoryService.
-func (i *inventoryClient) SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error {
-	_, err := i.c.SetItems(ctx, &inventory_v1.SetItemsRequest{
-		OperationType: operationToProtoType(op),
-		Items:         convertMapToItemOPs(items),
-	})
-	return err
-}
+// IsReservable implements interfaces.InventoryService.
+func (i *inventoryClient) IsReservable(ctx context.Context, items map[string]uint64) (bool, error) {
+	protoItems := make([]*inventory_v1.ItemOP, 0, len(items))
 
-// Convert map with UUID's and quantities to []*ItemOP.
-//
-// This does NOT check if the UUID is valid.
-func convertMapToItemOPs(items map[string]uint64) []*inventory_v1.ItemOP {
-	ops := make([]*inventory_v1.ItemOP, 0, len(items))
-	for id, quantity := range items {
-		ops = append(ops, &inventory_v1.ItemOP{
+	for id := range items {
+		protoItems = append(protoItems, &inventory_v1.ItemOP{
 			ProductId: id,
-			Quantity:  quantity,
+			Quantity:  items[id],
 		})
 	}
-	return ops
-}
 
-func operationToProtoType(op string) inventory_v1.OperationType {
-	switch op {
-	case "add":
-		return inventory_v1.OperationType_OPERATION_TYPE_ADD
-	case "sub":
-		return inventory_v1.OperationType_OPERATION_TYPE_SUB
-	case "lock":
-		return inventory_v1.OperationType_OPERATION_TYPE_LOCK
-	case "unlock":
-		return inventory_v1.OperationType_OPERATION_TYPE_UNLOCK
-	case "sub_locked":
-		return inventory_v1.OperationType_OPERATION_TYPE_SUB_LOCKED
-	default:
-		return inventory_v1.OperationType_OPERATION_TYPE_ADD
+	resp, err := i.c.IsReservable(ctx, &inventory_v1.IsReservableRequest{
+		Items: protoItems,
+	})
+	if err != nil {
+		return false, err
 	}
+
+	return resp.IsReservable, nil
 }

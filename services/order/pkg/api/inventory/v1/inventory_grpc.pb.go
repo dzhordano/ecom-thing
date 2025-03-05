@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	InventoryService_GetItem_FullMethodName  = "/api.inventory.v1.InventoryService/GetItem"
-	InventoryService_SetItem_FullMethodName  = "/api.inventory.v1.InventoryService/SetItem"
-	InventoryService_SetItems_FullMethodName = "/api.inventory.v1.InventoryService/SetItems"
+	InventoryService_GetItem_FullMethodName      = "/api.inventory.v1.InventoryService/GetItem"
+	InventoryService_SetItem_FullMethodName      = "/api.inventory.v1.InventoryService/SetItem"
+	InventoryService_SetItems_FullMethodName     = "/api.inventory.v1.InventoryService/SetItems"
+	InventoryService_IsReservable_FullMethodName = "/api.inventory.v1.InventoryService/IsReservable"
 )
 
 // InventoryServiceClient is the client API for InventoryService service.
@@ -36,6 +37,8 @@ type InventoryServiceClient interface {
 	SetItem(ctx context.Context, in *SetItemRequest, opts ...grpc.CallOption) (*SetItemResponse, error)
 	// SetItems works like SetItem, but for multiple items.
 	SetItems(ctx context.Context, in *SetItemsRequest, opts ...grpc.CallOption) (*SetItemsResponse, error)
+	// IsReservable checks if the items can be reserved.
+	IsReservable(ctx context.Context, in *IsReservableRequest, opts ...grpc.CallOption) (*IsReservableResponse, error)
 }
 
 type inventoryServiceClient struct {
@@ -76,6 +79,16 @@ func (c *inventoryServiceClient) SetItems(ctx context.Context, in *SetItemsReque
 	return out, nil
 }
 
+func (c *inventoryServiceClient) IsReservable(ctx context.Context, in *IsReservableRequest, opts ...grpc.CallOption) (*IsReservableResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IsReservableResponse)
+	err := c.cc.Invoke(ctx, InventoryService_IsReservable_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // InventoryServiceServer is the server API for InventoryService service.
 // All implementations must embed UnimplementedInventoryServiceServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type InventoryServiceServer interface {
 	SetItem(context.Context, *SetItemRequest) (*SetItemResponse, error)
 	// SetItems works like SetItem, but for multiple items.
 	SetItems(context.Context, *SetItemsRequest) (*SetItemsResponse, error)
+	// IsReservable checks if the items can be reserved.
+	IsReservable(context.Context, *IsReservableRequest) (*IsReservableResponse, error)
 	mustEmbedUnimplementedInventoryServiceServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedInventoryServiceServer) SetItem(context.Context, *SetItemRequ
 }
 func (UnimplementedInventoryServiceServer) SetItems(context.Context, *SetItemsRequest) (*SetItemsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SetItems not implemented")
+}
+func (UnimplementedInventoryServiceServer) IsReservable(context.Context, *IsReservableRequest) (*IsReservableResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsReservable not implemented")
 }
 func (UnimplementedInventoryServiceServer) mustEmbedUnimplementedInventoryServiceServer() {}
 func (UnimplementedInventoryServiceServer) testEmbeddedByValue()                          {}
@@ -182,6 +200,24 @@ func _InventoryService_SetItems_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _InventoryService_IsReservable_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsReservableRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(InventoryServiceServer).IsReservable(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: InventoryService_IsReservable_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(InventoryServiceServer).IsReservable(ctx, req.(*IsReservableRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // InventoryService_ServiceDesc is the grpc.ServiceDesc for InventoryService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var InventoryService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SetItems",
 			Handler:    _InventoryService_SetItems_Handler,
+		},
+		{
+			MethodName: "IsReservable",
+			Handler:    _InventoryService_IsReservable_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

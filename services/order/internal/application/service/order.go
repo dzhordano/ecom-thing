@@ -95,29 +95,27 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	)
 	if err != nil {
 		o.log.Error("failed to create order", zap.Error(err))
-		return nil, domain.ErrInternal // Internal так как не хочу давать контекста туда куда-то.
+		return nil, domain.ErrInternal //TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
 	}
 
-	items := map[string]uint64{}
-	for _, item := range info.Items {
-		items[item.ProductID.String()] = item.Quantity
+	items := make(map[string]uint64)
+	for _, item := range order.Items {
+		items[item.ProductID.String()] += item.Quantity
 	}
 
-	// FIXME THIS ADDS TON OF INCOSISTENCY.
-	//
-	// Сделать через outbox. (pub: inventory-events -> reservation-request) в outbox.go
-	if err := o.inventoryService.SetItemsWithOp(ctx, items, OperationLock); err != nil {
-		o.log.Error("failed to reserve product", zap.Error(err))
+	isReservable, err := o.inventoryService.IsReservable(ctx, items)
+	if err != nil {
+		o.log.Error("failed to check reservability of the order", zap.Error(err))
 		return nil, err
+	}
+
+	if !isReservable {
+		o.log.Error("failed to reserve order", zap.Error(domain.ErrInventoryUnavailable))
+		return nil, domain.ErrInventoryUnavailable
 	}
 
 	if err = o.repo.Save(ctx, order); err != nil {
 		o.log.Error("failed to save order", zap.Error(err))
-
-		if err := o.inventoryService.SetItemsWithOp(ctx, items, OperationUnlock); err != nil {
-			o.log.Error("failed to remove reserved product", zap.Error(err))
-		}
-
 		return nil, err
 	}
 
@@ -312,11 +310,6 @@ func (o *OrderService) CompleteOrder(ctx context.Context, orderId uuid.UUID) err
 		items[item.ProductID.String()] = item.Quantity
 	}
 
-	if err = o.inventoryService.SetItemsWithOp(ctx, items, OperationSubLocked); err != nil {
-		o.log.Error("failed to complete order", zap.Error(err))
-		return err
-	}
-
 	if err := o.repo.Update(ctx, order); err != nil {
 		o.log.Error("failed to complete order", zap.Error(err))
 		return err
@@ -350,10 +343,6 @@ func (o *OrderService) CancelOrder(ctx context.Context, orderId uuid.UUID) error
 		items[item.ProductID.String()] = item.Quantity
 	}
 
-	if err = o.inventoryService.SetItemsWithOp(ctx, items, OperationUnlock); err != nil {
-		o.log.Error("failed to complete order", zap.Error(err))
-		return err
-	}
 	if err := o.repo.Update(ctx, order); err != nil {
 		o.log.Error("failed to cancel order", zap.Error(err))
 		return err

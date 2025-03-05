@@ -12,11 +12,13 @@ service InventoryService {
   rpc SetItem(SetItemRequest) returns (SetItemResponse);
   // SetItems works like SetItem, but for multiple items.
   rpc SetItems(SetItemsRequest) returns (SetItemsResponse);
+  // IsReservable checks if the items can be reserved.
+  rpc IsReservable(IsReservableRequest) returns (IsReservableResponse);
 }
 
 // Item represents an item in the inventory.
 message Item {
-  // UUID of the product.
+  // ID of the product.
   string product_id = 1;
   // Available quantity of the product.
   uint64 available_quantity = 2;
@@ -28,7 +30,7 @@ message Item {
 //
 // Used for perforimng operations (adding, subtracting, locking, unlocking).
 message ItemOP {
-  // UUID of the product.
+  // ID of the product.
   string product_id = 1;
   // Quantity of the product.
   uint64 quantity = 2;
@@ -52,9 +54,9 @@ enum OperationType {
   OPERATION_TYPE_SUB_LOCKED = 5;
 }
 
-// Takes UUID of the item.
+// Takes ID of the item.
 message GetItemRequest {
-  // UUID.
+  // ID.
   string id = 1;
 }
 
@@ -64,9 +66,9 @@ message GetItemResponse {
   Item item = 1;
 }
 
-// Takes UUID of the item and quantity to set.
+// Takes UUID of the item and quantity to perform operation on.
 message SetItemRequest {
-  // Items with UUID and quantity to set.
+  // Items with ID and quantity to set.
   ItemOP item = 1;
   // Operation type.
   OperationType operation_type = 2;
@@ -75,9 +77,9 @@ message SetItemRequest {
 // Empty.
 message SetItemResponse {}
 
-// Takes UUID of the item and quantity to set.
+// Takes IDs of the items and quantities to perform operation on.
 message SetItemsRequest {
-  // Items with UUID and quantity to set.
+  // Items with ID and quantity to set.
   repeated ItemOP items = 1;
   // Operation type.
   OperationType operation_type = 2;
@@ -85,3 +87,15 @@ message SetItemsRequest {
 
 // Empty.
 message SetItemsResponse {}
+
+// Takes IDs of the items.
+message IsReservableRequest {
+  // IDs.
+  repeated ItemOP items = 1;
+}
+
+// Returns true if the items can be reserved.
+message IsReservableResponse {
+  // True if the items can be reserved.
+  bool is_reservable = 1;
+}

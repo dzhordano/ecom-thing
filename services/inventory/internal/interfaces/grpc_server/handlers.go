@@ -71,6 +71,27 @@ func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*
 	return &api.SetItemsResponse{}, nil
 }
 
+func (h *ItemHandler) IsReservable(ctx context.Context, req *api.IsReservableRequest) (*api.IsReservableResponse, error) {
+	items := map[string]uint64{}
+
+	for i := range req.Items {
+		if err := validUUID(req.Items[i].GetProductId()); err != nil {
+			return nil, err
+		}
+
+		items[req.Items[i].ProductId] = req.Items[i].GetQuantity()
+	}
+
+	resp, err := h.service.IsReservable(ctx, items)
+	if err != nil {
+		return nil, err
+	}
+
+	return &api.IsReservableResponse{
+		IsReservable: resp,
+	}, nil
+}
+
 func parseUUID(id string) (uuid.UUID, error) {
 	out, err := uuid.Parse(id)
 	if err != nil {

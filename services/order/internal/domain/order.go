@@ -2,6 +2,7 @@ package domain
 
 import (
 	"database/sql/driver"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -274,4 +275,52 @@ type Coupon struct {
 	Discount  float64
 	ValidFrom time.Time
 	ValidTo   time.Time
+}
+
+type OrderEvent struct {
+	OrderID    string
+	Currency   string
+	TotalPrice string
+}
+
+type InventoryEvent struct {
+	OrderID string
+	Items   Items
+}
+
+func (o *Order) OrderEvent() OrderEvent {
+	return OrderEvent{
+		OrderID:    o.ID.String(),
+		Currency:   o.Currency.String(),
+		TotalPrice: fmt.Sprintf("%.2f", o.TotalPrice),
+	}
+}
+
+func (e OrderEvent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		OrderID    string
+		Currency   string
+		TotalPrice string
+	}{
+		OrderID:    e.OrderID,
+		Currency:   e.Currency,
+		TotalPrice: e.TotalPrice,
+	})
+}
+
+func (o *Order) InventoryEvent() InventoryEvent {
+	return InventoryEvent{
+		OrderID: o.ID.String(),
+		Items:   o.Items,
+	}
+}
+
+func (e InventoryEvent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		OrderID string
+		Items   Items
+	}{
+		OrderID: e.OrderID,
+		Items:   e.Items,
+	})
 }
