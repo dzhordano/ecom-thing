@@ -7,11 +7,10 @@ import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/kafka"
 	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap"
 )
 
 type OutboxProcessor struct {
-	log      logger.BaseLogger
+	log      logger.Logger
 	db       *pgxpool.Pool
 	prod     kafka.OrdersProducer
 	interval time.Duration
@@ -25,9 +24,9 @@ type OutboxMessage struct {
 	CreatedAt time.Time
 }
 
-func NewOutboxProcessor(log logger.BaseLogger, db *pgxpool.Pool, prod kafka.OrdersProducer, interval time.Duration) *OutboxProcessor {
+func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.OrdersProducer, interval time.Duration) *OutboxProcessor {
 	return &OutboxProcessor{
-		log:      log,
+		log:      log.With("service", "order outbox"),
 		db:       db,
 		prod:     prod,
 		interval: interval,
@@ -56,7 +55,7 @@ func (op *OutboxProcessor) Start(ctx context.Context) {
 func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	tx, err := op.db.Begin(ctx)
 	if err != nil {
-		op.log.Error("failed to start transaction", zap.Error(err))
+		op.log.Error("failed to start transaction", "error", err)
 		return
 	}
 
@@ -66,9 +65,9 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 		WHERE processed_at IS NULL 
 		ORDER BY created_at ASC LIMIT 10`)
 	if err != nil {
-		op.log.Error("failed to query outbox", zap.Error(err))
+		op.log.Error("failed to query outbox", "error", err)
 		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			op.log.Error("failed to rollback outbox transaction", zap.Error(rbErr))
+			op.log.Error("failed to rollback outbox transaction", "error", rbErr)
 		}
 		return
 	}
@@ -77,7 +76,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	for rows.Next() {
 		var msg OutboxMessage
 		if err := rows.Scan(&msg.ID, &msg.Topic, &msg.EventType, &msg.Payload, &msg.CreatedAt); err != nil {
-			op.log.Error("failed to scan outbox row", zap.Error(err))
+			op.log.Error("failed to scan outbox row", "error", err)
 			continue
 		}
 		messages = append(messages, msg)
@@ -91,19 +90,19 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 		// FIXME теперь ЧО!? (партишины какие...)
 		err = op.prod.Produce(msg.Topic, -1, msg.Payload)
 		if err != nil {
-			op.log.Error("failed to send Kafka message", zap.Error(err))
+			op.log.Error("failed to send Kafka message", "error", err)
 			continue
 		}
 
 		// Обновляем запись в Outbox, помечая как обработанную
 		_, err = tx.Exec(ctx, `UPDATE outbox SET processed_at = NOW() WHERE id = $1`, msg.ID)
 		if err != nil {
-			op.log.Error("failed to update outbox", zap.Error(err))
+			op.log.Error("failed to update outbox", "error", err)
 			continue
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		op.log.Error("failed to commit outbox transaction", zap.Error(err))
+		op.log.Error("failed to commit outbox transaction", "error", err)
 	}
 }

@@ -12,7 +12,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/soheilhy/cmux"
 	"github.com/sony/gobreaker/v2"
-	"go.uber.org/zap"
 
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/api/product/v1"
 	"github.com/dzhordano/ecom-thing/services/product/pkg/logger"
@@ -66,7 +65,7 @@ func WithGoBreakerSettings(maxRequests uint32, interval, timeout time.Duration) 
 	}
 }
 
-func MustNew(log logger.BaseLogger, handler api.ProductServiceServer, opts ...Option) *Server {
+func MustNew(log logger.Logger, handler api.ProductServiceServer, opts ...Option) *Server {
 	s := &Server{
 		profilingOn:      false,
 		ratelimiterLimit: 100, // TODO магические числа
@@ -89,7 +88,7 @@ func MustNew(log logger.BaseLogger, handler api.ProductServiceServer, opts ...Op
 
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-			log.Error("Recovered from panic", zap.Any("panic", p))
+			log.Error("Recovered from panic", "panic", p)
 			return
 		}),
 	}
@@ -112,9 +111,9 @@ func MustNew(log logger.BaseLogger, handler api.ProductServiceServer, opts ...Op
 		},
 		OnStateChange: func(name string, from, to gobreaker.State) {
 			log.Info("circuit breaker state changed",
-				zap.String("name", name),
-				zap.String("from", from.String()),
-				zap.String("to", to.String()),
+				"name", name,
+				"from", from.String(),
+				"to", to.String(),
 			)
 		},
 	})

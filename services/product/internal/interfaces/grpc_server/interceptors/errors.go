@@ -2,6 +2,8 @@ package interceptors
 
 import (
 	"context"
+	"errors"
+
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -22,8 +24,10 @@ func mapError(err error) error {
 		return s.Err() // Return the status error if it's a gRPC error
 	}
 
-	if code, ok := errorMap[err]; ok {
-		return status.Error(code, err.Error())
+	for unwrappedErr := err; unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
+		if code, ok := errorMap[unwrappedErr]; ok {
+			return status.Error(code, unwrappedErr.Error())
+		}
 	}
 
 	return status.Error(codes.Internal, err.Error())

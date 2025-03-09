@@ -16,7 +16,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/soheilhy/cmux"
 	"github.com/sony/gobreaker/v2"
-	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -65,7 +64,7 @@ func WithCircuitBreakerSettings(maxRequests uint32, interval, timeout time.Durat
 	}
 }
 
-func MustNew(log logger.BaseLogger, handler api.InventoryServiceServer, opts ...Option) *Server {
+func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Option) *Server {
 	s := &Server{
 		profilingOn:      false,
 		ratelimiterLimit: 100, // TODO магические числа
@@ -88,7 +87,7 @@ func MustNew(log logger.BaseLogger, handler api.InventoryServiceServer, opts ...
 
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-			log.Error("Recovered from panic", zap.Any("panic", p))
+			log.Error("Recovered from panic", "panic", p)
 			return
 		}),
 	}
@@ -111,9 +110,9 @@ func MustNew(log logger.BaseLogger, handler api.InventoryServiceServer, opts ...
 		},
 		OnStateChange: func(name string, from, to gobreaker.State) {
 			log.Info("circuit breaker state changed",
-				zap.String("name", name),
-				zap.String("from", from.String()),
-				zap.String("to", to.String()),
+				"name", name,
+				"from", from.String(),
+				"to", to.String(),
 			)
 		},
 	})

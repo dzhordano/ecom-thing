@@ -31,8 +31,9 @@ func main() {
 	// When specifying file path for logs to save, logger WONT create a file.
 	log := logger.NewZapLogger(
 		cfg.Logger.Level,
-		cfg.Logger.OutputPaths,
-		cfg.Logger.ErrorOutputPaths,
+		logger.WithEncoding(cfg.Logger.Encoding),
+		logger.WithOutputPaths(cfg.Logger.OutputPaths),
+		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
 	)
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())

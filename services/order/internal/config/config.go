@@ -22,10 +22,12 @@ type Config struct {
 }
 
 type LoggerConfig struct {
-	Level            string   `env:"LOG_LEVEL" env-default:"warn"`
-	OutputPaths      []string `env:"LOG_OUTPUT" env-default:"stdout"`
-	ErrorOutputPaths []string `env:"LOG_ERROR_OUTPUT" env-default:"stderr"`
-	Encoding         string   `env:"LOG_ENCODING" env-default:"console"`
+	Level               string   `env:"LOG_LEVEL" env-default:"warn"`
+	Encoding            string   `env:"LOG_ENCODING" env-default:"console"`
+	OutputPaths         []string `env:"LOG_OUTPUT" env-default:"stdout"`
+	ErrorOutputPaths    []string `env:"LOG_ERROR_OUTPUT" env-default:"stderr"`
+	OutputFilePath      string   `env:"LOG_OUTPUT_FILE" env-default:"logs/order.log"`
+	ErrorOutputFilePath string   `env:"LOG_ERROR_OUTPUT_FILE" env-default:"logs/order_error.log"`
 }
 
 // Базовая конфигурация для gRPC-сервисов.

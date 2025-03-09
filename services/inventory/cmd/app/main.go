@@ -9,8 +9,8 @@ import (
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/config"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server"
+	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/migrate"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -18,10 +18,14 @@ func main() {
 
 	cfg := config.MustNew()
 
-	log, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
+	log := logger.NewZapLogger(
+		cfg.Logger.Level,
+		logger.WithEncoding(cfg.Logger.Encoding),
+		logger.WithOutputPaths(cfg.Logger.OutputPaths),
+		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
+		logger.WithFileOutput(cfg.Logger.OutputFilePath),
+		logger.WithFileErrorsOutput(cfg.Logger.ErrorOutputFilePath),
+	)
 
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 

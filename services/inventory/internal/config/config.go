@@ -10,12 +10,21 @@ import (
 
 type Config struct {
 	Environment      string `env:"APP_ENV" env-default:"local"`
-	LogLevel         string `env:"LOG_LEVEL" env-default:"warn"`
+	Logger           LoggerConfig
 	GRPC             GRPCConfig
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
+}
+
+type LoggerConfig struct {
+	Level               string   `env:"LOG_LEVEL" env-default:"warn"`
+	Encoding            string   `env:"LOG_ENCODING" env-default:"console"`
+	OutputPaths         []string `env:"LOG_OUTPUT" env-default:"stdout"`
+	ErrorOutputPaths    []string `env:"LOG_ERROR_OUTPUT" env-default:"stderr"`
+	OutputFilePath      string   `env:"LOG_OUTPUT_FILE" env-default:"logs/inventory.log"`
+	ErrorOutputFilePath string   `env:"LOG_ERROR_OUTPUT_FILE" env-default:"logs/inventory_error.log"`
 }
 
 type GRPCConfig struct {

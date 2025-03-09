@@ -30,7 +30,14 @@ func main() {
 
 	cfg := config.MustNew()
 
-	log := logger.NewZapLogger(cfg.LogLevel, []string{"stdout"}, []string{"stderr"})
+	log := logger.NewZapLogger(
+		cfg.Logger.Level,
+		logger.WithEncoding(cfg.Logger.Encoding),
+		logger.WithOutputPaths(cfg.Logger.OutputPaths),
+		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
+		logger.WithFileOutput(cfg.Logger.OutputFilePath),
+		logger.WithFileErrorsOutput(cfg.Logger.ErrorOutputFilePath),
+	)
 
 	ctx := context.Background()
 
