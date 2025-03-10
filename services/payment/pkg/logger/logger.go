@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
+	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -50,7 +50,7 @@ func (zl *zapLogger) Warn(msg string, fields ...any) {
 }
 
 func (zl *zapLogger) Error(msg string, fields ...any) {
-	// WARNING. Тут такто код надеется на наличие ошибки в fields[1], хоть я так и делаю всегда, тем не менее...
+	// WARNING. Тут код надеется на наличие ошибки в fields[1], хоть я так и делаю всегда, тем не менее...
 	if domain.CheckIfCriticalError(fields[1].(error)) {
 		zl.logger.Errorw(msg, append(fields, zap.Stack("stack"))...)
 		return
@@ -74,6 +74,7 @@ func (zl *zapLogger) Named(name string) Logger {
 	return &zapLogger{logger: zl.logger.Named(name)}
 }
 
+// When specifying output to a file use corresponding option (WithFileOutput, WithFileErrorsOutput).
 func NewZapLogger(level string, options ...ZapOption) Logger {
 	zapConfig := zap.NewProductionConfig()
 

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -49,8 +50,12 @@ func (zl *zapLogger) Warn(msg string, fields ...any) {
 }
 
 func (zl *zapLogger) Error(msg string, fields ...any) {
-	// FIXME Тут не у всех стек. Сделать проверку на принадлежность ошикбки к критическим (в домене думаю).
-	zl.logger.Errorw(msg, append(fields, zap.Stack("stack"))...)
+	// WARNING. Тут код надеется на наличие ошибки в fields[1], хоть я так и делаю всегда, тем не менее...
+	if domain.CheckIfCriticalError(fields[1].(error)) {
+		zl.logger.Errorw(msg, append(fields, zap.Stack("stack"))...)
+		return
+	}
+	zl.logger.Errorw(msg, fields...)
 }
 
 func (zl *zapLogger) Panic(msg string, fields ...any) {

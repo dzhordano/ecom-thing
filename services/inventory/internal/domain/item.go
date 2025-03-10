@@ -12,6 +12,11 @@ var (
 	ErrNotEnoughQuantity = errors.New("not enough quantity")
 )
 
+func CheckIfCriticalError(err error) bool {
+	// No particular critical errors, so mark everything as critical expect the ones we know.
+	return !(errors.Is(err, ErrNotEnoughQuantity) || errors.Is(err, ErrProductNotFound) || errors.Is(err, ErrOperationUnknown))
+}
+
 const (
 	OperationAdd       = "add"
 	OperationSub       = "sub"

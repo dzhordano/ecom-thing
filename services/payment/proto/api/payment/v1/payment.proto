@@ -1,0 +1,88 @@
+syntax = "proto3";
+
+package api.payment.v1;
+
+option go_package = "dzhordano/ecom-thing/services/payment/pkg/api/payment/v1;payment_v1";
+
+// Сервис платежей
+service PaymentService {
+  // Создание платежа. В идеале не вызвается т.к. платежи создаются в создания заказа, т.е. исходя из топиков в kafka.
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+  // Получение статуса платежа.
+  rpc GetPaymentStatus(GetPaymentStatusRequest) returns (GetPaymentStatusResponse);
+  // Отмена платежа.
+  rpc CancelPayment(CancelPaymentRequest) returns (CancelPaymentResponse);
+  // Подтверждение платежа.
+  rpc ConfirmPayment(ConfirmPaymentRequest) returns (ConfirmPaymentResponse);
+  // Повторение платежа.
+  rpc RetryPayment(RetryPaymentRequest) returns (RetryPaymentResponse);
+}
+
+// Заказ к оплате
+message Order {
+  // Идентификатор заказа
+  string id = 1;
+  // Идентификатор пользователя
+  string user_id = 2;
+  // Валюта
+  string currency = 3;
+  // Сумма заказа
+  double total_price = 4;
+}
+
+// Запрос на создание платежа
+message CreatePaymentRequest {
+  // Заказ к оплате
+  Order order = 1;
+  // Способ оплаты
+  string payment_method = 2;
+  // Данные способа оплаты
+  string payment_method_data = 3;
+  // URL перенаправления после оплаты TODO надо ли тут?
+  string redirect_url = 4;
+}
+
+// Ответ на создание платежа
+message CreatePaymentResponse {
+  // Идентификатор платежа
+  string payment_id = 1;
+}
+
+// Запрос на получение статуса платежа
+message GetPaymentStatusRequest {
+  // Идентификатор платежа
+  string payment_id = 1;
+}
+
+// Ответ на получение статуса платежа
+message GetPaymentStatusResponse {
+  // Статус
+  string status = 1;
+}
+
+// Запрос на отмену платежа
+message CancelPaymentRequest {
+  // Идентификатор платежа
+  string payment_id = 1;
+}
+
+// Ответ на отмену платежа
+message CancelPaymentResponse {}
+
+// Запрос на подтверждение платежа
+message ConfirmPaymentRequest {
+  // Идентификатор платежа
+  string payment_id = 1;
+}
+
+// Ответ на подтверждение платежа
+message ConfirmPaymentResponse {}
+
+// Запрос на повторение платежа
+message RetryPaymentRequest {
+  // Идентификатор платежа
+  string payment_id = 1;
+}
+
+// Ответ на повторение платежа
+message RetryPaymentResponse {}

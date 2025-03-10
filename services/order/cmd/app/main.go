@@ -18,7 +18,7 @@ import (
 )
 
 // TODO to finish
-// трейсы. тесты. деплой. очередь (после payment apiшки).
+// тесты. деплой. очередь (после payment apiшки).
 // улучшить логгер (просто избаться от зависимости zap в сервисах для начала).
 
 func main() {
@@ -28,7 +28,6 @@ func main() {
 	cfg := config.MustNew()
 
 	// WARNING.
-	// When specifying file path for logs to save, logger WONT create a file.
 	log := logger.NewZapLogger(
 		cfg.Logger.Level,
 		logger.WithEncoding(cfg.Logger.Encoding),

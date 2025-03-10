@@ -279,6 +279,7 @@ type Coupon struct {
 
 type OrderEvent struct {
 	OrderID    string
+	UserID     string
 	Currency   string
 	TotalPrice string
 }
@@ -291,6 +292,7 @@ type InventoryEvent struct {
 func (o *Order) OrderEvent() OrderEvent {
 	return OrderEvent{
 		OrderID:    o.ID.String(),
+		UserID:     o.UserID.String(),
 		Currency:   o.Currency.String(),
 		TotalPrice: fmt.Sprintf("%.2f", o.TotalPrice),
 	}
@@ -299,10 +301,12 @@ func (o *Order) OrderEvent() OrderEvent {
 func (e OrderEvent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		OrderID    string
+		UserID     string
 		Currency   string
 		TotalPrice string
 	}{
 		OrderID:    e.OrderID,
+		UserID:     e.UserID,
 		Currency:   e.Currency,
 		TotalPrice: e.TotalPrice,
 	})
