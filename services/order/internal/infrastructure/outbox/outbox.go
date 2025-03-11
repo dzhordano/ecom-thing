@@ -26,7 +26,7 @@ type OutboxMessage struct {
 
 func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.OrdersProducer, interval time.Duration) *OutboxProcessor {
 	return &OutboxProcessor{
-		log:      log.With("service", "order outbox"),
+		log:      log,
 		db:       db,
 		prod:     prod,
 		interval: interval,
@@ -35,20 +35,18 @@ func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.OrdersPr
 
 // Start запускает воркер в отдельной горутине
 func (op *OutboxProcessor) Start(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(op.interval)
-		defer ticker.Stop()
+	ticker := time.NewTicker(op.interval)
+	defer ticker.Stop()
 
-		for {
-			select {
-			case <-ticker.C:
-				op.processOutbox(ctx)
-			case <-ctx.Done():
-				op.log.Info("outbox processor shutting down")
-				return
-			}
+	for {
+		select {
+		case <-ticker.C:
+			op.processOutbox(ctx)
+		case <-ctx.Done():
+			op.log.Info("outbox processor shutting down")
+			return
 		}
-	}()
+	}
 }
 
 // processOutbox читает события из Outbox и публикует их в Kafka
@@ -88,7 +86,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 
 	for _, msg := range messages {
 		// FIXME теперь ЧО!? (партишины какие...)
-		err = op.prod.Produce(msg.Topic, -1, msg.Payload)
+		err = op.prod.Produce(msg.Topic, msg.EventType, msg.ID, msg.Payload)
 		if err != nil {
 			op.log.Error("failed to send Kafka message", "error", err)
 			continue

@@ -1,6 +1,7 @@
 package grpc_server
 
 import (
+	"context"
 	"log"
 	"net"
 	"net/http"
@@ -145,7 +146,7 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
-func (s *Server) Run() error {
+func (s *Server) Run(_ context.Context) error {
 	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err

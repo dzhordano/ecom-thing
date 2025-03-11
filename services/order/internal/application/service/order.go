@@ -63,9 +63,12 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		}
 	}
 
+	timeout, cancel := context.WithTimeout(ctx, 5*time.Second) // FIXME Тоже хардкод
+	defer cancel()
+
 	var totalPrice float64
 	for _, item := range info.Items {
-		price, isActive, err := o.productService.GetProductInfo(ctx, item.ProductID)
+		price, isActive, err := o.productService.GetProductInfo(timeout, item.ProductID)
 		if err != nil {
 			o.log.Error("failed to get product info", "error", err)
 			return nil, err
@@ -102,7 +105,10 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		items[item.ProductID.String()] += item.Quantity
 	}
 
-	isReservable, err := o.inventoryService.IsReservable(ctx, items)
+	timeout, cancel = context.WithTimeout(ctx, 5*time.Second) // FIXME Тоже хардкод
+	defer cancel()
+
+	isReservable, err := o.inventoryService.IsReservable(timeout, items)
 	if err != nil {
 		o.log.Error("failed to check reservability of the order", "error", err)
 		return nil, err

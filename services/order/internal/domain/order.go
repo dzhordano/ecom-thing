@@ -300,10 +300,10 @@ func (o *Order) OrderEvent() OrderEvent {
 
 func (e OrderEvent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		OrderID    string
-		UserID     string
-		Currency   string
-		TotalPrice string
+		OrderID    string `json:"order_id"`
+		UserID     string `json:"user_id"`
+		Currency   string `json:"currency"`
+		TotalPrice string `json:"total_price"`
 	}{
 		OrderID:    e.OrderID,
 		UserID:     e.UserID,
@@ -321,8 +321,8 @@ func (o *Order) InventoryEvent() InventoryEvent {
 
 func (e InventoryEvent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		OrderID string
-		Items   Items
+		OrderID string `json:"order_id"`
+		Items   Items  `json:"items"`
 	}{
 		OrderID: e.OrderID,
 		Items:   e.Items,

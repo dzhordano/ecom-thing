@@ -11,12 +11,16 @@ import (
 // как использовать partitions?
 
 type OrdersProducer interface {
-	Produce(topic string, partition int32, payload []byte) error
+	Produce(topic, eventType, key string, payload []byte) error
 }
 
 const (
 	TopicOrderCreated   = "order-created"
 	TopicOrderCancelled = "order-cancelled"
+)
+
+var (
+	EventTypeHeaderKey = []byte("event_type")
 )
 
 type OrdersSyncProducer struct {
@@ -34,12 +38,19 @@ func NewOrderdSyncProducer(brokers []string, producerConfigurationProvider func(
 	return &OrdersSyncProducer{producer: producer}
 }
 
-func (p *OrdersSyncProducer) Produce(topic string, partition int32, payload []byte) error {
+func (p *OrdersSyncProducer) Produce(topic, eventType, key string, payload []byte) error {
 	p.producerLock.Lock()
 	defer p.producerLock.Unlock()
 
 	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
+		Headers: []sarama.RecordHeader{
+			{
+				Key:   EventTypeHeaderKey,
+				Value: []byte(eventType),
+			},
+		},
+		Key:   sarama.StringEncoder(key),
 		Value: sarama.ByteEncoder(payload),
 	})
 

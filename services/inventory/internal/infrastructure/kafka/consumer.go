@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
-	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
-	"github.com/google/uuid"
+	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
+	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
 )
 
 // Consumer represents a Sarama consumer group consumer with item service
 type Consumer struct {
-	cg           sarama.ConsumerGroup
-	orderService interfaces.OrderService
-	ready        chan bool
+	cg               sarama.ConsumerGroup
+	inventoryService interfaces.ItemService
+	ready            chan bool
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
@@ -46,45 +45,49 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				log.Printf("message channel was closed")
 				return nil
 			}
-			log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s, headers[0].key = %v, headers[0].value = %v", string(message.Value), message.Timestamp, message.Topic, string(message.Headers[0].Key), string(message.Headers[0].Value))
 
-			var orderEvent domain.OrderEvent
-			err := json.Unmarshal(message.Value, &orderEvent)
+			var invEvent struct {
+				OrderID string `json:"order_id"`
+				Items   []struct {
+					ProductID string
+					Quantity  uint64
+				} `json:"items"`
+			}
+			err := json.Unmarshal(message.Value, &invEvent)
 			if err != nil {
 				log.Printf("error parsing message.Value: %v", err)
 				return nil
 			}
 
+			items := map[string]uint64{}
+			for i := range invEvent.Items {
+				items[invEvent.Items[i].ProductID] = invEvent.Items[i].Quantity
+			}
 			// FIXME Тут наверно все же в цикле перебрать. Хотя и хедер всего один всегда...
 			eventType := string(message.Headers[0].Value)
 			if eventType == "" {
-				log.Println("eventType header not found")
+				log.Printf("eventType header not found")
 				return nil
 			}
 
-			orderID, err := uuid.Parse(orderEvent.OrderID)
-			if err != nil {
-				log.Printf("error parsing order event's order id: %v", err)
-				return nil
-			}
-
-			// FIXME Тут мб вы константы тоже
+			// FIXME тут тоже в константы наверно. подумать об аггрегации таких событий??? (но куда :*)
 			switch eventType {
-			case "order-cancelled":
-				c.orderService.CancelOrder(session.Context(), orderID)
-			case "order-completed":
-				c.orderService.CompleteOrder(session.Context(), orderID)
+			case "quantity-requested":
+				c.inventoryService.SetItemsWithOp(session.Context(), items, domain.OperationLock)
+			case "quantity-released":
+				c.inventoryService.SetItemsWithOp(session.Context(), items, domain.OperationUnlock)
+			case "quantity-subtracted":
+				c.inventoryService.SetItemsWithOp(session.Context(), items, domain.OperationSubLocked)
 			}
 
 			session.MarkMessage(message, "")
-
 		case <-session.Context().Done():
 			return nil
 		}
 	}
 }
 
-func NewConsumerGroup(brokers, topics []string, groupID string, orderService interfaces.OrderService) (*Consumer, error) {
+func NewConsumerGroup(brokers, topics []string, groupID string, inventoryService interfaces.ItemService) (*Consumer, error) {
 	c := sarama.NewConfig()
 
 	// TODO Настроить конфиг наверно.
@@ -97,9 +100,9 @@ func NewConsumerGroup(brokers, topics []string, groupID string, orderService int
 	}
 
 	return &Consumer{
-		orderService: orderService,
-		cg:           cg,
-		ready:        make(chan bool),
+		inventoryService: inventoryService,
+		cg:               cg,
+		ready:            make(chan bool),
 	}, nil
 }
 
