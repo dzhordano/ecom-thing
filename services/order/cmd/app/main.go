@@ -36,6 +36,7 @@ func main() {
 	)
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
+	defer db.Close()
 
 	repo := pg.NewOrderRepository(db)
 
@@ -44,7 +45,7 @@ func main() {
 	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr())
 
 	// TODO поменять, чтобы я тут не импоритровал саму сараму.
-	kafkaProducer := kafka.NewOrderdSyncProducer(
+	kafkaProducer := kafka.NewOrdersSyncProducer(
 		[]string{"localhost:19092"},
 		func() *sarama.Config {
 			producerConfig := sarama.NewConfig()
@@ -64,10 +65,11 @@ func main() {
 
 	svc := service.NewOrderService(log, ps, is, repo)
 
-	handler := grpc_server.NewItemHandler(svc)
-
-	srv := grpc_server.MustNew(log, handler,
+	srv := grpc_server.MustNew(
+		log,
+		grpc_server.NewItemHandler(svc),
 		grpc_server.WithAddr(cfg.GRPC.Addr()),
+		// FIXME ещо
 	)
 
 	if err := srv.Run(); err != nil {

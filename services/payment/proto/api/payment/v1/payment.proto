@@ -37,7 +37,7 @@ message CreatePaymentRequest {
   // Способ оплаты
   string payment_method = 2;
   // Данные способа оплаты
-  string payment_method_data = 3;
+  string payment_description = 3;
   // URL перенаправления после оплаты TODO надо ли тут?
   string redirect_url = 4;
 }

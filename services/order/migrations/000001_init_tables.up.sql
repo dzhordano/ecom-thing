@@ -29,6 +29,7 @@ CREATE TABLE IF NOT EXISTS coupons(
   valid_to TIMESTAMP NOT NULL
 );
 
+-- #FIXME убрать генерацию отсюда в application?
 CREATE TABLE IF NOT EXISTS outbox (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   topic VARCHAR(100) NOT NULL,

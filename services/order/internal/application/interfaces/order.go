@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
+// FIXME Тута id пользователя везде, т.к. его надо извлекать на interfaces а не application.
 type OrderService interface {
 	CreateOrder(ctx context.Context, info dto.CreateOrderRequest) (*domain.Order, error)
 

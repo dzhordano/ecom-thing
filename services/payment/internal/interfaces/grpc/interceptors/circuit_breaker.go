@@ -3,6 +3,7 @@ package interceptors
 import (
 	"context"
 	"errors"
+
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

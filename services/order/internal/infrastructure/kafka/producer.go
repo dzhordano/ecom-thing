@@ -10,7 +10,7 @@ import (
 // TODO сделать async
 // как использовать partitions?
 
-type OrdersProducer interface {
+type Producer interface {
 	Produce(topic, eventType, key string, payload []byte) error
 }
 
@@ -28,7 +28,7 @@ type OrdersSyncProducer struct {
 	producer     sarama.SyncProducer
 }
 
-func NewOrderdSyncProducer(brokers []string, producerConfigurationProvider func() *sarama.Config) *OrdersSyncProducer {
+func NewOrdersSyncProducer(brokers []string, producerConfigurationProvider func() *sarama.Config) *OrdersSyncProducer {
 	producer, err := sarama.NewSyncProducer(brokers, producerConfigurationProvider())
 	if err != nil {
 		log.Printf("failed to start Sarama producer: %s\n", err)

@@ -9,19 +9,28 @@ import (
 )
 
 var (
-	ErrInvalidStatus        = errors.New("invalid status")
-	ErrInvalidCurrency      = errors.New("invalid currency")
-	ErrInvalidPaymentMethod = errors.New("invalid payment method")
-	ErrInvalidArgument      = errors.New("invalid argument")
-	ErrInternal             = errors.New("internal error")
+	ErrInvalidArgument         = errors.New("invalid argument")
+	ErrInvalidStatus           = errors.New("invalid status")
+	ErrInvalidCurrency         = errors.New("invalid currency")
+	ErrInvalidPaymentMethod    = errors.New("invalid payment method")
+	ErrInvalidPayment          = errors.New("invalid payment") // Means that payment has invalid status for example
+	ErrPaymentAlreadyPending   = errors.New("payment already pending")
+	ErrPaymentAlreadyCompleted = errors.New("payment already completed")
+	// Critical ones --->
+	ErrPaymentCancelled = errors.New("payment cancelled") // FIXME надо ли?
+	ErrPaymentFailed    = errors.New("payment failed")
+	ErrInternal         = errors.New("internal error")
 )
 
 func CheckIfCriticalError(err error) bool {
-	// No particular critical errors, so mark everything as critical expect the ones we know without internal.
+	// No particular critical errors, so mark everything as critical expect for those we know are not critical.
 	return !(errors.Is(err, ErrInvalidArgument) ||
 		errors.Is(err, ErrInvalidStatus) ||
 		errors.Is(err, ErrInvalidCurrency) ||
-		errors.Is(err, ErrInvalidPaymentMethod))
+		errors.Is(err, ErrInvalidPaymentMethod) ||
+		errors.Is(err, ErrInvalidPayment) ||
+		errors.Is(err, ErrPaymentAlreadyPending) ||
+		errors.Is(err, ErrPaymentAlreadyCompleted))
 }
 
 const (
@@ -35,7 +44,7 @@ type Payment struct {
 	Currency      Currency
 	TotalPrice    float64
 	PaymentMethod PaymentMethod
-	PaymentData   string
+	Description   string
 	RedirectURL   string
 	Status        Status
 	CreatedAt     time.Time
@@ -97,13 +106,15 @@ func (s Status) String() string {
 type PaymentMethod string
 
 const (
-	PaymentMethodCard PaymentMethod = "card"
-	PaymentMethodCash PaymentMethod = "cash"
+	PaymentMethodCard     PaymentMethod = "bank_card"
+	PaymentMethodCash     PaymentMethod = "cash"
+	PaymentMethodTransfer PaymentMethod = "transfer"
 )
 
 var paymentMethodMap = map[string]PaymentMethod{
-	"card": PaymentMethodCard,
-	"cash": PaymentMethodCash,
+	"bank_card": PaymentMethodCard,
+	"cash":      PaymentMethodCash,
+	"transfer":  PaymentMethodTransfer,
 }
 
 func NewPaymentMethod(s string) (PaymentMethod, error) {
@@ -117,7 +128,7 @@ func (s PaymentMethod) String() string {
 	return string(s)
 }
 
-func NewPayment(orderId, userId uuid.UUID, currency string, totalPrice float64, paymentMethod, paymentData, redirectURL, status string) (*Payment, error) {
+func NewPayment(orderId, userId uuid.UUID, currency string, totalPrice float64, paymentMethod, paymentDescription, redirectURL, status string) (*Payment, error) {
 	paymentId, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -145,7 +156,7 @@ func NewPayment(orderId, userId uuid.UUID, currency string, totalPrice float64, 
 		Currency:      c,
 		TotalPrice:    totalPrice,
 		PaymentMethod: pm,
-		PaymentData:   paymentData,
+		Description:   paymentDescription,
 		RedirectURL:   redirectURL,
 		Status:        ps,
 		CreatedAt:     time.Now().UTC(),
@@ -168,7 +179,7 @@ func (p *Payment) IsValid() error {
 		errors = append(errors, err.Error())
 	}
 
-	if len(p.PaymentData) > MaxPaymentDataLength {
+	if len(p.Description) > MaxPaymentDataLength {
 		errors = append(errors, "payment data must be less than 256 characters")
 	}
 
@@ -184,10 +195,6 @@ func (p *Payment) IsValid() error {
 		errors = append(errors, "created at must be before now")
 	}
 
-	if p.UpdatedAt.After(time.Now().UTC()) {
-		errors = append(errors, "updated at must be before now")
-	}
-
 	if len(errors) > 0 {
 		return fmt.Errorf("%w: %s", ErrInvalidArgument, errors)
 	}
@@ -195,14 +202,21 @@ func (p *Payment) IsValid() error {
 	return nil
 }
 
-func (p *Payment) UpdateStatus(status string) error {
-	ps, err := NewStatus(status)
-	if err != nil {
-		return err
-	}
+func (p *Payment) SetStatus(status Status) {
+	p.Status = status
+}
 
-	p.Status = ps
-	p.UpdatedAt = time.Now().UTC()
+// MarkAsPaid updates the payment status to "paid".
+func (p *Payment) MarkAsPaid() {
+	p.SetStatus(PaymentCompleted)
+}
 
-	return nil
+// MarkAsCancelled updates the payment status to "cancelled" (if say user cancels the payment).
+func (p *Payment) MarkAsCancelled() {
+	p.SetStatus(PaymentCancelled)
+}
+
+// MarkAsFailed updates the payment status to "failed" (for example if it's expired).
+func (p *Payment) MarkAsFailed() {
+	p.SetStatus(PaymentFailed)
 }

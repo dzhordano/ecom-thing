@@ -12,7 +12,7 @@ import (
 type OutboxProcessor struct {
 	log      logger.Logger
 	db       *pgxpool.Pool
-	prod     kafka.OrdersProducer
+	prod     kafka.Producer
 	interval time.Duration
 }
 
@@ -24,7 +24,7 @@ type OutboxMessage struct {
 	CreatedAt time.Time
 }
 
-func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.OrdersProducer, interval time.Duration) *OutboxProcessor {
+func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.Producer, interval time.Duration) *OutboxProcessor {
 	return &OutboxProcessor{
 		log:      log,
 		db:       db,
