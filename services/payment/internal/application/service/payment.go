@@ -2,33 +2,24 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"sync"
-	"time"
 
 	"github.com/dzhordano/ecom-thing/services/payment/internal/application/dto"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain/repository"
-	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure/billing"
 	"github.com/dzhordano/ecom-thing/services/payment/pkg/logger"
 	"github.com/google/uuid"
 )
 
 type PaymentService struct {
-	log            logger.Logger
-	repo           repository.PaymentRepository
-	billingService billing.Billing
-
-	wg *sync.WaitGroup
+	log  logger.Logger
+	repo repository.PaymentRepository
 }
 
-func NewPaymerService(log logger.Logger, repo repository.PaymentRepository, billingService billing.Billing, wg *sync.WaitGroup) interfaces.PaymentService {
+func NewPaymerService(log logger.Logger, repo repository.PaymentRepository) interfaces.PaymentService {
 	return &PaymentService{
-		log:            log,
-		repo:           repo,
-		billingService: billingService,
-		wg:             wg,
+		log:  log,
+		repo: repo,
 	}
 }
 
@@ -58,20 +49,6 @@ func (p *PaymentService) CreatePayment(ctx context.Context, req dto.CreatePaymen
 		p.log.Error("create payment error", "error", err)
 		return nil, err
 	}
-
-	ctxWTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute) // TODO Тут маг число. Время на проведение оплаты.
-	defer cancel()
-	strPrice := fmt.Sprintf("%.2f", payment.TotalPrice)
-
-	p.wg.Add(1)
-	go func() error {
-		defer p.wg.Done()
-		if err := p.billingService.CreatePayment(ctxWTimeout, payment.Currency.String(), strPrice, payment.RedirectURL, payment.Description); err != nil {
-			p.log.Error("create payment error", "error", err)
-			return err
-		}
-		return nil
-	}()
 
 	p.log.Debug("create payment success")
 
@@ -116,28 +93,14 @@ func (p *PaymentService) RetryPayment(ctx context.Context, paymentId, userId uui
 		return err
 	}
 
-	ctxWTimeout, cancel := context.WithTimeout(ctx, 5*time.Minute) // TODO Тут маг число. Время на проведение оплаты.
-	defer cancel()
-	strPrice := fmt.Sprintf("%.2f", payment.TotalPrice)
-
-	p.wg.Add(1)
-	go func() error {
-		defer p.wg.Done()
-		if err := p.billingService.CreatePayment(ctxWTimeout, payment.Currency.String(), strPrice, payment.RedirectURL, payment.Description); err != nil {
-			p.log.Error("create payment error", "error", err)
-			return err
-		}
-		return nil
-	}()
-
 	p.log.Debug("retry payment success")
 
 	return nil
 }
 
 // CancelPayment implements interfaces.PaymentService.
-func (p *PaymentService) CancelPayment(ctx context.Context, paymentId, userId uuid.UUID) error {
-	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
+func (p *PaymentService) CancelPayment(ctx context.Context, orderId, userId uuid.UUID) error {
+	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
 	if err != nil {
 		p.log.Error("cancel payment error", "error", err)
 		return err
@@ -161,8 +124,8 @@ func (p *PaymentService) CancelPayment(ctx context.Context, paymentId, userId uu
 }
 
 // ConfirmPayment implements interfaces.PaymentService.
-func (p *PaymentService) ConfirmPayment(ctx context.Context, paymentId, userId uuid.UUID) error {
-	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
+func (p *PaymentService) ConfirmPayment(ctx context.Context, orderId, userId uuid.UUID) error {
+	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
 	if err != nil {
 		p.log.Error("confirm payment error", "error", err)
 		return err

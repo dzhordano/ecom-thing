@@ -48,7 +48,6 @@ func main() {
 
 	c, err := kafka.NewConsumerGroup(
 		[]string{"localhost:19092"},
-		[]string{"inventory-events"},
 		"inventory-group",
 		svc,
 	)
@@ -59,7 +58,9 @@ func main() {
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	go c.RunConsumer(ctx, []string{"inventory-events"})
+	if err := c.Start(ctx, []string{"inventory-events"}); err != nil {
+		log.Error("error starting consumer group", "error", err)
+	}
 
 	go srv.Run(ctx)
 

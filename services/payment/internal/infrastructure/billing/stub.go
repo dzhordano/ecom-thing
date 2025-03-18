@@ -2,28 +2,30 @@ package billing
 
 import (
 	"context"
-	"errors"
 	"log"
-	"math/rand/v2"
 	"time"
+
+	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 )
 
 type StubBilling struct {
 }
 
-func NewStubBilling() Billing {
+func NewStubBilling() domain.Billing {
 	return &StubBilling{}
 }
 
-func (s *StubBilling) CreatePayment(ctx context.Context, currency, amount, redirectURL, paymentData string) error {
-	log.Printf("creating payment with currency: %s, amount: %s, redirectURL: %s, paymentData: %s", currency, amount, redirectURL, paymentData)
-	time.Sleep(10 * time.Second)
+func (s *StubBilling) NewPayment(ctx context.Context, currency string, totalPrice float64, paymentData string) error {
+	const op = "billing.StubBilling.NewPayment"
 
-	if rand.IntN(50) > 40 {
-		return errors.New("payment failed") // experimental
-	}
+	log.Printf("creating payment with currency: %s, totalPrice: %f, paymentData: %s", currency, totalPrice, paymentData)
+	time.Sleep(5 * time.Second)
 
-	log.Printf("success creating payment with currency: %s, amount: %s, redirectURL: %s, paymentData: %s", currency, amount, redirectURL, paymentData)
+	// if rand.IntN(50) > 0 {
+	// 	return fmt.Errorf("%s: %w", op, domain.ErrPaymentFailed) // FIXME oh no oh no it failed...
+	// }
+
+	log.Printf("success creating payment with currency: %s, totalPrice: %f, paymentData: %s", currency, totalPrice, paymentData)
 
 	return nil
 }

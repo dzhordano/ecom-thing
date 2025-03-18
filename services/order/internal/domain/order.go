@@ -206,15 +206,13 @@ func (c Currency) String() string {
 type PaymentMethod string
 
 const (
-	Card   PaymentMethod = "card"
-	PayPal PaymentMethod = "paypal"
-	Crypto PaymentMethod = "crypto"
+	BankCard PaymentMethod = "bank_card"
+	Cash     PaymentMethod = "cash"
 )
 
 var validPaymentMethods = map[PaymentMethod]bool{
-	Card:   true,
-	PayPal: true,
-	Crypto: true,
+	BankCard: true,
+	Cash:     true,
 }
 
 func NewPaymentMethod(p string) (PaymentMethod, error) {
@@ -278,10 +276,12 @@ type Coupon struct {
 }
 
 type OrderEvent struct {
-	OrderID    string
-	UserID     string
-	Currency   string
-	TotalPrice string
+	OrderID       string
+	UserID        string
+	Currency      string
+	TotalPrice    string
+	PaymentMethod string
+	Description   string
 }
 
 type InventoryEvent struct {
@@ -291,24 +291,30 @@ type InventoryEvent struct {
 
 func (o *Order) OrderEvent() OrderEvent {
 	return OrderEvent{
-		OrderID:    o.ID.String(),
-		UserID:     o.UserID.String(),
-		Currency:   o.Currency.String(),
-		TotalPrice: fmt.Sprintf("%.2f", o.TotalPrice),
+		OrderID:       o.ID.String(),
+		UserID:        o.UserID.String(),
+		Currency:      o.Currency.String(),
+		TotalPrice:    fmt.Sprintf("%.2f", o.TotalPrice),
+		PaymentMethod: o.PaymentMethod.String(),
+		Description:   o.Description,
 	}
 }
 
 func (e OrderEvent) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
-		OrderID    string `json:"order_id"`
-		UserID     string `json:"user_id"`
-		Currency   string `json:"currency"`
-		TotalPrice string `json:"total_price"`
+		OrderID       string `json:"order_id"`
+		UserID        string `json:"user_id"`
+		Currency      string `json:"currency"`
+		TotalPrice    string `json:"total_price"`
+		PaymentMethod string `json:"payment_method"`
+		Description   string `json:"description"`
 	}{
-		OrderID:    e.OrderID,
-		UserID:     e.UserID,
-		Currency:   e.Currency,
-		TotalPrice: e.TotalPrice,
+		OrderID:       e.OrderID,
+		UserID:        e.UserID,
+		Currency:      e.Currency,
+		TotalPrice:    e.TotalPrice,
+		PaymentMethod: e.PaymentMethod,
+		Description:   e.Description,
 	})
 }
 

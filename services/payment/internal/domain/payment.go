@@ -1,12 +1,21 @@
 package domain
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+// Service for payment
+// FIXME ХЗ КУДА
+type Billing interface {
+	// NewPayment handles process of payment. Is BLOCKING (supposedly) operation.
+	NewPayment(ctx context.Context, currency string, totalPrice float64, paymentDescription string) error
+}
 
 var (
 	ErrInvalidArgument         = errors.New("invalid argument")
@@ -219,4 +228,63 @@ func (p *Payment) MarkAsCancelled() {
 // MarkAsFailed updates the payment status to "failed" (for example if it's expired).
 func (p *Payment) MarkAsFailed() {
 	p.SetStatus(PaymentFailed)
+}
+
+type OrderEvent struct {
+	OrderID       string
+	UserID        string
+	Currency      string
+	TotalPrice    float64
+	PaymentMethod string
+	Description   string
+}
+
+func (o *Payment) OrderEvent() OrderEvent {
+	return OrderEvent{
+		OrderID:       o.OrderID.String(),
+		UserID:        o.UserID.String(),
+		Currency:      o.Currency.String(),
+		TotalPrice:    o.TotalPrice,
+		PaymentMethod: o.PaymentMethod.String(),
+		Description:   o.Description,
+	}
+}
+
+func (e OrderEvent) MarshalJSON() ([]byte, error) {
+	return json.Marshal(struct {
+		OrderID       string `json:"order_id"`
+		UserID        string `json:"user_id"`
+		Currency      string `json:"currency"`
+		TotalPrice    string `json:"total_price"`
+		PaymentMethod string `json:"payment_method"`
+		Description   string `json:"description"`
+	}{
+		OrderID:       e.OrderID,
+		UserID:        e.UserID,
+		Currency:      e.Currency,
+		TotalPrice:    fmt.Sprintf("%.2f", e.TotalPrice), // TODO норм ли это
+		PaymentMethod: e.PaymentMethod,
+		Description:   e.Description,
+	})
+}
+
+func (e *OrderEvent) UnmarshalJSON(data []byte) error {
+	var aux struct {
+		OrderID       string  `json:"order_id"`
+		UserID        string  `json:"user_id"`
+		Currency      string  `json:"currency"`
+		TotalPrice    float64 `json:"total_price,string"`
+		PaymentMethod string  `json:"payment_method"`
+		Description   string  `json:"description"`
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	e.OrderID = aux.OrderID
+	e.UserID = aux.UserID
+	e.Currency = aux.Currency
+	e.TotalPrice = aux.TotalPrice
+	e.PaymentMethod = aux.PaymentMethod
+	e.Description = aux.Description
+	return nil
 }

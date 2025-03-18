@@ -10,5 +10,5 @@ type CreatePaymentRequest struct {
 
 	PaymentMethod string
 	Description   string
-	RedirectURL   string
+	RedirectURL   string // TODO нужен ли?
 }

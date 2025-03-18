@@ -51,22 +51,14 @@ func (op *OutboxProcessor) Start(ctx context.Context) {
 
 // processOutbox читает события из Outbox и публикует их в Kafka
 func (op *OutboxProcessor) processOutbox(ctx context.Context) {
-	tx, err := op.db.Begin(ctx)
-	if err != nil {
-		op.log.Error("failed to start transaction", "error", err)
-		return
-	}
 
-	rows, err := tx.Query(ctx,
+	rows, err := op.db.Query(ctx,
 		`SELECT id, topic, event_type, payload, created_at 
 		FROM outbox 
 		WHERE processed_at IS NULL 
-		ORDER BY created_at ASC LIMIT 10`)
+		ORDER BY created_at ASC LIMIT 10`) // TODO магич число 10
 	if err != nil {
 		op.log.Error("failed to query outbox", "error", err)
-		if rbErr := tx.Rollback(ctx); rbErr != nil {
-			op.log.Error("failed to rollback outbox transaction", "error", rbErr)
-		}
 		return
 	}
 
@@ -79,13 +71,13 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 		}
 		messages = append(messages, msg)
 	}
+	defer rows.Close()
 
 	if len(messages) == 0 {
 		return
 	}
 
 	for _, msg := range messages {
-		// FIXME теперь ЧО!? (партишины какие...)
 		err = op.prod.Produce(msg.Topic, msg.EventType, msg.ID, msg.Payload)
 		if err != nil {
 			op.log.Error("failed to send Kafka message", "error", err)
@@ -93,14 +85,10 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 		}
 
 		// Обновляем запись в Outbox, помечая как обработанную
-		_, err = tx.Exec(ctx, `UPDATE outbox SET processed_at = NOW() WHERE id = $1`, msg.ID)
+		// TODO можно ли сделать батчингом?
+		_, err = op.db.Exec(ctx, `UPDATE outbox SET processed_at = NOW() WHERE id = $1`, msg.ID)
 		if err != nil {
 			op.log.Error("failed to update outbox", "error", err)
-			continue
 		}
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		op.log.Error("failed to commit outbox transaction", "error", err)
 	}
 }

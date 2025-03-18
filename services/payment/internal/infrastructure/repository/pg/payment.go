@@ -6,13 +6,17 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain/repository"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 const (
-	paymentsTable         = "payments"
-	paymentsStatusesTable = "payments_statuses"
-	outboxTable           = "outbox"
+	paymentsTable = "payments"
+	outboxTable   = "outbox"
+
+	kafkaPaymentEvents = "payment-events"
+
+	kafkaPaymentCreatedEvent = "created"
 )
 
 type PaymentRepository struct {
@@ -28,22 +32,38 @@ func NewPaymentRepository(db *pgxpool.Pool) repository.PaymentRepository {
 // Save implements repository.PaymentRepository.
 // FIXME outbox + tx
 func (r *PaymentRepository) Save(ctx context.Context, payment *domain.Payment) error {
-	insQuery := sq.Insert(paymentsTable).
-		Columns("id", "user_id", "order_id", "currency", "total_price", "status", "payment_method", "description", "created_at", "updated_at").
-		Values(payment.ID, payment.UserID, payment.OrderID, payment.Currency, payment.TotalPrice, payment.Status, payment.PaymentMethod, payment.Description, payment.CreatedAt, payment.UpdatedAt).
-		Suffix("RETURNING id").
-		PlaceholderFormat(sq.Dollar)
+	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+		insQuery := sq.Insert(paymentsTable).
+			Columns("id", "user_id", "order_id", "currency", "total_price", "status", "payment_method", "description", "created_at", "updated_at").
+			Values(payment.ID, payment.UserID, payment.OrderID, payment.Currency, payment.TotalPrice, payment.Status, payment.PaymentMethod, payment.Description, payment.CreatedAt, payment.UpdatedAt).
+			Suffix("RETURNING id").
+			PlaceholderFormat(sq.Dollar)
 
-	query, args, err := insQuery.ToSql()
-	if err != nil {
-		return err
-	}
+		query, args, err := insQuery.ToSql()
+		if err != nil {
+			return err
+		}
 
-	if _, err := r.db.Exec(ctx, query, args...); err != nil {
-		return err
-	}
+		if _, err := tx.Exec(ctx, query, args...); err != nil {
+			return err
+		}
 
-	return nil
+		insQuery = sq.Insert(outboxTable).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaPaymentEvents, kafkaPaymentCreatedEvent, payment.OrderEvent(), payment.CreatedAt).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insQuery.ToSql()
+		if err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(ctx, query, args...); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // GetById implements repository.PaymentRepository.
@@ -125,30 +145,47 @@ func (r *PaymentRepository) ListByUser(ctx context.Context, userId string, limit
 
 // Update implements repository.PaymentRepository.
 func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment) error {
-	updQuery := sq.Update(paymentsTable).
-		Set("user_id", payment.UserID).
-		Set("order_id", payment.OrderID).
-		Set("currency", payment.Currency).
-		Set("total_price", payment.TotalPrice).
-		Set("status", payment.Status).
-		Set("payment_method", payment.PaymentMethod).
-		Set("description", payment.Description).
-		Set("status", payment.Status).
-		Set("created_at", payment.CreatedAt).
-		Set("updated_at", payment.UpdatedAt).
-		Where(sq.Eq{"id": payment.ID}).
-		PlaceholderFormat(sq.Dollar)
+	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 
-	query, args, err := updQuery.ToSql()
-	if err != nil {
-		return err
-	}
+		updQuery := sq.Update(paymentsTable).
+			Set("user_id", payment.UserID).
+			Set("order_id", payment.OrderID).
+			Set("currency", payment.Currency).
+			Set("total_price", payment.TotalPrice).
+			Set("status", payment.Status).
+			Set("payment_method", payment.PaymentMethod).
+			Set("description", payment.Description).
+			Set("status", payment.Status).
+			Set("created_at", payment.CreatedAt).
+			Set("updated_at", payment.UpdatedAt).
+			Where(sq.Eq{"id": payment.ID}).
+			PlaceholderFormat(sq.Dollar)
 
-	if _, err := r.db.Exec(ctx, query, args...); err != nil {
-		return err
-	}
+		query, args, err := updQuery.ToSql()
+		if err != nil {
+			return err
+		}
 
-	return nil
+		if _, err := r.db.Exec(ctx, query, args...); err != nil {
+			return err
+		}
+
+		insQuery := sq.Insert(outboxTable).
+			Columns("topic", "event_type", "payload", "created_at").
+			Values(kafkaPaymentEvents, kafkaPaymentCreatedEvent, payment.OrderEvent(), payment.UpdatedAt).
+			PlaceholderFormat(sq.Dollar)
+
+		query, args, err = insQuery.ToSql()
+		if err != nil {
+			return err
+		}
+
+		if _, err := tx.Exec(ctx, query, args...); err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // Delete implements repository.PaymentRepository.
@@ -167,4 +204,20 @@ func (r *PaymentRepository) Delete(ctx context.Context, paymentId string) error 
 	}
 
 	return nil
+}
+
+func (r *PaymentRepository) withTx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
+	tx, err := r.db.Begin(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err := fn(ctx, tx); err != nil {
+		if rbErr := tx.Rollback(ctx); rbErr != nil {
+			return rbErr
+		}
+		return err
+	}
+
+	return tx.Commit(ctx)
 }

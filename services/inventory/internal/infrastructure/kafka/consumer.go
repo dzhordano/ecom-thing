@@ -3,10 +3,8 @@ package kafka
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
@@ -87,12 +85,13 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	}
 }
 
-func NewConsumerGroup(brokers, topics []string, groupID string, inventoryService interfaces.ItemService) (*Consumer, error) {
+func NewConsumerGroup(brokers []string, groupID string, inventoryService interfaces.ItemService) (*Consumer, error) {
 	c := sarama.NewConfig()
 
 	// TODO Настроить конфиг наверно.
-	c.Consumer.Offsets.AutoCommit.Enable = false
-	c.Consumer.MaxWaitTime = 500 * time.Millisecond
+	c.Version = sarama.MaxVersion
+	c.Consumer.Return.Errors = true
+	c.Consumer.Offsets.Initial = sarama.OffsetOldest
 
 	cg, err := sarama.NewConsumerGroup(brokers, groupID, c)
 	if err != nil {
@@ -106,24 +105,23 @@ func NewConsumerGroup(brokers, topics []string, groupID string, inventoryService
 	}, nil
 }
 
-func (c *Consumer) RunConsumer(ctx context.Context, topics []string) error {
-	defer func() {
-		cErr := c.cg.Close()
-		if cErr != nil {
-			log.Printf("error closing consumer group client: %v", cErr)
+func (c *Consumer) Start(ctx context.Context, topics []string) error {
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				if err := c.cg.Consume(ctx, topics, c); err != nil {
+					log.Printf("consuming error: %v", err)
+				}
+				if ctx.Err() != nil {
+					return
+				}
+			}
 		}
 	}()
 
-	for {
-		if err := c.cg.Consume(ctx, topics, c); err != nil {
-			if errors.Is(err, sarama.ErrClosedConsumerGroup) {
-				return fmt.Errorf("consumer group closed")
-			}
-			return fmt.Errorf("error consuming message: %w", err)
-		}
-
-		if ctx.Err() != nil {
-			return fmt.Errorf("context error: %w", ctx.Err())
-		}
-	}
+	<-c.ready
+	return nil
 }

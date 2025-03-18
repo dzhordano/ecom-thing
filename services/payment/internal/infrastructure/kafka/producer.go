@@ -8,13 +8,17 @@ import (
 )
 
 type Producer interface {
-	Produce(topic string, orderId string) error
+	Produce(topic, eventType, key, orderId string) error
 }
 
 const (
 	TopicPaymentCompleted = "payment-completed"
 	TopicPaymentFailed    = "payment-failed"
 	TopicPaymentCancelled = "payment-cancelled"
+)
+
+var (
+	EventTypeHeaderKey = []byte("event_type")
 )
 
 type PaymentsSyncProducer struct {
@@ -32,12 +36,19 @@ func NewPaymentsSyncProducer(brokers []string, producerConfigurationProvider fun
 	return &PaymentsSyncProducer{producer: producer}
 }
 
-func (p *PaymentsSyncProducer) Produce(topic string, orderId string) error {
+func (p *PaymentsSyncProducer) Produce(topic, eventType, key, orderId string) error {
 	p.producerLock.Lock()
 	defer p.producerLock.Unlock()
 
 	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
+		Headers: []sarama.RecordHeader{
+			{
+				Key:   EventTypeHeaderKey,
+				Value: []byte(eventType),
+			},
+		},
+		Key:   sarama.StringEncoder(key),
 		Value: sarama.ByteEncoder(orderId),
 	})
 
