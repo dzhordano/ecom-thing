@@ -11,8 +11,12 @@ service InventoryService {
   // SetItem sets (according to provided operation) Item'm quantity amount for requested id.
   rpc SetItem(SetItemRequest) returns (SetItemResponse);
   // SetItems works like SetItem, but for multiple items.
+  //
+  // If contains dublicates, last repeated is used for checking.
   rpc SetItems(SetItemsRequest) returns (SetItemsResponse);
   // IsReservable checks if the items can be reserved.
+  //
+  // If contains dublicates, last repeated is used for checking.
   rpc IsReservable(IsReservableRequest) returns (IsReservableResponse);
 }
 

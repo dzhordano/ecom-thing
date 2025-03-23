@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
@@ -40,6 +41,10 @@ func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (*ap
 }
 
 func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*api.SetItemResponse, error) {
+	if req.Item.GetQuantity() == 0 {
+		return nil, status.Error(codes.InvalidArgument, "quantity must be greater than 0")
+	}
+
 	itemId, err := parseUUID(req.Item.GetProductId())
 	if err != nil {
 		return nil, err
@@ -60,6 +65,12 @@ func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*
 			return nil, err
 		}
 
+		iq := item.GetQuantity()
+
+		if iq == 0 {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("quantity for item %s must be greater than 0", item.GetProductId()))
+		}
+
 		pItems[item.ProductId] = item.GetQuantity()
 	}
 
@@ -72,6 +83,10 @@ func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*
 }
 
 func (h *ItemHandler) IsReservable(ctx context.Context, req *api.IsReservableRequest) (*api.IsReservableResponse, error) {
+	if len(req.Items) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "no items provided")
+	}
+
 	items := map[string]uint64{}
 
 	for i := range req.Items {

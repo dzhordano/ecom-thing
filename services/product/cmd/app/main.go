@@ -12,7 +12,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/product/pkg/logger"
-	"github.com/dzhordano/ecom-thing/services/product/pkg/migrate"
 	"go.uber.org/zap"
 )
 
@@ -43,7 +42,7 @@ func main() {
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 
-	migrate.MustMigrateUpWithNoChange(cfg.PG.URL())
+	// migrate.MustMigrateUpWithNoChange(cfg.PG.URL())
 
 	repo := pg.NewProductRepository(db)
 

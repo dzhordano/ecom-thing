@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,39 +174,40 @@ func NewPayment(orderId, userId uuid.UUID, currency string, totalPrice float64, 
 	}, nil
 }
 
-func (p *Payment) IsValid() error {
-	var errors []string
+// TODO Опять без констант, но норм т.к. не над излишних действий...
+func (p *Payment) Validate() error {
+	var errs []string
 
 	if _, err := NewCurrency(p.Currency.String()); err != nil {
-		errors = append(errors, err.Error())
+		errs = append(errs, err.Error())
 	}
 
 	if p.TotalPrice <= 0 {
-		errors = append(errors, "total price must be greater than 0")
+		errs = append(errs, "total price must be greater than 0")
 	}
 
 	if _, err := NewPaymentMethod(p.PaymentMethod.String()); err != nil {
-		errors = append(errors, err.Error())
+		errs = append(errs, err.Error())
 	}
 
 	if len(p.Description) > MaxPaymentDataLength {
-		errors = append(errors, "payment data must be less than 256 characters")
+		errs = append(errs, "payment data must be less than 256 characters")
 	}
 
 	if _, err := NewStatus(p.Status.String()); err != nil {
-		errors = append(errors, err.Error())
+		errs = append(errs, err.Error())
 	}
 
 	if p.CreatedAt.After(p.UpdatedAt) {
-		errors = append(errors, "created at must be before updated at")
+		errs = append(errs, "created at must be before updated at")
 	}
 
 	if p.CreatedAt.After(time.Now().UTC()) {
-		errors = append(errors, "created at must be before now")
+		errs = append(errs, "created at must be before now")
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("%w: %s", ErrInvalidArgument, errors)
+	if len(errs) > 0 {
+		return fmt.Errorf("%w", fmt.Errorf("%s: %s", ErrInvalidArgument, strings.Join(errs, ", ")))
 	}
 
 	return nil

@@ -87,8 +87,10 @@ func (r *PGRepostory) SetManyItems(ctx context.Context, items []domain.Item) err
 
 	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 
+		// TODO batch insert somehow?
 		query := fmt.Sprintf(
-			`UPDATE %s SET available_quantity = $2, reserved_quantity = $3 WHERE product_id = $1`,
+			`INSERT INTO %s (product_id, available_quantity, reserved_quantity) VALUES ($1, $2, $3)
+			ON CONFLICT (product_id) DO UPDATE SET available_quantity = $2, reserved_quantity = $3`,
 			itemsTable)
 
 		for _, item := range items {

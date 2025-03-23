@@ -7,15 +7,12 @@ import (
 	"sync"
 	"syscall"
 
-	_ "embed"
-
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/config"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/kafka"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
-	"github.com/dzhordano/ecom-thing/services/inventory/pkg/migrate"
 )
 
 func main() {
@@ -35,8 +32,6 @@ func main() {
 	)
 
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
-
-	migrate.MustMigrateUpWithNoChange(cfg.PG.URL())
 
 	repo := pg.NewPGRepository(ctx, pool)
 

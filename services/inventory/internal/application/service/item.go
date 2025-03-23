@@ -8,7 +8,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain/repository"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 type ItemService struct {
@@ -62,6 +61,8 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 		}
 	}
 
+	s.log.Debug("all items found", "got", len(resItems), "expected", len(items))
+
 	return true, nil
 }
 
@@ -79,7 +80,7 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 
 	if err := performOp(item, quantity, op); err != nil {
 		s.log.Error("error performing operation", "error", err)
-		return errors.Wrap(err, "error performing operation")
+		return err
 	}
 
 	if err := s.repo.SetItem(ctx, item.ProductID.String(), item.AvailableQuantity, item.ReservedQuantity); err != nil {
@@ -95,6 +96,8 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 // SetItemsWithOp implements interfaces.ItemService.
 func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error {
 	dItems := make([]domain.Item, 0, len(items))
+
+	// FIXME optimize?
 	for id := range items {
 		i, err := s.repo.GetItem(ctx, id)
 		if err != nil && op != domain.OperationAdd {
@@ -104,7 +107,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 		}
 
 		if i == nil {
-			i = domain.NewItem(uuid.MustParse(id)) // FIXME This may panic. BUT, it actually WONT, unless you delete validUUID method from handlers.
+			i = domain.NewItem(uuid.MustParse(id)) // FIXME This may panic. BUT, it actually WONT unless you delete validUUID method from handlers.
 		}
 
 		if err := performOp(i, items[id], op); err != nil {

@@ -22,7 +22,6 @@ var (
 		domain.ErrInvalidArgument:       codes.InvalidArgument,
 		domain.ErrInvalidDescription:    codes.InvalidArgument,
 
-		domain.ErrInternal:               codes.Internal,
 		domain.ErrInvalidUUID:            codes.InvalidArgument,
 		domain.ErrInvalidPrice:           codes.InvalidArgument,
 		domain.ErrInvalidDiscount:        codes.InvalidArgument,
@@ -34,7 +33,7 @@ var (
 		domain.ErrOrderAlreadyCancelled: codes.InvalidArgument,
 
 		domain.ErrCouponExpired:   codes.InvalidArgument,
-		domain.ErrCouponNotFound:  codes.InvalidArgument,
+		domain.ErrCouponNotFound:  codes.NotFound,
 		domain.ErrCouponNotActive: codes.InvalidArgument,
 
 		domain.ErrProductUnavailable: codes.NotFound,
@@ -51,6 +50,10 @@ func mapError(err error) error {
 			return status.Error(code, unwrappedErr.Error())
 		}
 	}
+
+	// if code, ok := errorMap[err]; ok {
+	// 	return status.Error(code, err.Error())
+	// }
 
 	return status.Error(codes.Internal, err.Error())
 }

@@ -97,7 +97,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	)
 	if err != nil {
 		o.log.Error("failed to create order", "error", err)
-		return nil, domain.ErrInternal //TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
+		return nil, err //TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
 	}
 
 	items := make(map[string]uint64)
@@ -115,8 +115,8 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	}
 
 	if !isReservable {
-		o.log.Error("failed to reserve order", "error", domain.ErrInventoryUnavailable)
-		return nil, domain.ErrInventoryUnavailable
+		o.log.Error("failed to reserve order", "error", domain.ErrNotEnoughQuantity)
+		return nil, domain.ErrNotEnoughQuantity
 	}
 
 	if err = o.repo.Save(ctx, order); err != nil {

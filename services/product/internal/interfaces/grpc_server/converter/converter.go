@@ -14,12 +14,10 @@ func ProductToProto(product *domain.Product) *api.Product {
 		Category: product.Category,
 		IsActive: product.IsActive,
 		Price:    product.Price,
-		//CreatedAt: timestamppb.New(product.CreatedAt),
 		CreatedAt: &timestamppb.Timestamp{
 			Seconds: product.CreatedAt.Unix(),
 			Nanos:   int32(product.CreatedAt.Nanosecond()),
 		},
-		// UpdatedAt: timestamppb.New(product.UpdatedAt),
 		UpdatedAt: &timestamppb.Timestamp{
 			Seconds: product.UpdatedAt.Unix(),
 			Nanos:   int32(product.UpdatedAt.Nanosecond()),

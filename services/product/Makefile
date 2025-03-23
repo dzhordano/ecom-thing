@@ -41,6 +41,8 @@ generate-rsa256-keypair:
 include .env
 init.db:
 	@docker run --name=product-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_PORT}:5432 -d postgres
+	@sleep 2
+	@make migrate.up
 
 stop.db:
 	@docker rm -f product-db

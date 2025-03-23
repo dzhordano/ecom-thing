@@ -13,7 +13,6 @@ var (
 	ErrInvalidArgument       = errors.New("invalid argument")
 	ErrInvalidDescription    = errors.New("invalid description")
 
-	ErrInternal               = errors.New("internal error")
 	ErrInvalidUUID            = errors.New("invalid uuid")
 	ErrInvalidPrice           = errors.New("invalid price")
 	ErrInvalidDiscount        = errors.New("invalid discount")
@@ -27,6 +26,8 @@ var (
 	ErrCouponExpired   = errors.New("coupon expired")
 	ErrCouponNotFound  = errors.New("coupon not found")
 	ErrCouponNotActive = errors.New("coupon not active")
+
+	ErrNotEnoughQuantity = errors.New("not enough quantity")
 
 	ErrProductUnavailable   = errors.New("product unavailable")
 	ErrInventoryUnavailable = errors.New("inventory unavailable")

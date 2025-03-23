@@ -39,6 +39,8 @@ migrate.up:
 
 init.db:
 	@docker run --name=inventory-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_PORT}:5432 -d postgres
+	@sleep 2
+	@make migrate.up
 
 exec.db:
 	@docker exec -it inventory-db bash -c "psql -U ${PG_USER} -d ${PG_DBNAME}"

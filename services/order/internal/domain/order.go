@@ -3,7 +3,6 @@ package domain
 import (
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -37,26 +36,6 @@ func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice
 	paymentMethod, deliveryMethod, deliveryAddress string, deliveryDate time.Time,
 	items Items) (*Order, error) {
 
-	s, err := NewStatus(status)
-	if err != nil {
-		return nil, err
-	}
-
-	c, err := NewCurrency(currency)
-	if err != nil {
-		return nil, err
-	}
-
-	pm, err := NewPaymentMethod(paymentMethod)
-	if err != nil {
-		return nil, err
-	}
-
-	dm, err := NewDeliveryMethod(deliveryMethod)
-	if err != nil {
-		return nil, err
-	}
-
 	orderId, err := uuid.NewUUID()
 	if err != nil {
 		return nil, err
@@ -66,11 +45,11 @@ func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice
 		ID:              orderId,
 		UserID:          userId,
 		Description:     description,
-		Status:          s,
-		Currency:        c,
+		Status:          Status(status),
+		Currency:        Currency(currency),
 		TotalPrice:      ApplyDiscountTo(totalPrice, totalDiscount),
-		PaymentMethod:   pm,
-		DeliveryMethod:  dm,
+		PaymentMethod:   PaymentMethod(paymentMethod),
+		DeliveryMethod:  DeliveryMethod(deliveryMethod),
 		DeliveryAddress: deliveryAddress,
 		DeliveryDate:    deliveryDate,
 		Items:           items,
@@ -86,30 +65,50 @@ func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice
 }
 
 func (o *Order) Validate() error {
-	var err error
+	var errs []string
 
 	if len(o.Description) > MaxDescriptionLength {
-		err = errors.Join(err, ErrInvalidDescription)
+		errs = append(errs, ErrInvalidDescription.Error())
 	}
 
 	if o.TotalPrice < 0 {
-		err = errors.Join(err, ErrInvalidPrice)
+		errs = append(errs, ErrInvalidPrice.Error())
+	}
+
+	if !o.Status.IsValid() {
+		errs = append(errs, ErrInvalidOrderStatus.Error())
+	}
+
+	if !o.Currency.IsValid() {
+		errs = append(errs, ErrInvalidCurrency.Error())
+	}
+
+	if !o.PaymentMethod.IsValid() {
+		errs = append(errs, ErrInvalidPaymentMethod.Error())
+	}
+
+	if !o.DeliveryMethod.IsValid() {
+		errs = append(errs, ErrInvalidDeliveryMethod.Error())
 	}
 
 	// TODO Нужен REGEX или что-то такое. Мб вообще проверять на существование такой улицы...
 	if len(o.DeliveryAddress) < MinAddressLength {
-		err = errors.Join(err, ErrInvalidDeliveryAddress)
+		errs = append(errs, ErrInvalidDeliveryAddress.Error())
 	}
 
 	if o.DeliveryDate.Before(time.Now()) {
-		err = errors.Join(err, ErrInvalidDeliveryDate)
+		errs = append(errs, ErrInvalidDeliveryDate.Error())
 	}
 
 	if len(o.Items) == 0 {
-		err = errors.Join(err, ErrInvalidOrderItems)
+		errs = append(errs, ErrInvalidOrderItems.Error())
 	}
 
-	return err
+	if len(errs) > 0 {
+		return fmt.Errorf("%w", fmt.Errorf("%s: %s", ErrInvalidArgument, strings.Join(errs, ", ")))
+	}
+
+	return nil
 }
 
 type Status string

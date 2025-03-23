@@ -52,6 +52,7 @@ func NewProduct(id uuid.UUID, name, description, category string, price float64)
 	}
 }
 
+// TODO Вроде неплохо, а вроде и без констант...
 func (c *Product) Validate() error {
 	var errs []string
 

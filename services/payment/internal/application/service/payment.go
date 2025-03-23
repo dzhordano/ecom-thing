@@ -40,7 +40,7 @@ func (p *PaymentService) CreatePayment(ctx context.Context, req dto.CreatePaymen
 		return nil, err
 	}
 
-	if err := payment.IsValid(); err != nil {
+	if err := payment.Validate(); err != nil {
 		p.log.Error("create payment error", "error", err)
 		return nil, err
 	}
