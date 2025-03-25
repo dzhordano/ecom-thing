@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
@@ -97,21 +98,26 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error {
 	dItems := make([]domain.Item, 0, len(items))
 
+	// Flag for checking if operation is add.
+	opAddFlag := op == domain.OperationAdd
+
 	// FIXME optimize?
 	for id := range items {
 		i, err := s.repo.GetItem(ctx, id)
-		if err != nil && op != domain.OperationAdd {
-			s.log.Error("error getting item", "error", err)
-
-			return err
+		if err != nil {
+			// If product is not found and operation is add, it's ok.
+			if !(errors.Is(err, domain.ErrProductNotFound) && opAddFlag) {
+				s.log.Error("error getting item", "error", err, "item_id", id)
+				return err
+			}
 		}
 
 		if i == nil {
-			i = domain.NewItem(uuid.MustParse(id)) // FIXME This may panic. BUT, it actually WONT unless you delete validUUID method from handlers.
+			i = domain.NewItem(uuid.MustParse(id)) // WARNING: This may panic. BUT, it actually WONT unless you delete validUUID method from handlers.
 		}
 
 		if err := performOp(i, items[id], op); err != nil {
-			s.log.Error("error performing operation", "error", err)
+			s.log.Error("error performing operation", "error", err, "item_id", id)
 
 			return err
 		}

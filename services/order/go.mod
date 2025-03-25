@@ -3,6 +3,7 @@ module github.com/dzhordano/ecom-thing/services/order
 go 1.23.5
 
 require (
+	github.com/IBM/sarama v1.45.1
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.0
@@ -10,6 +11,7 @@ require (
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/joho/godotenv v1.5.1
 	github.com/prometheus/client_golang v1.21.0
+	github.com/sethvargo/go-retry v0.3.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/sony/gobreaker/v2 v2.1.0
 	go.uber.org/zap v1.27.0
@@ -20,7 +22,6 @@ require (
 
 require (
 	github.com/BurntSushi/toml v1.2.1 // indirect
-	github.com/IBM/sarama v1.45.1 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

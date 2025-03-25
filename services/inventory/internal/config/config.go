@@ -15,6 +15,7 @@ type Config struct {
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
+	Kafka            KafkaConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
 }
 
@@ -36,7 +37,6 @@ func (g *GRPCConfig) Addr() string {
 	return g.Host + ":" + g.Port
 }
 
-// TODO maybe порт тестовой бд тоже нужен
 type PostgresConfig struct {
 	Host     string `env:"PG_HOST"`
 	Port     string `env:"PG_PORT"`
@@ -63,6 +63,15 @@ type CircuitBreakerConfig struct {
 	MaxRequests uint32        `env:"CIRCUIT_BREAKER_MAX_REQUESTS" env-default:"5"`
 	Interval    time.Duration `env:"CIRCUIT_BREAKER_INTERVAL" env-default:"60s"`
 	Timeout     time.Duration `env:"CIRCUIT_BREAKER_TIMEOUT" env-default:"5s"`
+}
+
+type KafkaConfig struct {
+	// List of brokers to connect to.
+	Brokers []string `env:"KAFKA_BROKERS" env-default:"localhost:9092"`
+	// The group id to use when consuming messages.
+	GroupID string `env:"KAFKA_GROUP_ID" env-default:"inventory-service"`
+	// Topics to consume messages from.
+	Topics []string `env:"KAFKA_TOPICS" env-default:"inventory-events"`
 }
 
 // MustNew Reads .env file and returns Config.

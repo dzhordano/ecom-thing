@@ -41,21 +41,25 @@ func main() {
 
 	srv := grpc_server.MustNew(log, handlers, grpc_server.WithAddr(cfg.GRPC.Addr()))
 
-	c, err := kafka.NewConsumerGroup(
-		[]string{"localhost:19092"},
-		"inventory-group",
-		svc,
-	)
-	if err != nil {
-		log.Error("error starting consumer group", "error", err)
-	}
+	go func() {
+
+		c, err := kafka.NewConsumerGroup(
+			ctx,
+			cfg.Kafka.Brokers,
+			cfg.Kafka.GroupID,
+			svc,
+		)
+		if err != nil {
+			log.Error("error starting consumer group", "error", err)
+			return
+		}
+		if err := c.Start(ctx, cfg.Kafka.Topics); err != nil {
+			log.Error("error starting consumer group", "error", err)
+		}
+	}()
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
-
-	if err := c.Start(ctx, []string{"inventory-events"}); err != nil {
-		log.Error("error starting consumer group", "error", err)
-	}
 
 	go srv.Run(ctx)
 
@@ -67,6 +71,8 @@ func main() {
 		srv.GracefulStop()
 	}()
 
+	log.Info("graceful shutdown completed")
+
 	shutdownWG.Add(1)
 	go func() {
 		defer shutdownWG.Done()
@@ -74,4 +80,9 @@ func main() {
 	}()
 
 	shutdownWG.Wait()
+
+	log.Info("graceful shutdown completed")
 }
+
+// TODO Не понимаю, почему после выключения:
+//		failed to serve HTTP: mux: server closed

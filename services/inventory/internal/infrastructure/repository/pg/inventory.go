@@ -69,6 +69,7 @@ func (r *PGRepostory) GetManyItems(ctx context.Context, ids []string) ([]*domain
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	defer rows.Close()
 
 	var items []*domain.Item
 	for rows.Next() {

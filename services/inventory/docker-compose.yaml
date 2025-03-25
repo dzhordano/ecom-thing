@@ -42,7 +42,7 @@ services:
         volumes:
             - ./migrations:/migrations
         depends_on:
-            - product-db
+            - inventory-db
     prometheus:
         image: prom/prometheus
         ports:

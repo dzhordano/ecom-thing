@@ -1,6 +1,6 @@
 module github.com/dzhordano/ecom-thing/services/inventory
 
-go 1.24.0
+go 1.23.5
 
 require (
 	github.com/IBM/sarama v1.40.1
@@ -10,11 +10,11 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.7.2
 	github.com/joho/godotenv v1.5.1
-	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.21.0
 	github.com/rookie-ninja/rk-boot/v2 v2.2.22
 	github.com/rookie-ninja/rk-entry/v2 v2.2.22
 	github.com/rookie-ninja/rk-grpc/v2 v2.2.22
+	github.com/sethvargo/go-retry v0.3.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/sony/gobreaker/v2 v2.1.0
 	github.com/spf13/viper v1.19.0

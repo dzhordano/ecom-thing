@@ -21,6 +21,10 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+const (
+	FailRatioCap = 0.65
+)
+
 type Option func(*Server)
 
 type Server struct {
@@ -65,19 +69,24 @@ func WithCircuitBreakerSettings(maxRequests uint32, interval, timeout time.Durat
 	}
 }
 
+// DefaultServerOptions returns a set of default options for the server.
+func DefaultServerOptions() []Option {
+	return []Option{
+		WithAddr(":50051"),
+		WithRateLimiter(100, 100),
+		WithCircuitBreakerSettings(5, 60*time.Second, 5*time.Second),
+	}
+}
+
 func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Option) *Server {
-	s := &Server{
-		profilingOn:      false,
-		ratelimiterLimit: 100, // TODO магические числа
-		ratelimiterBurst: 100,
-		cb: &gobreaker.Settings{
-			Name:        "inventory-app-cb",
-			MaxRequests: 5,
-			Interval:    60 * time.Second,
-			Timeout:     5 * time.Second,
-		},
+	s := &Server{}
+
+	// Default options
+	for _, o := range DefaultServerOptions() {
+		o(s)
 	}
 
+	// Custom options
 	for _, o := range opts {
 		o(s)
 	}
@@ -107,7 +116,7 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			failRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 
-			return failRatio >= 0.50 // TODO маг число
+			return failRatio >= FailRatioCap
 		},
 		OnStateChange: func(name string, from, to gobreaker.State) {
 			log.Info("circuit breaker state changed",
@@ -146,7 +155,7 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
-func (s *Server) Run(_ context.Context) error {
+func (s *Server) Run(ctx context.Context) error {
 	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err

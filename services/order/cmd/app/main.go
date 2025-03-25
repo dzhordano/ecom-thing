@@ -72,18 +72,21 @@ func main() {
 		// FIXME ещо
 	)
 
-	c, err := kafka.NewConsumerGroup(
-		[]string{"localhost:19092"},
-		"order-group",
-		svc,
-	)
-	if err != nil {
-		log.Error("error starting consumer group", "error", err)
-	}
-
-	if err := c.Start(ctx, []string{"payment-events"}); err != nil {
-		log.Error("error starting consumer group", "error", err)
-	}
+	go func() {
+		c, err := kafka.NewConsumerGroup(
+			ctx,
+			[]string{"localhost:19092"},
+			"order-group",
+			svc,
+		)
+		if err != nil {
+			log.Error("error starting consumer group", "error", err)
+			return
+		}
+		if err := c.Start(ctx, []string{"payment-events"}); err != nil {
+			log.Error("error starting consumer group", "error", err)
+		}
+	}()
 
 	if err := srv.Run(); err != nil {
 		log.Panic("errors running grpc server", zap.Error(err))
