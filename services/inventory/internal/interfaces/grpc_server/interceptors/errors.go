@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	// HashMap for domain errors for efficient mapping.
+	// HashMap w/ domain errors for efficient mapping.
 	errorMap = map[error]codes.Code{
 		domain.ErrNotEnoughQuantity: codes.InvalidArgument,
 		domain.ErrProductNotFound:   codes.NotFound,
@@ -21,7 +21,7 @@ var (
 
 func mapError(err error) error {
 	if s, ok := status.FromError(err); ok {
-		return s.Err() // Return the status error if it's a gRPC error
+		return s.Err() // Return status error if it's a gRPC error
 	}
 
 	for unwrappedErr := err; unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {

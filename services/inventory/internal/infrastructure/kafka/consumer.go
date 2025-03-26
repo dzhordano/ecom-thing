@@ -129,7 +129,11 @@ func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, inv
 func (c *Consumer) Start(ctx context.Context, topics []string) error {
 	go func() {
 		defer close(c.ready)
-		defer c.cg.Close()
+		defer func() {
+			if err := c.cg.Close(); err != nil {
+				log.Printf("error closing consumer group: %v", err)
+			}
+		}()
 
 		for {
 			select {
@@ -146,7 +150,6 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 				default:
 					log.Printf("error from consumer group: %v, retrying...", err)
 					time.Sleep(c.retryBackoff)
-					// FIXME хардкод ретрая макс времени на ожидание. Вроде норм...
 					c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
 				}
 				if ctx.Err() != nil {

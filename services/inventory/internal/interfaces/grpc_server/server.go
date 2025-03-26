@@ -97,7 +97,7 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-			log.Error("Recovered from panic", "panic", p)
+			log.Error("recovered from panic", "panic", p)
 			return
 		}),
 	}

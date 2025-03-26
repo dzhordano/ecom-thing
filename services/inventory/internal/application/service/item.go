@@ -26,7 +26,7 @@ func NewItemService(log logger.Logger, itemRepository repository.ItemRepository)
 func (s *ItemService) GetItem(ctx context.Context, id uuid.UUID) (*domain.Item, error) {
 	item, err := s.repo.GetItem(ctx, id.String())
 	if err != nil {
-		s.log.Error("error getting item", "error", err)
+		s.log.Error("error getting item", "error", err, "item_id", id.String())
 
 		return nil, err
 	}
@@ -38,7 +38,7 @@ func (s *ItemService) GetItem(ctx context.Context, id uuid.UUID) (*domain.Item, 
 //
 // Function does not return ProductNotFound error due to it's purpose (being called for reservation from order service).
 // If product is not found, it returns false.
-// Take a note that you have to ensure that ids are NOT duplicated.
+// Note that you have to ensure that the ids are NOT duplicated.
 func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64) (bool, error) {
 	keys := make([]string, 0, len(items))
 	for k := range items {
@@ -58,6 +58,7 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 
 	for i := range keys {
 		if resItems[i].AvailableQuantity < items[keys[i]] {
+			s.log.Debug("not enough quantity", "got", resItems[i].AvailableQuantity, "need", items[keys[i]])
 			return false, nil
 		}
 	}
@@ -71,7 +72,7 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity uint64, op string) error {
 	item, err := s.repo.GetItem(ctx, id.String())
 	if err != nil && op != domain.OperationAdd {
-		s.log.Error("error getting item", "error", err)
+		s.log.Error("error getting item", "error", err, "item_id", id.String())
 		return err
 	}
 
@@ -80,12 +81,12 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 	}
 
 	if err := performOp(item, quantity, op); err != nil {
-		s.log.Error("error performing operation", "error", err)
+		s.log.Error("error performing operation", "error", err, "item_id", id.String())
 		return err
 	}
 
 	if err := s.repo.SetItem(ctx, item.ProductID.String(), item.AvailableQuantity, item.ReservedQuantity); err != nil {
-		s.log.Error("error setting item", "error", err)
+		s.log.Error("error setting item", "error", err, "item_id", id.String())
 		return err
 	}
 

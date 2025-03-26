@@ -45,6 +45,10 @@ init.db:
 exec.db:
 	@docker exec -it inventory-db bash -c "psql -U ${PG_USER} -d ${PG_DBNAME}"
 
+generate.mocks.handlers:
+	@mkdir -p internal/interfaces/grpc_server/mocks
+	@mockgen -source=internal/application/interfaces/item.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
+
 test.load:
 	@ghz --insecure --proto proto/api/inventory/v1/inventory.proto --call api.inventory.v1.InventoryService/AddQuantity \
 	--rps 100 --total 3000 \

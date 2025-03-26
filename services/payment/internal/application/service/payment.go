@@ -59,7 +59,7 @@ func (p *PaymentService) CreatePayment(ctx context.Context, req dto.CreatePaymen
 func (p *PaymentService) GetPaymentStatus(ctx context.Context, paymentId, userId uuid.UUID) (string, error) {
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
-		p.log.Error("get payment status error", "error", err)
+		p.log.Error("get payment status error", "error", err, "payment_id", paymentId.String())
 		return "", err
 	}
 
@@ -72,28 +72,28 @@ func (p *PaymentService) GetPaymentStatus(ctx context.Context, paymentId, userId
 func (p *PaymentService) RetryPayment(ctx context.Context, paymentId, userId uuid.UUID) error {
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
-		p.log.Error("retry payment error", "error", err)
+		p.log.Error("retry payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 
 	if payment.Status == domain.PaymentCompleted {
-		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyCompleted)
+		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyCompleted, "payment_id", paymentId.String())
 		return domain.ErrPaymentAlreadyCompleted
 	}
 
 	if payment.Status == domain.PaymentPending {
-		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyPending)
+		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyPending, "payment_id", paymentId.String())
 		return domain.ErrPaymentAlreadyPending
 	}
 
 	payment.SetStatus(domain.PaymentPending)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
-		p.log.Error("retry payment error", "error", err)
+		p.log.Error("retry payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 
-	p.log.Debug("retry payment success")
+	p.log.Debug("retry payment success", "payment_id", paymentId.String())
 
 	return nil
 }
@@ -102,19 +102,19 @@ func (p *PaymentService) RetryPayment(ctx context.Context, paymentId, userId uui
 func (p *PaymentService) CancelPayment(ctx context.Context, orderId, userId uuid.UUID) error {
 	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
 	if err != nil {
-		p.log.Error("cancel payment error", "error", err)
+		p.log.Error("cancel payment error", "error", err, "order_id", orderId.String())
 		return err
 	}
 
 	if payment.Status != domain.PaymentPending {
-		p.log.Error("cancel payment error", "error", domain.ErrInvalidPayment)
+		p.log.Error("cancel payment error", "error", domain.ErrInvalidPayment, "order_id", orderId.String())
 		return domain.ErrInvalidPayment
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
-		p.log.Error("cancel payment error", "error", err)
+		p.log.Error("cancel payment error", "error", err, "order_id", orderId.String())
 		return err
 	}
 
@@ -127,19 +127,19 @@ func (p *PaymentService) CancelPayment(ctx context.Context, orderId, userId uuid
 func (p *PaymentService) ConfirmPayment(ctx context.Context, orderId, userId uuid.UUID) error {
 	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
 	if err != nil {
-		p.log.Error("confirm payment error", "error", err)
+		p.log.Error("confirm payment error", "error", err, "order_id", orderId.String())
 		return err
 	}
 
 	if payment.Status != domain.PaymentPending {
-		p.log.Error("confirm payment error", "error", domain.ErrInvalidPayment)
+		p.log.Error("confirm payment error", "error", domain.ErrInvalidPayment, "order_id", orderId.String())
 		return domain.ErrInvalidPayment
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
-		p.log.Error("confirm payment error", "error", err)
+		p.log.Error("confirm payment error", "error", err, "order_id", orderId.String())
 		return err
 	}
 

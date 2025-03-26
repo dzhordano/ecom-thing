@@ -42,7 +42,6 @@ func main() {
 	srv := grpc_server.MustNew(log, handlers, grpc_server.WithAddr(cfg.GRPC.Addr()))
 
 	go func() {
-
 		c, err := kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
