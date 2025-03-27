@@ -22,14 +22,13 @@ func main() {
 
 	cfg := config.MustNew()
 
-	log := logger.NewZapLogger(
+	log := logger.MustInit(
 		cfg.Logger.Level,
-		logger.WithEncoding(cfg.Logger.Encoding),
-		logger.WithOutputPaths(cfg.Logger.OutputPaths),
-		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
-		logger.WithFileOutput(cfg.Logger.OutputFilePath),
-		logger.WithFileErrorsOutput(cfg.Logger.ErrorOutputFilePath),
+		cfg.Logger.LogFile,
+		cfg.Logger.Encoding,
+		cfg.Logger.Development,
 	)
+	defer log.Sync()
 
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 
@@ -70,8 +69,6 @@ func main() {
 		srv.GracefulStop()
 	}()
 
-	log.Info("graceful shutdown completed")
-
 	shutdownWG.Add(1)
 	go func() {
 		defer shutdownWG.Done()
@@ -82,6 +79,3 @@ func main() {
 
 	log.Info("graceful shutdown completed")
 }
-
-// TODO Не понимаю, почему после выключения:
-//		failed to serve HTTP: mux: server closed

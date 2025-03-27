@@ -2,6 +2,7 @@ package grpc_server
 
 import (
 	"context"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -197,7 +198,9 @@ func (s *Server) Run(ctx context.Context) error {
 
 	// HTTP сервер в отдельной горутине.
 	go func() {
-		if err := httpServer.Serve(httpL); err != nil && err != http.ErrServerClosed {
+		defer httpServer.Shutdown(ctx)
+		// Сравнение с ошибкой прежде чем фаталить, т.к. при закрытии (GracefulStop) как раз таки вызывается ошибка, которую надо бы обработать.
+		if err := httpServer.Serve(httpL); err != nil && errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("failed to serve HTTP: %v", err)
 		}
 	}()

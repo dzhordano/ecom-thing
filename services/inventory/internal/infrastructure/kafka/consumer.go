@@ -105,7 +105,6 @@ func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, inv
 		ctx,
 		retry.NewFibonacci(c.Metadata.Retry.Backoff),
 		retry.RetryFunc(func(ctx context.Context) error {
-			log.Println("attempting to create consumer group...")
 			var err error
 			cg, err = sarama.NewConsumerGroup(brokers, groupID, c)
 			if err != nil {

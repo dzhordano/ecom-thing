@@ -27,3 +27,6 @@
 *.bin
 *logs
 TODO.md
+
+# Protoc gen files
+**/pkg/api/
