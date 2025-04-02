@@ -23,14 +23,14 @@ func NewPaymentHandler(service interfaces.PaymentService) *PaymentHandler {
 }
 
 func (h *PaymentHandler) CreatePayment(ctx context.Context, req *api.CreatePaymentRequest) (*api.CreatePaymentResponse, error) {
-	orderId, err := parseUUID(req.Order.GetId())
+	orderId, err := uuid.Parse(req.Order.GetId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid order uuid")
 	}
 
-	userId, err := parseUUID(req.Order.GetUserId())
+	userId, err := uuid.Parse(req.Order.GetUserId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid user uuid")
 	}
 
 	p, err := h.service.CreatePayment(ctx, dto.CreatePaymentRequest{
@@ -53,9 +53,9 @@ func (h *PaymentHandler) CreatePayment(ctx context.Context, req *api.CreatePayme
 
 // If user or admin wants to get payment status
 func (h *PaymentHandler) GetPaymentStatus(ctx context.Context, req *api.GetPaymentStatusRequest) (*api.GetPaymentStatusResponse, error) {
-	orderId, err := parseUUID(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetPaymentId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
 
 	userId, err := parseUUIDfromCtx(ctx)
@@ -63,7 +63,7 @@ func (h *PaymentHandler) GetPaymentStatus(ctx context.Context, req *api.GetPayme
 		return nil, err
 	}
 
-	p, err := h.service.GetPaymentStatus(ctx, orderId, userId)
+	p, err := h.service.GetPaymentStatus(ctx, paymentId, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -75,9 +75,9 @@ func (h *PaymentHandler) GetPaymentStatus(ctx context.Context, req *api.GetPayme
 
 // Say payment failed - canceled or expired for example, and needs to be retried
 func (h *PaymentHandler) RetryPayment(ctx context.Context, req *api.RetryPaymentRequest) (*api.RetryPaymentResponse, error) {
-	orderId, err := parseUUID(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetPaymentId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
 
 	userId, err := parseUUIDfromCtx(ctx)
@@ -85,7 +85,7 @@ func (h *PaymentHandler) RetryPayment(ctx context.Context, req *api.RetryPayment
 		return nil, err
 	}
 
-	if err := h.service.RetryPayment(ctx, orderId, userId); err != nil {
+	if err := h.service.RetryPayment(ctx, paymentId, userId); err != nil {
 		return nil, err
 	}
 
@@ -94,17 +94,22 @@ func (h *PaymentHandler) RetryPayment(ctx context.Context, req *api.RetryPayment
 
 // If user or admin wants to cancel payment
 func (h *PaymentHandler) CancelPayment(ctx context.Context, req *api.CancelPaymentRequest) (*api.CancelPaymentResponse, error) {
-	orderId, err := parseUUID(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetPaymentId())
+	if err != nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
+	}
+
+	// userId, err := parseUUIDfromCtx(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	userId, err := uuid.Parse("4c05e831-f917-11ef-a66f-7085c2996592")
 	if err != nil {
 		return nil, err
 	}
 
-	userId, err := parseUUIDfromCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := h.service.CancelPayment(ctx, orderId, userId); err != nil {
+	if err := h.service.CancelPayment(ctx, paymentId, userId); err != nil {
 		return nil, err
 	}
 
@@ -113,9 +118,9 @@ func (h *PaymentHandler) CancelPayment(ctx context.Context, req *api.CancelPayme
 
 // User sends money (not with a card apparently, but just a transfer) so after payment is confirmed
 func (h *PaymentHandler) ConfirmPayment(ctx context.Context, req *api.ConfirmPaymentRequest) (*api.ConfirmPaymentResponse, error) {
-	orderId, err := parseUUID(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetPaymentId())
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
 
 	userId, err := parseUUIDfromCtx(ctx)
@@ -123,31 +128,22 @@ func (h *PaymentHandler) ConfirmPayment(ctx context.Context, req *api.ConfirmPay
 		return nil, err
 	}
 
-	if err := h.service.ConfirmPayment(ctx, orderId, userId); err != nil {
+	if err := h.service.ConfirmPayment(ctx, paymentId, userId); err != nil {
 		return nil, err
 	}
 
 	return &api.ConfirmPaymentResponse{}, nil
 }
 
-func parseUUID(id string) (uuid.UUID, error) {
-	out, err := uuid.Parse(id)
-	if err != nil {
-		return uuid.UUID{}, status.Error(codes.InvalidArgument, "invalid uuid")
-	}
-
-	return out, nil
-}
-
 func parseUUIDfromCtx(ctx context.Context) (uuid.UUID, error) {
 	userIdStr, ok := ctx.Value("userId").(string)
 	if !ok {
-		return uuid.UUID{}, status.Error(codes.InvalidArgument, "invalid uuid")
+		return uuid.UUID{}, status.Error(codes.InvalidArgument, "no user uuid in context")
 	}
 
 	userId, err := uuid.Parse(userIdStr)
 	if err != nil {
-		return uuid.UUID{}, status.Error(codes.InvalidArgument, "invalid uuid")
+		return uuid.UUID{}, status.Error(codes.InvalidArgument, "invalid user uuid")
 	}
 
 	return userId, nil

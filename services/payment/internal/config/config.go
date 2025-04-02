@@ -16,16 +16,15 @@ type Config struct {
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
+	Kafka            KafkaConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
 }
 
 type LoggerConfig struct {
-	Level               string   `env:"LOG_LEVEL" env-default:"warn"`
-	Encoding            string   `env:"LOG_ENCODING" env-default:"console"`
-	OutputPaths         []string `env:"LOG_OUTPUT" env-default:"stdout"`
-	ErrorOutputPaths    []string `env:"LOG_ERROR_OUTPUT" env-default:"stderr"`
-	OutputFilePath      string   `env:"LOG_OUTPUT_FILE" env-default:"logs/payment.log"`
-	ErrorOutputFilePath string   `env:"LOG_ERROR_OUTPUT_FILE" env-default:"logs/payment_error.log"`
+	Development bool   `env:"LOG_DEVELOPMENT" end-default:"false"`
+	Level       string `env:"LOG_LEVEL" env-default:"debug"`
+	LogFile     string `env:"LOG_OUTPUT_FILE" env-default:"logs/payment.log"`
+	Encoding    string `env:"LOG_ENCODING" env-default:"json"`
 }
 
 // Базовая конфигурация для gRPC-сервисов.
@@ -66,6 +65,15 @@ type CircuitBreakerConfig struct {
 	MaxRequests uint32        `env:"CIRCUIT_BREAKER_MAX_REQUESTS" env-default:"5"`
 	Interval    time.Duration `env:"CIRCUIT_BREAKER_INTERVAL" env-default:"60s"`
 	Timeout     time.Duration `env:"CIRCUIT_BREAKER_TIMEOUT" env-default:"5s"`
+}
+
+type KafkaConfig struct {
+	// List of brokers to connect to.
+	Brokers []string `env:"KAFKA_BROKERS" env-default:"localhost:19092"`
+	// The group id to use when consuming messages.
+	GroupID string `env:"KAFKA_GROUP_ID" env-default:"payment-service"`
+	// Topics to consume messages from.
+	Topics []string `env:"KAFKA_TOPICS" env-default:"order-events"`
 }
 
 // MustNew Reads .env file and returns Config.

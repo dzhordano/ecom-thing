@@ -1,3 +1,4 @@
+// TODO Поменять на не бесконечный retry.
 package kafka
 
 import (
@@ -91,6 +92,10 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	}
 }
 
+// Creates new consumer group.
+//
+// WARNING:
+// Infinite retry loop when connecting to Kafka so it's BLOCKING.
 func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, inventoryService interfaces.ItemService) (*Consumer, error) {
 	c := sarama.NewConfig()
 
@@ -98,8 +103,7 @@ func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, inv
 	c.Consumer.Return.Errors = true
 	c.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	// WARNING:
-	// Infinite retry loop so is BLOCKING.
+	// TODO Поменять на не бесконечный retry.
 	var cg sarama.ConsumerGroup
 	if err := retry.Do(
 		ctx,
@@ -134,6 +138,7 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 			}
 		}()
 
+		// TODO аналогично, бесконечный ретрай..
 		for {
 			select {
 			case <-ctx.Done():

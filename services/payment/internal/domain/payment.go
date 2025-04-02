@@ -26,21 +26,25 @@ var (
 	ErrInvalidPayment          = errors.New("invalid payment") // Means that payment has invalid status for example
 	ErrPaymentAlreadyPending   = errors.New("payment already pending")
 	ErrPaymentAlreadyCompleted = errors.New("payment already completed")
+	ErrPaymentAlreadyExists    = errors.New("payment already exists") // Payment for a certain order is already created.
+	ErrPaymentNotFound         = errors.New("payment not found")
+
 	// Critical ones --->
 	ErrPaymentCancelled = errors.New("payment cancelled") // FIXME надо ли?
 	ErrPaymentFailed    = errors.New("payment failed")
 	ErrInternal         = errors.New("internal error")
 )
 
+var CriticalErrors = map[error]struct{}{
+	ErrPaymentCancelled: {},
+	ErrPaymentFailed:    {},
+	ErrInternal:         {},
+}
+
+// If errors are critical, stacktrace will be included in logs.
 func CheckIfCriticalError(err error) bool {
-	// No particular critical errors, so mark everything as critical expect for those we know are not critical.
-	return !(errors.Is(err, ErrInvalidArgument) ||
-		errors.Is(err, ErrInvalidStatus) ||
-		errors.Is(err, ErrInvalidCurrency) ||
-		errors.Is(err, ErrInvalidPaymentMethod) ||
-		errors.Is(err, ErrInvalidPayment) ||
-		errors.Is(err, ErrPaymentAlreadyPending) ||
-		errors.Is(err, ErrPaymentAlreadyCompleted))
+	_, ok := CriticalErrors[err]
+	return ok
 }
 
 const (

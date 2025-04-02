@@ -16,6 +16,7 @@ services:
             - "${GRPC_PORT}:${GRPC_PORT}"
         depends_on:
             - inventory-db
+            - migrate
         networks:
             - default
     inventory-db:
@@ -30,12 +31,12 @@ services:
             - "${PG_PORT}:${PG_PORT}"
         volumes:
             - pgdata:/var/lib/postgresql/data
-        networks:
-            - default
         healthcheck:
             test: ["CMD-SHELL", "pg_isready -U ${PG_USER} -d ${PG_DBNAME}"]
             interval: 5s
             timeout: 5s
+        networks:
+            - default
     migrate:
         container_name: inventory-migrate
         image: migrate/migrate
@@ -43,9 +44,11 @@ services:
         volumes:
             - ./migrations:/migrations
         depends_on:
-            - inventory-db
+            inventory-db:
+                condition: service_healthy
     prometheus:
         container_name: inventory-prom
+        hostname: inventory-prom
         image: prom/prometheus
         ports:
             - "9090:9090"
@@ -57,6 +60,7 @@ services:
             - default
     grafana:
         container_name: inventory-grafana
+        hostname: inventory-grafana
         image: grafana/grafana
         ports:
             - "3000:3000"
@@ -64,6 +68,16 @@ services:
             - grafana_data:/var/lib/grafana
         networks:
             - default
+    inventory-jaeger: 
+        container_name: inventory-jaeger
+        hostname: inventory-jaeger
+        image: jaegertracing/all-in-one:1.41
+        ports:
+            - "16686:16686"
+            - "14268:14268"
+        networks:
+            - default
+
 networks:
     default:
         driver: bridge

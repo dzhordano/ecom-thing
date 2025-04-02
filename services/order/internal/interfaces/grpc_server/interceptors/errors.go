@@ -55,7 +55,7 @@ func mapError(err error) error {
 	// 	return status.Error(code, err.Error())
 	// }
 
-	return status.Error(codes.Internal, err.Error())
+	return status.Error(codes.Internal, "internal error")
 }
 
 func ErrorMapperInterceptor() grpc.UnaryServerInterceptor {

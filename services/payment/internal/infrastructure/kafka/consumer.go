@@ -2,15 +2,16 @@ package kafka
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/application/dto"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 	"github.com/google/uuid"
+	"github.com/sethvargo/go-retry"
 )
 
 // Consumer represents a Sarama consumer group consumer with item service
@@ -18,12 +19,13 @@ type Consumer struct {
 	cg             sarama.ConsumerGroup
 	paymentService interfaces.PaymentService
 	ready          chan bool
+	retryBackoff   time.Duration
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
 func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
 	// Mark the consumer as ready
-	close(c.ready)
+	c.ready = make(chan bool)
 	return nil
 }
 
@@ -47,7 +49,7 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 			}
 
 			var pmtEv domain.OrderEvent
-			err := json.Unmarshal(message.Value, &pmtEv)
+			err := pmtEv.UnmarshalJSON(message.Value)
 			if err != nil {
 				log.Printf("error parsing message.Value: %v", err)
 				return nil
@@ -95,7 +97,11 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	}
 }
 
-func NewConsumerGroup(brokers []string, groupID string, paymentService interfaces.PaymentService) (*Consumer, error) {
+// Creates new consumer group.
+//
+// WARNING:
+// Infinite retry loop when connecting to Kafka so it's BLOCKING.
+func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, paymentService interfaces.PaymentService) (*Consumer, error) {
 	c := sarama.NewConfig()
 
 	// TODO Настроить конфиг наверно.
@@ -103,27 +109,54 @@ func NewConsumerGroup(brokers []string, groupID string, paymentService interface
 	c.Consumer.Return.Errors = true
 	c.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	cg, err := sarama.NewConsumerGroup(brokers, groupID, c)
-	if err != nil {
-		return nil, fmt.Errorf("error creating consumer group: %w", err)
+	// TODO Поменять на не бесконечный retry.
+	var cg sarama.ConsumerGroup
+	if err := retry.Do(
+		ctx,
+		retry.NewFibonacci(c.Metadata.Retry.Backoff),
+		retry.RetryFunc(func(ctx context.Context) error {
+			var err error
+			cg, err = sarama.NewConsumerGroup(brokers, groupID, c)
+			if err != nil {
+				log.Printf("failed to create consumer group: %v, retrying...", err)
+				return retry.RetryableError(err)
+			}
+			return nil
+		}),
+	); err != nil {
+		return nil, err
 	}
 
 	return &Consumer{
 		paymentService: paymentService,
 		cg:             cg,
 		ready:          make(chan bool),
+		retryBackoff:   1 * time.Second,
 	}, nil
 }
 
 func (c *Consumer) Start(ctx context.Context, topics []string) error {
 	go func() {
+		defer close(c.ready)
+		defer c.cg.Close()
+
+		// TODO аналогично, бесконечный ретрай..
 		for {
 			select {
 			case <-ctx.Done():
 				return
 			default:
-				if err := c.cg.Consume(ctx, topics, c); err != nil {
-					log.Printf("consuming error: %v", err)
+				err := c.cg.Consume(ctx, topics, c)
+				switch err {
+				case nil:
+					c.retryBackoff = 1 * time.Second
+				case sarama.ErrClosedConsumerGroup:
+					log.Println("consumer group is closed, exiting")
+					return
+				default:
+					log.Printf("error from consumer group: %v, retrying...", err)
+					time.Sleep(c.retryBackoff)
+					c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
 				}
 				if ctx.Err() != nil {
 					return

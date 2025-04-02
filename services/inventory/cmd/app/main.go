@@ -31,14 +31,18 @@ func main() {
 	defer log.Sync()
 
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
+	defer pool.Close()
 
 	repo := pg.NewPGRepository(ctx, pool)
 
 	svc := service.NewItemService(log, repo)
 
-	handlers := grpc_server.NewItemHandler(svc)
-
-	srv := grpc_server.MustNew(log, handlers, grpc_server.WithAddr(cfg.GRPC.Addr()))
+	srv := grpc_server.MustNew(
+		log,
+		grpc_server.NewItemHandler(svc),
+		grpc_server.WithAddr(cfg.GRPC.Addr()),
+		grpc_server.WithTracing(cfg.Tracing.URL),
+	)
 
 	go func() {
 		c, err := kafka.NewConsumerGroup(
@@ -67,12 +71,6 @@ func main() {
 	go func() {
 		defer shutdownWG.Done()
 		srv.GracefulStop()
-	}()
-
-	shutdownWG.Add(1)
-	go func() {
-		defer shutdownWG.Done()
-		pool.Close()
 	}()
 
 	shutdownWG.Wait()

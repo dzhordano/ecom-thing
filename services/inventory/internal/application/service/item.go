@@ -102,7 +102,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 	// Flag for checking if operation is add.
 	opAddFlag := op == domain.OperationAdd
 
-	// FIXME optimize?
+	// TODO optimize?
 	for id := range items {
 		i, err := s.repo.GetItem(ctx, id)
 		if err != nil {
@@ -132,7 +132,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 		return err
 	}
 
-	s.log.Debug("items successfully set", "count", len(items))
+	s.log.Debug("items successfully set", "count", len(items), "op", op)
 
 	return nil
 }

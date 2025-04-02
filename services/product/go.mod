@@ -20,6 +20,7 @@ require (
 	golang.org/x/time v0.10.0
 	google.golang.org/grpc v1.67.1
 	google.golang.org/protobuf v1.36.4
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (

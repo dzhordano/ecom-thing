@@ -26,8 +26,15 @@ type PaymentsSyncProducer struct {
 	producer     sarama.SyncProducer
 }
 
-func NewPaymentsSyncProducer(brokers []string, producerConfigurationProvider func() *sarama.Config) *PaymentsSyncProducer {
-	producer, err := sarama.NewSyncProducer(brokers, producerConfigurationProvider())
+func NewPaymentsSyncProducer(brokers []string) *PaymentsSyncProducer {
+	producerConfig := sarama.NewConfig()
+
+	// FIXME хардкод
+	producerConfig.Net.MaxOpenRequests = 1
+	producerConfig.Producer.RequiredAcks = sarama.WaitForAll
+	producerConfig.Producer.Return.Successes = true
+
+	producer, err := sarama.NewSyncProducer(brokers, producerConfig)
 	if err != nil {
 		log.Printf("failed to start Sarama producer: %s\n", err)
 		return nil

@@ -2,11 +2,15 @@ package pg
 
 import (
 	"context"
+	"errors"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain/repository"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -32,6 +36,8 @@ func NewPaymentRepository(db *pgxpool.Pool) repository.PaymentRepository {
 // Save implements repository.PaymentRepository.
 // FIXME outbox + tx
 func (r *PaymentRepository) Save(ctx context.Context, payment *domain.Payment) error {
+	const op = "repository.PaymentRepository.Save"
+
 	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		insQuery := sq.Insert(paymentsTable).
 			Columns("id", "user_id", "order_id", "currency", "total_price", "status", "payment_method", "description", "created_at", "updated_at").
@@ -41,11 +47,17 @@ func (r *PaymentRepository) Save(ctx context.Context, payment *domain.Payment) e
 
 		query, args, err := insQuery.ToSql()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		if _, err := tx.Exec(ctx, query, args...); err != nil {
-			return err
+			var pgErr *pgconn.PgError
+			if errors.As(err, &pgErr) {
+				if pgErr.Code == pgerrcode.UniqueViolation {
+					return fmt.Errorf("%s: %w", op, domain.ErrPaymentAlreadyExists)
+				}
+			}
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		insQuery = sq.Insert(outboxTable).
@@ -55,11 +67,11 @@ func (r *PaymentRepository) Save(ctx context.Context, payment *domain.Payment) e
 
 		query, args, err = insQuery.ToSql()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		if _, err := tx.Exec(ctx, query, args...); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		return nil
@@ -68,6 +80,8 @@ func (r *PaymentRepository) Save(ctx context.Context, payment *domain.Payment) e
 
 // GetById implements repository.PaymentRepository.
 func (r *PaymentRepository) GetById(ctx context.Context, paymentId string, userId string) (*domain.Payment, error) {
+	const op = "repository.PaymentRepository.GetById"
+
 	selQuery := sq.Select("id", "user_id", "order_id", "currency", "total_price", "status", "payment_method", "description", "status", "created_at", "updated_at").
 		From(paymentsTable).
 		Where(sq.Eq{"id": paymentId, "user_id": userId}).
@@ -75,7 +89,7 @@ func (r *PaymentRepository) GetById(ctx context.Context, paymentId string, userI
 
 	query, args, err := selQuery.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	var payment domain.Payment
@@ -92,7 +106,10 @@ func (r *PaymentRepository) GetById(ctx context.Context, paymentId string, userI
 		&payment.CreatedAt,
 		&payment.UpdatedAt,
 	); err != nil {
-		return nil, err
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, fmt.Errorf("%s: %w", op, domain.ErrPaymentNotFound)
+		}
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	return &payment, nil
@@ -100,6 +117,8 @@ func (r *PaymentRepository) GetById(ctx context.Context, paymentId string, userI
 
 // ListByUser implements repository.PaymentRepository.
 func (r *PaymentRepository) ListByUser(ctx context.Context, userId string, limit uint64, offset uint64) ([]*domain.Payment, error) {
+	const op = "repository.PaymentRepository.ListByUser"
+
 	selQuery := sq.Select("id", "user_id", "order_id", "currency", "total_price", "status", "payment_method", "description", "status", "created_at", "updated_at").
 		From(paymentsTable).
 		Where(sq.Eq{"user_id": userId}).
@@ -109,13 +128,13 @@ func (r *PaymentRepository) ListByUser(ctx context.Context, userId string, limit
 
 	query, args, err := selQuery.ToSql()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 
 	var payments []*domain.Payment
 	rows, err := r.db.Query(ctx, query, args...)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s: %w", op, err)
 	}
 	defer rows.Close()
 
@@ -134,7 +153,7 @@ func (r *PaymentRepository) ListByUser(ctx context.Context, userId string, limit
 			&payment.CreatedAt,
 			&payment.UpdatedAt,
 		); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("%s: %w", op, err)
 		}
 
 		payments = append(payments, &payment)
@@ -145,8 +164,9 @@ func (r *PaymentRepository) ListByUser(ctx context.Context, userId string, limit
 
 // Update implements repository.PaymentRepository.
 func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment) error {
-	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
+	const op = "repository.PaymentRepository.Update"
 
+	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 		updQuery := sq.Update(paymentsTable).
 			Set("user_id", payment.UserID).
 			Set("order_id", payment.OrderID).
@@ -155,7 +175,6 @@ func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment)
 			Set("status", payment.Status).
 			Set("payment_method", payment.PaymentMethod).
 			Set("description", payment.Description).
-			Set("status", payment.Status).
 			Set("created_at", payment.CreatedAt).
 			Set("updated_at", payment.UpdatedAt).
 			Where(sq.Eq{"id": payment.ID}).
@@ -163,11 +182,11 @@ func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment)
 
 		query, args, err := updQuery.ToSql()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		if _, err := r.db.Exec(ctx, query, args...); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		insQuery := sq.Insert(outboxTable).
@@ -177,11 +196,11 @@ func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment)
 
 		query, args, err = insQuery.ToSql()
 		if err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		if _, err := tx.Exec(ctx, query, args...); err != nil {
-			return err
+			return fmt.Errorf("%s: %w", op, err)
 		}
 
 		return nil
@@ -190,17 +209,19 @@ func (r *PaymentRepository) Update(ctx context.Context, payment *domain.Payment)
 
 // Delete implements repository.PaymentRepository.
 func (r *PaymentRepository) Delete(ctx context.Context, paymentId string) error {
+	const op = "repository.PaymentRepository.Delete"
+
 	delQuery := sq.Delete(paymentsTable).
 		Where(sq.Eq{"id": paymentId}).
 		PlaceholderFormat(sq.Dollar)
 
 	query, args, err := delQuery.ToSql()
 	if err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	if _, err := r.db.Exec(ctx, query, args...); err != nil {
-		return err
+		return fmt.Errorf("%s: %w", op, err)
 	}
 
 	return nil

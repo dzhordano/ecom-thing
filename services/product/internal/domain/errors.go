@@ -8,7 +8,9 @@ var (
 	ErrProductAlreadyExists = errors.New("product already exists")
 )
 
-// There is not critical ones, so if these aren't preset -> give stacktrace
+var CriticalErrors = map[error]struct{}{}
+
 func CheckIfCriticalError(err error) bool {
-	return !(errors.Is(err, ErrInvalidArgument) || errors.Is(err, ErrProductNotFound) || errors.Is(err, ErrProductAlreadyExists))
+	_, ok := CriticalErrors[err]
+	return ok
 }

@@ -1,6 +1,8 @@
 package grpc_server
 
 import (
+	"context"
+	"errors"
 	"log"
 	"net"
 	"net/http"
@@ -18,6 +20,11 @@ import (
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+)
+
+const (
+	// FailedReq/TotalRequests cap.
+	FailRatioCap = 0.65
 )
 
 type Option func(*Server)
@@ -106,7 +113,7 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 		ReadyToTrip: func(counts gobreaker.Counts) bool {
 			failRatio := float64(counts.TotalFailures) / float64(counts.Requests)
 
-			return failRatio >= 0.50 // TODO маг число
+			return failRatio >= FailRatioCap
 		},
 		OnStateChange: func(name string, from, to gobreaker.State) {
 			log.Info("circuit breaker state changed",
@@ -145,7 +152,7 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
-func (s *Server) Run() error {
+func (s *Server) Run(ctx context.Context) error {
 	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -154,7 +161,7 @@ func (s *Server) Run() error {
 	m := cmux.New(list)
 
 	grpcL := m.MatchWithWriters(
-		cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"),
+		cmux.HTTP2MatchHeaderFieldPrefixSendSettings("content-type", "application/grpc"),
 	)
 
 	httpL := m.Match(cmux.Any())
@@ -187,7 +194,8 @@ func (s *Server) Run() error {
 
 	// HTTP сервер в отдельной горутине.
 	go func() {
-		if err := httpServer.Serve(httpL); err != nil && err != http.ErrServerClosed {
+		defer httpServer.Shutdown(ctx)
+		if err := httpServer.Serve(httpL); err != nil && errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf("failed to serve HTTP: %v", err)
 		}
 	}()

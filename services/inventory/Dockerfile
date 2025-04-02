@@ -1,4 +1,4 @@
-FROM golang:1.23.5-alpine3.20 AS builder
+FROM golang:1.23.7-alpine3.21 AS builder
 
 RUN mkdir /app
 ADD . /app
@@ -11,7 +11,7 @@ COPY . .
 
 RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/app/main.go
 
-FROM alpine:3.20
+FROM alpine:3.21
 
 RUN mkdir /app
 

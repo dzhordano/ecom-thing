@@ -76,7 +76,7 @@ func (s *IntegrationSuite) SetupSuite() {
 		panic(err)
 	}
 
-	nilLogger := logger.NewZapLogger("warn", nil, nil)
+	nilLogger := logger.MustInit("warn", "product-test", "json", false)
 
 	s.db = pool
 	s.productRepo = pg.NewProductRepository(s.db)

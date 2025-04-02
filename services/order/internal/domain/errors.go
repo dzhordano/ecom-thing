@@ -33,23 +33,12 @@ var (
 	ErrInventoryUnavailable = errors.New("inventory unavailable")
 )
 
+var CriticalErrors = map[error]struct{}{
+	ErrProductUnavailable:   {},
+	ErrInventoryUnavailable: {},
+}
+
 func CheckIfCriticalError(err error) bool {
-	return !(errors.Is(err, ErrOrderNotFound) ||
-		errors.Is(err, ErrInvalidOrderStatus) ||
-		errors.Is(err, ErrInvalidCurrency) ||
-		errors.Is(err, ErrInvalidPaymentMethod) ||
-		errors.Is(err, ErrInvalidDeliveryMethod) ||
-		errors.Is(err, ErrInvalidArgument) ||
-		errors.Is(err, ErrInvalidDescription) ||
-		errors.Is(err, ErrInvalidUUID) ||
-		errors.Is(err, ErrInvalidPrice) ||
-		errors.Is(err, ErrInvalidDiscount) ||
-		errors.Is(err, ErrInvalidDeliveryAddress) ||
-		errors.Is(err, ErrInvalidDeliveryDate) ||
-		errors.Is(err, ErrInvalidOrderItems) ||
-		errors.Is(err, ErrOrderAlreadyCompleted) ||
-		errors.Is(err, ErrOrderAlreadyCancelled) ||
-		errors.Is(err, ErrCouponExpired) ||
-		errors.Is(err, ErrCouponNotFound) ||
-		errors.Is(err, ErrCouponNotActive))
+	_, ok := CriticalErrors[err]
+	return ok
 }

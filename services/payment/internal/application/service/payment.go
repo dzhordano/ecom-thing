@@ -99,22 +99,22 @@ func (p *PaymentService) RetryPayment(ctx context.Context, paymentId, userId uui
 }
 
 // CancelPayment implements interfaces.PaymentService.
-func (p *PaymentService) CancelPayment(ctx context.Context, orderId, userId uuid.UUID) error {
-	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
+func (p *PaymentService) CancelPayment(ctx context.Context, paymentId, userId uuid.UUID) error {
+	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
-		p.log.Error("cancel payment error", "error", err, "order_id", orderId.String())
+		p.log.Error("cancel payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 
 	if payment.Status != domain.PaymentPending {
-		p.log.Error("cancel payment error", "error", domain.ErrInvalidPayment, "order_id", orderId.String())
+		p.log.Error("cancel payment error", "error", domain.ErrInvalidPayment, "payment_id", paymentId.String())
 		return domain.ErrInvalidPayment
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
-		p.log.Error("cancel payment error", "error", err, "order_id", orderId.String())
+		p.log.Error("cancel payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 
@@ -124,22 +124,22 @@ func (p *PaymentService) CancelPayment(ctx context.Context, orderId, userId uuid
 }
 
 // ConfirmPayment implements interfaces.PaymentService.
-func (p *PaymentService) ConfirmPayment(ctx context.Context, orderId, userId uuid.UUID) error {
-	payment, err := p.repo.GetById(ctx, orderId.String(), userId.String())
+func (p *PaymentService) ConfirmPayment(ctx context.Context, paymentId, userId uuid.UUID) error {
+	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
-		p.log.Error("confirm payment error", "error", err, "order_id", orderId.String())
+		p.log.Error("confirm payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 
 	if payment.Status != domain.PaymentPending {
-		p.log.Error("confirm payment error", "error", domain.ErrInvalidPayment, "order_id", orderId.String())
+		p.log.Error("confirm payment error", "error", domain.ErrInvalidPayment, "payment_id", paymentId.String())
 		return domain.ErrInvalidPayment
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
-		p.log.Error("confirm payment error", "error", err, "order_id", orderId.String())
+		p.log.Error("confirm payment error", "error", err, "payment_id", paymentId.String())
 		return err
 	}
 

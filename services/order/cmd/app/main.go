@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"os"
+	"os/signal"
+	"sync"
+	"syscall"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/order/internal/config"
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/grpc/inventory"
@@ -14,7 +17,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/order/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
-	"go.uber.org/zap"
 )
 
 // TODO to finish
@@ -22,18 +24,18 @@ import (
 // улучшить логгер (просто избаться от зависимости zap в сервисах для начала).
 
 func main() {
-
 	ctx := context.Background()
+	shutdownWG := &sync.WaitGroup{}
 
 	cfg := config.MustNew()
 
-	// WARNING.
-	log := logger.NewZapLogger(
+	log := logger.MustInit(
 		cfg.Logger.Level,
-		logger.WithEncoding(cfg.Logger.Encoding),
-		logger.WithOutputPaths(cfg.Logger.OutputPaths),
-		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
+		cfg.Logger.LogFile,
+		cfg.Logger.Encoding,
+		cfg.Logger.Development,
 	)
+	defer log.Sync()
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 	defer db.Close()
@@ -45,18 +47,7 @@ func main() {
 	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr())
 
 	// TODO поменять, чтобы я тут не импоритровал саму сараму.
-	kafkaProducer := kafka.NewOrdersSyncProducer(
-		[]string{"localhost:19092"},
-		func() *sarama.Config {
-			producerConfig := sarama.NewConfig()
-
-			producerConfig.Net.MaxOpenRequests = 1
-			producerConfig.Producer.RequiredAcks = sarama.WaitForAll
-			producerConfig.Producer.Return.Successes = true
-
-			return producerConfig
-		},
-	)
+	kafkaProducer := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
 	defer kafkaProducer.Close()
 
 	// TODO тута хардкод
@@ -75,8 +66,8 @@ func main() {
 	go func() {
 		c, err := kafka.NewConsumerGroup(
 			ctx,
-			[]string{"localhost:19092"},
-			"order-group",
+			cfg.Kafka.Brokers,
+			cfg.Kafka.GroupID,
 			svc,
 		)
 		if err != nil {
@@ -88,9 +79,20 @@ func main() {
 		}
 	}()
 
-	if err := srv.Run(); err != nil {
-		log.Panic("errors running grpc server", zap.Error(err))
-	}
+	q := make(chan os.Signal, 1)
+	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	// Shutdown
+	go srv.Run(ctx)
+
+	<-q
+
+	shutdownWG.Add(1)
+	go func() {
+		defer shutdownWG.Done()
+		srv.GracefulStop()
+	}()
+
+	shutdownWG.Wait()
+
+	log.Info("graceful shutdown completed")
 }

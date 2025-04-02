@@ -13,6 +13,6 @@ type PaymentService interface {
 	GetPaymentStatus(ctx context.Context, paymentId, userId uuid.UUID) (string, error)
 	RetryPayment(ctx context.Context, paymentId, userId uuid.UUID) error
 	// TODO Тут понять юзкейсы
-	CancelPayment(ctx context.Context, orderId, userId uuid.UUID) error
-	ConfirmPayment(ctx context.Context, orderId, userId uuid.UUID) error
+	CancelPayment(ctx context.Context, paymentId, userId uuid.UUID) error
+	ConfirmPayment(ctx context.Context, paymentId, userId uuid.UUID) error
 }

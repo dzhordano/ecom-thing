@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure"
+	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/tracing/tracer"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server/interceptors"
 	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
@@ -18,11 +19,13 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/soheilhy/cmux"
 	"github.com/sony/gobreaker/v2"
+	"go.opentelemetry.io/otel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 const (
+	// FailedReq/TotalRequests cap.
 	FailRatioCap = 0.65
 )
 
@@ -33,6 +36,8 @@ type Server struct {
 	addr string
 
 	profilingOn bool
+
+	tracesUrl string
 
 	ratelimiterLimit int
 	ratelimiterBurst int
@@ -49,6 +54,12 @@ func WithAddr(addr string) Option {
 func WithProfiling() Option {
 	return func(s *Server) {
 		s.profilingOn = true
+	}
+}
+
+func WithTracing(url string) Option {
+	return func(s *Server) {
+		s.tracesUrl = url
 	}
 }
 
@@ -157,6 +168,15 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
 func (s *Server) Run(ctx context.Context) error {
+	// FIXME url from env
+	if s.tracesUrl != "" {
+		tp, err := tracer.TracerProvider(s.tracesUrl, "inventory")
+		if err != nil {
+			log.Fatalf("failed to provide tracer: %v", err)
+		}
+		otel.SetTracerProvider(tp)
+	}
+
 	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -165,7 +185,7 @@ func (s *Server) Run(ctx context.Context) error {
 	m := cmux.New(list)
 
 	grpcL := m.MatchWithWriters(
-		cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"),
+		cmux.HTTP2MatchHeaderFieldPrefixSendSettings("content-type", "application/grpc"),
 	)
 
 	httpL := m.Match(cmux.Any())

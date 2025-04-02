@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
+	"github.com/dzhordano/ecom-thing/services/order/internal/domain"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"

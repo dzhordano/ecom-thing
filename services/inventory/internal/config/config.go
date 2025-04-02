@@ -15,6 +15,7 @@ type Config struct {
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
+	Tracing          TracingConfig
 	Kafka            KafkaConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
 }
@@ -63,9 +64,20 @@ type CircuitBreakerConfig struct {
 	Timeout     time.Duration `env:"CIRCUIT_BREAKER_TIMEOUT" env-default:"5s"`
 }
 
+type TracingConfig struct {
+	URL string `env:"JAEGER_EXP_URL" env-default:"http://localhost:14268/api/traces"`
+	// AgentHost string `env:"TRACING_AGENT_HOST" env-default:"localhost"`
+	// AgentPort string `env:"TRACING_AGENT_PORT" env-default:"6831"`
+	// Service   string `env:"TRACING_SERVICE" env-default:"inventory-service"`
+}
+
+// func (t *TracingConfig) Endpoint() string {
+// 	return t.AgentHost + ":" + t.AgentPort
+// }
+
 type KafkaConfig struct {
 	// List of brokers to connect to.
-	Brokers []string `env:"KAFKA_BROKERS" env-default:"localhost:9092"`
+	Brokers []string `env:"KAFKA_BROKERS" env-default:"localhost:19092"`
 	// The group id to use when consuming messages.
 	GroupID string `env:"KAFKA_GROUP_ID" env-default:"inventory-service"`
 	// Topics to consume messages from.

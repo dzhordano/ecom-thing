@@ -82,6 +82,10 @@ func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 	}
 }
 
+// Creates new consumer group.
+//
+// WARNING:
+// Infinite retry loop when connecting to Kafka so it's BLOCKING.
 func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, orderService interfaces.OrderService) (*Consumer, error) {
 	c := sarama.NewConfig()
 
@@ -90,14 +94,12 @@ func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, ord
 	c.Consumer.Return.Errors = true
 	c.Consumer.Offsets.Initial = sarama.OffsetOldest
 
-	// WARNING:
-	// Infinite retry loop so is BLOCKING.
+	// TODO Поменять на не бесконечный retry.
 	var cg sarama.ConsumerGroup
 	if err := retry.Do(
 		ctx,
 		retry.NewFibonacci(c.Metadata.Retry.Backoff),
 		retry.RetryFunc(func(ctx context.Context) error {
-			log.Println("attempting to create consumer group...")
 			var err error
 			cg, err = sarama.NewConsumerGroup(brokers, groupID, c)
 			if err != nil {
@@ -123,6 +125,7 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 		defer close(c.ready)
 		defer c.cg.Close()
 
+		// TODO аналогично, бесконечный ретрай..
 		for {
 			select {
 			case <-ctx.Done():
@@ -138,7 +141,6 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 				default:
 					log.Printf("error from consumer group: %v, retrying...", err)
 					time.Sleep(c.retryBackoff)
-					// FIXME хардкод ретрая макс времени на ожидание. Вроде норм...
 					c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
 				}
 				if ctx.Err() != nil {

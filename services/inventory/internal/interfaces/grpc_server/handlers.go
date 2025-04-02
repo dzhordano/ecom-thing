@@ -9,8 +9,15 @@ import (
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server/converter"
 	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	otelcodes "go.opentelemetry.io/otel/codes"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+var (
+	trc = otel.Tracer("ecom-thing/inventory/server")
 )
 
 type ItemHandler struct {
@@ -24,7 +31,16 @@ func NewItemHandler(service interfaces.ItemService) *ItemHandler {
 	}
 }
 
-func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (*api.GetItemResponse, error) {
+func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (_ *api.GetItemResponse, err error) {
+	ctx, span := trc.Start(ctx, "GetItem")
+	span.SetAttributes(attribute.Stringer("req", req))
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+		span.End()
+	}()
+
 	itemId, err := parseUUID(req.GetId())
 	if err != nil {
 		return nil, err
@@ -40,7 +56,16 @@ func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (*ap
 	}, nil
 }
 
-func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*api.SetItemResponse, error) {
+func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (_ *api.SetItemResponse, err error) {
+	ctx, span := trc.Start(ctx, "SetItem")
+	span.SetAttributes(attribute.Stringer("req", req))
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+		span.End()
+	}()
+
 	if req.Item.GetQuantity() == 0 {
 		return nil, status.Error(codes.InvalidArgument, "quantity must be greater than 0")
 	}
@@ -58,7 +83,16 @@ func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*ap
 	return &api.SetItemResponse{}, nil
 }
 
-func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*api.SetItemsResponse, error) {
+func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (_ *api.SetItemsResponse, err error) {
+	ctx, span := trc.Start(ctx, "SetItems")
+	span.SetAttributes(attribute.Stringer("req", req))
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+		span.End()
+	}()
+
 	pItems := map[string]uint64{}
 	for _, item := range req.Items {
 		if err := validUUID(item.GetProductId()); err != nil {
@@ -74,15 +108,23 @@ func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (*
 		pItems[item.ProductId] = item.GetQuantity()
 	}
 
-	err := h.service.SetItemsWithOp(ctx, pItems, protoOpToString(req.OperationType))
-	if err != nil {
+	if err := h.service.SetItemsWithOp(ctx, pItems, protoOpToString(req.OperationType)); err != nil {
 		return nil, err
 	}
 
 	return &api.SetItemsResponse{}, nil
 }
 
-func (h *ItemHandler) IsReservable(ctx context.Context, req *api.IsReservableRequest) (*api.IsReservableResponse, error) {
+func (h *ItemHandler) IsReservable(ctx context.Context, req *api.IsReservableRequest) (_ *api.IsReservableResponse, err error) {
+	ctx, span := trc.Start(ctx, "IsReservable")
+	span.SetAttributes(attribute.Stringer("req", req))
+	defer func() {
+		if err != nil {
+			span.SetStatus(otelcodes.Error, err.Error())
+		}
+		span.End()
+	}()
+
 	if len(req.Items) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "no items provided")
 	}

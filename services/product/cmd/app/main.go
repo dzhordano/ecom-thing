@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
@@ -12,7 +13,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/product/pkg/logger"
-	"go.uber.org/zap"
 )
 
 // Unit Тесты на домен.
@@ -26,54 +26,52 @@ import (
 // JWT. [Тоже логика в интерцепторе]
 
 func main() {
+	ctx := context.Background()
+	shutdownWG := &sync.WaitGroup{}
 
 	cfg := config.MustNew()
 
-	log := logger.NewZapLogger(
+	log := logger.MustInit(
 		cfg.Logger.Level,
-		logger.WithEncoding(cfg.Logger.Encoding),
-		logger.WithOutputPaths(cfg.Logger.OutputPaths),
-		logger.WithErrorOutputPaths(cfg.Logger.ErrorOutputPaths),
-		logger.WithFileOutput(cfg.Logger.OutputFilePath),
-		logger.WithFileErrorsOutput(cfg.Logger.ErrorOutputFilePath),
+		cfg.Logger.LogFile,
+		cfg.Logger.Encoding,
+		cfg.Logger.Development,
 	)
-
-	ctx := context.Background()
+	defer log.Sync()
 
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
-
-	// migrate.MustMigrateUpWithNoChange(cfg.PG.URL())
+	defer db.Close()
 
 	repo := pg.NewProductRepository(db)
 
 	productService := service.NewProductService(log, repo)
 
-	handler := grpc_server.NewProductHandler(productService)
-
-	server := grpc_server.MustNew(log, handler,
+	srv := grpc_server.MustNew(
+		log,
+		grpc_server.NewProductHandler(productService),
 		grpc_server.WithAddr(net.JoinHostPort(cfg.GRPC.Host, cfg.GRPC.Port)),
 		grpc_server.WithRateLimiter(cfg.RateLimiter.Limit, cfg.RateLimiter.Burst),
 		grpc_server.WithGoBreakerSettings(
 			cfg.CircuitBreaker.MaxRequests,
 			cfg.CircuitBreaker.Interval,
 			cfg.CircuitBreaker.Timeout),
-		grpc_server.WithProfiling(cfg.ProfilingEnabled),
+		grpc_server.WithProfiling(),
 	)
 
 	q := make(chan os.Signal, 1)
+	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	signal.Notify(q, os.Interrupt, syscall.SIGTERM, syscall.SIGINT)
-
-	go func() {
-		if err := server.Run(); err != nil {
-			log.Error("failed to run grpc server", zap.Error(err))
-		}
-	}()
+	go srv.Run(ctx)
 
 	<-q
 
-	log.Info("stopping grpc server")
-	server.GracefulStop()
+	shutdownWG.Add(1)
+	go func() {
+		defer shutdownWG.Done()
+		srv.GracefulStop()
+	}()
 
-	// TODO graceful
+	shutdownWG.Wait()
+
+	log.Info("graceful shutdown completed")
 }

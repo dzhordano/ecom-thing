@@ -14,12 +14,19 @@ var (
 	// HashMap for domain errors for efficient mapping.
 	// Не знаю, можно ли улучшить. Над подумац.
 	errorMap = map[error]codes.Code{
-		domain.ErrInvalidStatus:        codes.InvalidArgument,
-		domain.ErrInvalidCurrency:      codes.InvalidArgument,
-		domain.ErrInvalidPaymentMethod: codes.InvalidArgument,
-		domain.ErrInvalidArgument:      codes.InvalidArgument,
+		domain.ErrInvalidArgument:         codes.InvalidArgument,
+		domain.ErrInvalidStatus:           codes.InvalidArgument,
+		domain.ErrInvalidCurrency:         codes.InvalidArgument,
+		domain.ErrInvalidPaymentMethod:    codes.InvalidArgument,
+		domain.ErrInvalidPayment:          codes.InvalidArgument,
+		domain.ErrPaymentAlreadyPending:   codes.InvalidArgument,
+		domain.ErrPaymentAlreadyCompleted: codes.InvalidArgument,
+		domain.ErrPaymentAlreadyExists:    codes.AlreadyExists,
+		domain.ErrPaymentNotFound:         codes.NotFound,
 
-		domain.ErrInternal: codes.Internal,
+		domain.ErrPaymentCancelled: codes.InvalidArgument,
+		domain.ErrPaymentFailed:    codes.InvalidArgument,
+		domain.ErrInternal:         codes.Internal,
 	}
 )
 
@@ -34,7 +41,7 @@ func mapError(err error) error {
 		}
 	}
 
-	return status.Error(codes.Internal, err.Error())
+	return status.Error(codes.Internal, "internal error")
 }
 
 func ErrorMapperInterceptor() grpc.UnaryServerInterceptor {

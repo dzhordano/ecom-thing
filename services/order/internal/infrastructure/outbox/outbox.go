@@ -33,7 +33,9 @@ func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.Producer
 	}
 }
 
-// Start запускает воркер в отдельной горутине
+// Start запускает воркер в отдельной горутине.
+//
+// Воркер сам завершит работу при отмене контекста.
 func (op *OutboxProcessor) Start(ctx context.Context) {
 	ticker := time.NewTicker(op.interval)
 	defer ticker.Stop()
