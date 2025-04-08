@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/outbox"
+	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/tracing/tracer"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,7 +15,6 @@ import (
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/grpc/inventory"
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/grpc/product"
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/kafka"
-	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/outbox"
 	"github.com/dzhordano/ecom-thing/services/order/internal/infrastructure/repository/pg"
 	"github.com/dzhordano/ecom-thing/services/order/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/order/pkg/logger"
@@ -40,19 +41,35 @@ func main() {
 	db := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 	defer db.Close()
 
+	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "order")
+	if err != nil {
+		log.Error("error creating tracer provider", "error", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Error("error shutting down tracer provider", "error", err)
+		}
+	}()
+	tracer.SetGlobalTracerProvider(tp)
+
 	repo := pg.NewOrderRepository(db)
 
-	ps := product.NewProductClient(cfg.GRPCProduct.Addr())
+	ps := product.NewProductClient(cfg.GRPCProduct.Addr(), product.WithTracing(tp))
 
-	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr())
+	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr(), inventory.WithTracing(tp))
 
-	// TODO поменять, чтобы я тут не импоритровал саму сараму.
-	kafkaProducer := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
-	defer kafkaProducer.Close()
+	kafkaProducer, err := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
+	if err == nil {
+		outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second)
+		go outboxWorker.Start(ctx)
+		defer kafkaProducer.Close()
+	} else {
+		log.Error("error creating kafka producer", "error", err)
+	}
 
 	// TODO тута хардкод
-	outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second)
-	go outboxWorker.Start(ctx)
 
 	svc := service.NewOrderService(log, ps, is, repo)
 
@@ -60,6 +77,7 @@ func main() {
 		log,
 		grpc_server.NewItemHandler(svc),
 		grpc_server.WithAddr(cfg.GRPC.Addr()),
+		grpc_server.WithTracerProvider(tp),
 		// FIXME ещо
 	)
 

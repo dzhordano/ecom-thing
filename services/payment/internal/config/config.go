@@ -17,6 +17,7 @@ type Config struct {
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
 	Kafka            KafkaConfig
+	Tracing          TracingConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
 }
 
@@ -74,6 +75,10 @@ type KafkaConfig struct {
 	GroupID string `env:"KAFKA_GROUP_ID" env-default:"payment-service"`
 	// Topics to consume messages from.
 	Topics []string `env:"KAFKA_TOPICS" env-default:"order-events"`
+}
+
+type TracingConfig struct {
+	URL string `env:"JAEGER_EXP_URL" env-default:"http://localhost:14268/api/traces"`
 }
 
 // MustNew Reads .env file and returns Config.

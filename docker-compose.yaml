@@ -2,6 +2,7 @@ volumes:
   prometheus_data:
   grafana_data:
 services:
+  
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper

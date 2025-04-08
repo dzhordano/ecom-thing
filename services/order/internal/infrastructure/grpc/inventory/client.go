@@ -2,6 +2,11 @@ package inventory
 
 import (
 	"context"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/propagation"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/trace"
 	"log"
 	"time"
 
@@ -13,20 +18,33 @@ import (
 	"google.golang.org/grpc/keepalive"
 )
 
-// TODO ТУТА ХОДИМ В ИНВЕТАРЬ ЗА РЕЗЕРВАЦИЕЙ ПРЯМООО
+type ClientOption func(*inventoryClient)
+
+func WithTracing(tp *tracesdk.TracerProvider) ClientOption {
+	return func(s *inventoryClient) {
+		s.tp = tp
+	}
+}
+
 type inventoryClient struct {
 	c    inventory_v1.InventoryServiceClient
 	addr string
+	tp   *tracesdk.TracerProvider
 }
 
-func NewInventoryClient(addr string) interfaces.InventoryService {
-	// FIXME апогей хардкода..... или норм? (:(:(:(:
-	//
-	// Еще, для идеала надо бы retry-логику намутить еще
-	conn, err := grpc.NewClient(
-		addr,
+// NewInventoryClient creates new inventory client.
+//
+// Dials to the given address.
+func NewInventoryClient(addr string, opts ...ClientOption) interfaces.InventoryService {
+	client := inventoryClient{}
+
+	for _, o := range opts {
+		o(&client)
+	}
+
+	sOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithIdleTimeout(5*time.Second),
+		grpc.WithIdleTimeout(5 * time.Second),
 		grpc.WithConnectParams(
 			grpc.ConnectParams{
 				Backoff:           backoff.DefaultConfig,
@@ -37,20 +55,49 @@ func NewInventoryClient(addr string) interfaces.InventoryService {
 			Time:    30 * time.Second,
 			Timeout: 10 * time.Second,
 		}),
+	}
+
+	if client.tp != nil {
+		sOpts = append(sOpts,
+			grpc.WithStatsHandler(
+				otelgrpc.NewClientHandler(
+					otelgrpc.WithPropagators(propagation.TraceContext{}),
+					otelgrpc.WithTracerProvider(client.tp),
+				),
+			),
+		)
+	}
+
+	// FIXME апогей хардкода..... или норм? (:(:(:(:
+	//
+	// Еще, для идеала надо бы retry-логику намутить еще
+	conn, err := grpc.NewClient(
+		addr,
+		sOpts...,
 	)
 	if err != nil {
-		log.Printf("failed to create grpc client: %v", err)
+		log.Printf("failed to create grpc_server client: %v", err)
 		return nil
 	}
 
-	return &inventoryClient{
-		c:    inventory_v1.NewInventoryServiceClient(conn),
-		addr: addr,
-	}
+	client.c = inventory_v1.NewInventoryServiceClient(conn)
+	client.addr = addr
+
+	return &client
 }
 
 // IsReservable implements interfaces.InventoryService.
 func (i *inventoryClient) IsReservable(ctx context.Context, items map[string]uint64) (bool, error) {
+	ctx, span := trace.SpanFromContext(ctx).TracerProvider().Tracer("order").Start(ctx, "IsReservable")
+	defer span.End()
+
+	span.AddEvent(
+		"parse items",
+		trace.WithAttributes(
+			attribute.Int("items count", len(items)),
+		),
+	)
+
 	protoItems := make([]*inventory_v1.ItemOP, 0, len(items))
 
 	for id := range items {
@@ -60,12 +107,16 @@ func (i *inventoryClient) IsReservable(ctx context.Context, items map[string]uin
 		})
 	}
 
+	span.AddEvent("performing rpc")
+
 	resp, err := i.c.IsReservable(ctx, &inventory_v1.IsReservableRequest{
 		Items: protoItems,
 	})
 	if err != nil {
 		return false, err
 	}
+
+	span.AddEvent("got response")
 
 	return resp.IsReservable, nil
 }

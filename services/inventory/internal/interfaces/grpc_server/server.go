@@ -3,25 +3,25 @@ package grpc_server
 import (
 	"context"
 	"errors"
-	"log"
-	"net"
-	"net/http"
-	"net/http/pprof"
-	"time"
-
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure"
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/tracing/tracer"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server/interceptors"
 	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	grpc_prometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/soheilhy/cmux"
 	"github.com/sony/gobreaker/v2"
-	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/propagation"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"log"
+	"net"
+	"net/http"
+	"net/http/pprof"
+	"time"
 )
 
 const (
@@ -37,12 +37,11 @@ type Server struct {
 
 	profilingOn bool
 
-	tracesUrl string
-
 	ratelimiterLimit int
 	ratelimiterBurst int
 
 	cb *gobreaker.Settings
+	tp *tracesdk.TracerProvider
 }
 
 func WithAddr(addr string) Option {
@@ -57,9 +56,11 @@ func WithProfiling() Option {
 	}
 }
 
-func WithTracing(url string) Option {
+// WithTracing accepts url to send traces to.
+// Decides whether to collect traces or not.
+func WithTracerProvider(tp *tracesdk.TracerProvider) Option {
 	return func(s *Server) {
-		s.tracesUrl = url
+		s.tp = tp
 	}
 }
 
@@ -141,7 +142,7 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 
 	ratelimiter := interceptors.NewRateLimiter(s.ratelimiterLimit, s.ratelimiterBurst)
 
-	srv := grpc.NewServer(
+	sOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.NewCircuitBreaker(cb).UnaryServerInterceptor(),
 			ratelimiter.RateLimiterInterceptor(),
@@ -150,9 +151,24 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 			interceptors.ErrorMapperInterceptor(),
 			interceptors.MetricsInterceptor(),
 		),
-	)
+	}
+
+	if s.tp != nil {
+		sOpts = append(sOpts,
+			grpc.StatsHandler(
+				otelgrpc.NewServerHandler(
+					otelgrpc.WithPropagators(propagation.TraceContext{}),
+					otelgrpc.WithTracerProvider(s.tp),
+				),
+			),
+		)
+	}
+
+	srv := grpc.NewServer(sOpts...)
 
 	api.RegisterInventoryServiceServer(srv, handler)
+
+	grpc_prometheus.Register(srv)
 
 	reflection.Register(srv)
 
@@ -161,22 +177,13 @@ func MustNew(log logger.Logger, handler api.InventoryServiceServer, opts ...Opti
 	return s
 }
 
-// Run starts grpc server using cmux.
+// Run starts grpc_server server using cmux.
 //
-// Handles all HTTP2 requests with 'content-type: application/grpc' headers with grpc server
+// Handles all HTTP2 requests with 'content-type: application/grpc_server' headers with grpc_server server
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
 func (s *Server) Run(ctx context.Context) error {
-	// FIXME url from env
-	if s.tracesUrl != "" {
-		tp, err := tracer.TracerProvider(s.tracesUrl, "inventory")
-		if err != nil {
-			log.Fatalf("failed to provide tracer: %v", err)
-		}
-		otel.SetTracerProvider(tp)
-	}
-
 	list, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
@@ -191,9 +198,7 @@ func (s *Server) Run(ctx context.Context) error {
 	httpL := m.Match(cmux.Any())
 
 	mux := http.NewServeMux()
-
 	mux.Handle("/metrics", promhttp.Handler())
-	infrastructure.InitMetrics()
 
 	// Turn pprof server ON if flag 'profilingOn' is set.
 	if s.profilingOn {
@@ -207,6 +212,7 @@ func (s *Server) Run(ctx context.Context) error {
 	// Создаём HTTP сервер для метрик.
 	httpServer := &http.Server{
 		Handler: mux,
+		Addr:    s.addr,
 	}
 
 	// gRPC сервер в отдельной горутине.
@@ -225,7 +231,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	log.Printf("starting grpc and http server on addr: %s", s.addr)
+	log.Printf("starting grpc_server and http server on addr: %s", s.addr)
 
 	return m.Serve()
 }

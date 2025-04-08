@@ -51,7 +51,7 @@ func main() {
 				Price:    1.0,
 			})
 			if err != nil {
-				fmt.Println("failed to create grpc:", err)
+				fmt.Println("failed to create grpc_server:", err)
 			}
 			time.Sleep(time.Duration(rand.IntN(timeout)))
 		}
@@ -64,7 +64,7 @@ func main() {
 	// 			Id: testP.Product.Id,
 	// 		})
 	// 		if err != nil {
-	// 			fmt.Println("failed to get grpc:", err)
+	// 			fmt.Println("failed to get grpc_server:", err)
 	// 		}
 	// 		time.Sleep(time.Duration(rand.IntN(timeout)))
 	// 	}
@@ -94,7 +94,7 @@ func main() {
 	// 			Price:    1.0,
 	// 		})
 	// 		if err != nil {
-	// 			fmt.Println("failed to update grpc:", err)
+	// 			fmt.Println("failed to update grpc_server:", err)
 	// 		}
 	// 		time.Sleep(time.Duration(rand.IntN(timeout)))
 	// 	}

@@ -2,6 +2,8 @@ package grpc_server
 
 import (
 	"context"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/dto"
@@ -27,6 +29,15 @@ func NewItemHandler(s interfaces.OrderService) *ItemHandler {
 }
 
 func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderRequest) (*api.CreateOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse items",
+		trace.WithAttributes(
+			attribute.Int("count", len(req.GetItems())),
+		),
+	)
+
 	items, err := converter.RPCItemsToDomain(req.GetItems())
 	if err != nil {
 		return nil, err
@@ -43,10 +54,18 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 		Items:           items,
 	}
 
+	span.AddEvent("call service")
+
 	order, err := h.service.CreateOrder(ctx, info)
 	if err != nil {
 		return nil, err
 	}
+
+	span.AddEvent("order created",
+		trace.WithAttributes(
+			attribute.Stringer("order_id", order.ID),
+		),
+	)
 
 	resp := &api.CreateOrderResponse{
 		Order: converter.FromDomainToProto_OrderWItems(order, req.Items),
@@ -56,26 +75,53 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 }
 
 func (h *ItemHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (*api.GetOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse id",
+		trace.WithAttributes(
+			attribute.String("order_id", req.GetOrderId()),
+		),
+	)
+
 	orderId, err := uuid.Parse(req.GetOrderId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
+
+	span.AddEvent("call service")
 
 	order, err := h.service.GetById(ctx, orderId)
 	if err != nil {
 		return nil, err
 	}
 
+	span.AddEvent("order retrieved",
+		trace.WithAttributes(
+			attribute.Stringer("order_id", order.ID),
+		),
+	)
+
 	resp := &api.GetOrderResponse{Order: converter.FromDomainToProto_Order(order)}
 
 	return resp, nil
 }
 
+// TODO: implement
 func (h *ItemHandler) ListOrders(ctx context.Context, req *api.ListOrdersRequest) (*api.ListOrdersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
 func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderRequest) (*api.UpdateOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse items",
+		trace.WithAttributes(
+			attribute.Int("count", len(req.GetItems())),
+		),
+	)
+
 	items, err := converter.RPCItemsToDomain(req.GetItems())
 	if err != nil {
 		return nil, err
@@ -103,10 +149,18 @@ func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderReque
 		Items:           items,
 	}
 
+	span.AddEvent("call service")
+
 	o, err := h.service.UpdateOrder(ctx, info)
 	if err != nil {
 		return nil, err
 	}
+
+	span.AddEvent("order updated",
+		trace.WithAttributes(
+			attribute.Stringer("order_id", o.ID),
+		),
+	)
 
 	resp := &api.UpdateOrderResponse{
 		Order: converter.FromDomainToProto_Order(o),
@@ -116,20 +170,46 @@ func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderReque
 }
 
 func (h *ItemHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequest) (*api.DeleteOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse id",
+		trace.WithAttributes(
+			attribute.String("order_id", req.GetOrderId()),
+		),
+	)
+
 	oid, err := uuid.Parse(req.GetOrderId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
+
+	span.AddEvent("call service")
 
 	err = h.service.DeleteOrder(ctx, oid)
 	if err != nil {
 		return nil, err
 	}
 
+	span.AddEvent("order deleted",
+		trace.WithAttributes(
+			attribute.Stringer("order_id", oid),
+		),
+	)
+
 	return &api.DeleteOrderResponse{}, nil
 }
 
 func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersRequest) (*api.SearchOrdersResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("call service",
+		trace.WithAttributes(
+			attribute.Stringer("req", req),
+		),
+	)
+
 	orders, err := h.service.SearchOrders(ctx, map[string]any{
 		"limit":            req.Limit,
 		"offset":           req.Offset,
@@ -151,6 +231,12 @@ func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersReq
 		return nil, err
 	}
 
+	span.AddEvent("orders found",
+		trace.WithAttributes(
+			attribute.Int("count", len(orders)),
+		),
+	)
+
 	resp := &api.SearchOrdersResponse{
 		Orders: converter.FromDomainToProto_Orders(orders),
 	}
@@ -159,37 +245,62 @@ func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersReq
 }
 
 func (h *ItemHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrderRequest) (*api.CompleteOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse id",
+		trace.WithAttributes(
+			attribute.String("order_id", req.GetOrderId()),
+		),
+	)
+
 	oid, err := uuid.Parse(req.GetOrderId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
+
+	span.AddEvent("call service")
 
 	err = h.service.CompleteOrder(ctx, oid)
 	if err != nil {
 		return nil, err
 	}
 
+	span.AddEvent("order completed")
+
 	return &api.CompleteOrderResponse{}, nil
 }
 
 func (h *ItemHandler) CancelOrder(ctx context.Context, req *api.CancelOrderRequest) (*api.CancelOrderResponse, error) {
+	span := trace.SpanFromContext(ctx)
+	defer span.End()
+
+	span.AddEvent("parse id",
+		trace.WithAttributes(
+			attribute.String("order_id", req.GetOrderId()),
+		),
+	)
+
 	oid, err := uuid.Parse(req.GetOrderId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
+
+	span.AddEvent("call service")
 
 	err = h.service.CancelOrder(ctx, oid)
 	if err != nil {
 		return nil, err
 	}
 
+	span.AddEvent("order canceled")
+
 	return &api.CancelOrderResponse{}, nil
 }
 
-// This func checks if input time of proto type is zero. If it - returns nil time.
+// This func checks if input time of proto type is zero. If so - returns nil time.
 //
-// Using because when you use t.AsTime() it applies 1970-01-01 00:00:00 +0000 UTC. Idk why.
-// TODO видимо отчет из-за устройства чисел..? узнать почему.
+// Because when you use t.AsTime() it applies 1970-01-01 00:00:00 +0000 UTC as zero value due to protobuf implementation.
 func timeFromProtoIfNotZero(t *timestamppb.Timestamp) time.Time {
 	if t == nil || (t.Nanos == 0 && t.Seconds == 0) {
 		return time.Time{}

@@ -3,6 +3,9 @@ package grpc_server
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/propagation"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net"
 	"net/http"
@@ -38,7 +41,9 @@ type Server struct {
 	ratelimiterLimit int
 	ratelimiterBurst int
 
+	// FIXME ХЗ Насколько это нормально...
 	cb *gobreaker.Settings
+	tp *tracesdk.TracerProvider
 }
 
 func WithAddr(addr string) Option {
@@ -50,6 +55,12 @@ func WithAddr(addr string) Option {
 func WithProfiling() Option {
 	return func(s *Server) {
 		s.profilingOn = true
+	}
+}
+
+func WithTracerProvider(tp *tracesdk.TracerProvider) Option {
+	return func(s *Server) {
+		s.tp = tp
 	}
 }
 
@@ -72,7 +83,7 @@ func WithCircuitBreakerSettings(maxRequests uint32, interval, timeout time.Durat
 }
 
 func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) *Server {
-	s := &Server{
+	s := Server{
 		profilingOn:      false,
 		ratelimiterLimit: 100, // TODO магические числа
 		ratelimiterBurst: 100,
@@ -85,7 +96,7 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 	}
 
 	for _, o := range opts {
-		o(s)
+		o(&s)
 	}
 
 	if s.addr == "" {
@@ -126,7 +137,7 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 
 	ratelimiter := interceptors.NewRateLimiter(s.ratelimiterLimit, s.ratelimiterBurst)
 
-	srv := grpc.NewServer(
+	sOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.NewCircuitBreaker(cb).UnaryServerInterceptor(),
 			ratelimiter.RateLimiterInterceptor(),
@@ -135,7 +146,20 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 			interceptors.ErrorMapperInterceptor(),
 			interceptors.MetricsInterceptor(),
 		),
-	)
+	}
+
+	if s.tp != nil {
+		sOpts = append(sOpts,
+			grpc.StatsHandler(
+				otelgrpc.NewServerHandler(
+					otelgrpc.WithPropagators(propagation.TraceContext{}),
+					otelgrpc.WithTracerProvider(s.tp),
+				),
+			),
+		)
+	}
+
+	srv := grpc.NewServer(sOpts...)
 
 	api.RegisterOrderServiceServer(srv, handler)
 
@@ -143,12 +167,12 @@ func MustNew(log logger.Logger, handler api.OrderServiceServer, opts ...Option) 
 
 	s.s = srv
 
-	return s
+	return &s
 }
 
-// Run starts grpc server using cmux.
+// Run starts grpc_server server using cmux.
 //
-// Handles all HTTP2 requests with 'content-type: application/grpc' headers with grpc server
+// Handles all HTTP2 requests with 'content-type: application/grpc_server' headers with grpc_server server
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
@@ -200,7 +224,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	log.Printf("starting grpc and http server on addr: %s", s.addr)
+	log.Printf("starting grpc_server and http server on addr: %s", s.addr)
 
 	return m.Serve()
 }

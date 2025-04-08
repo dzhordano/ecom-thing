@@ -15,6 +15,7 @@ type Config struct {
 	PG               PostgresConfig
 	RateLimiter      RateLimiterConfig
 	CircuitBreaker   CircuitBreakerConfig
+	Tracing          TracingConfig
 	ProfilingEnabled bool `env:"PROFILING_ENABLED" env-default:"false"`
 }
 
@@ -61,6 +62,10 @@ type CircuitBreakerConfig struct {
 	MaxRequests uint32        `env:"CIRCUIT_BREAKER_MAX_REQUESTS" env-default:"5"`
 	Interval    time.Duration `env:"CIRCUIT_BREAKER_INTERVAL" env-default:"60s"`
 	Timeout     time.Duration `env:"CIRCUIT_BREAKER_TIMEOUT" env-default:"5s"`
+}
+
+type TracingConfig struct {
+	URL string `env:"JAEGER_EXP_URL" env-default:"http://localhost:14268/api/traces"`
 }
 
 // MustNew Reads .env file and returns Config.

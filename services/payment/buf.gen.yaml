@@ -8,7 +8,7 @@ plugins:
     out: pkg
     opt:
       - paths=source_relative
-  - local: protoc-gen-go-grpc
+  - local: protoc-gen-go-grpc_server
     out: pkg
     opt:
       - paths=source_relative

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure/tracing/tracer"
 	"os"
 	"os/signal"
 	"sync"
@@ -14,7 +15,7 @@ import (
 	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure/kafka"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure/outbox"
 	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure/repository/pg"
-	grpc_server "github.com/dzhordano/ecom-thing/services/payment/internal/interfaces/grpc"
+	grpc_server "github.com/dzhordano/ecom-thing/services/payment/internal/interfaces/grpc_server"
 	"github.com/dzhordano/ecom-thing/services/payment/pkg/logger"
 )
 
@@ -41,15 +42,27 @@ func main() {
 
 	svc := service.NewPaymerService(log, repo)
 
-	srv := grpc_server.MustNew(
-		log,
-		grpc_server.NewPaymentHandler(svc),
-		grpc_server.WithAddr(cfg.GRPC.Addr()),
-	)
+	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "payment")
+	if err != nil {
+		log.Error("error creating tracer provider", "error", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Error("error shutting down tracer provider", "error", err)
+		}
+	}()
+	tracer.SetGlobalTracerProvider(tp)
 
-	// TODO поменять, чтобы я тут не импоритровал саму сараму.
-	kafkaProducer := kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
-	defer kafkaProducer.Close()
+	kafkaProducer, err := kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
+	if err == nil {
+		outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second, billingSvc)
+		go outboxWorker.Start(ctx)
+		defer kafkaProducer.Close()
+	} else {
+		log.Error("error creating kafka producer", "error", err)
+	}
 
 	go func() {
 		c, err := kafka.NewConsumerGroup(
@@ -73,6 +86,13 @@ func main() {
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
+
+	srv := grpc_server.MustNew(
+		log,
+		grpc_server.NewPaymentHandler(svc),
+		grpc_server.WithAddr(cfg.GRPC.Addr()),
+		grpc_server.WithTracerProvider(tp),
+	)
 
 	go srv.Run(ctx)
 

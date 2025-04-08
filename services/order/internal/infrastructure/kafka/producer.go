@@ -24,11 +24,11 @@ var (
 )
 
 type OrdersSyncProducer struct {
-	producerLock sync.Mutex
+	producerLock *sync.Mutex
 	producer     sarama.SyncProducer
 }
 
-func NewOrdersSyncProducer(brokers []string) *OrdersSyncProducer {
+func NewOrdersSyncProducer(brokers []string) (*OrdersSyncProducer, error) {
 	producerConfig := sarama.NewConfig()
 
 	// FIXME Хардкод...
@@ -39,16 +39,18 @@ func NewOrdersSyncProducer(brokers []string) *OrdersSyncProducer {
 	producer, err := sarama.NewSyncProducer(brokers, producerConfig)
 	if err != nil {
 		log.Printf("failed to start Sarama producer: %s\n", err)
-		return nil
+		return nil, err
 	}
 
-	return &OrdersSyncProducer{producer: producer}
+	return &OrdersSyncProducer{
+		producerLock: &sync.Mutex{},
+		producer:     producer,
+	}, nil
 }
 
 func (p *OrdersSyncProducer) Produce(topic, eventType, key string, payload []byte) error {
 	p.producerLock.Lock()
 	defer p.producerLock.Unlock()
-
 	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
 		Topic: topic,
 		Headers: []sarama.RecordHeader{

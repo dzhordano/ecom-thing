@@ -66,9 +66,6 @@ type CircuitBreakerConfig struct {
 
 type TracingConfig struct {
 	URL string `env:"JAEGER_EXP_URL" env-default:"http://localhost:14268/api/traces"`
-	// AgentHost string `env:"TRACING_AGENT_HOST" env-default:"localhost"`
-	// AgentPort string `env:"TRACING_AGENT_PORT" env-default:"6831"`
-	// Service   string `env:"TRACING_SERVICE" env-default:"inventory-service"`
 }
 
 // func (t *TracingConfig) Endpoint() string {

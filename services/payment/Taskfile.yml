@@ -1,0 +1,14 @@
+# https://taskfile.dev
+
+version: '3'
+
+dotenv: ['.env']
+
+tasks:
+  init.db:
+    cmds:
+      - docker run --name=payment-db -e POSTGRES_PASSWORD=$PG_PASSWORD -p $PG_PORT:5432 -d postgres
+      - sleep 2
+      - migrate -source file://migrations -database $PG_MIGRATIONS_URL up
+    silent: true
+

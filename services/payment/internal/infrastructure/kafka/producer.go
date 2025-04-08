@@ -26,7 +26,7 @@ type PaymentsSyncProducer struct {
 	producer     sarama.SyncProducer
 }
 
-func NewPaymentsSyncProducer(brokers []string) *PaymentsSyncProducer {
+func NewPaymentsSyncProducer(brokers []string) (*PaymentsSyncProducer, error) {
 	producerConfig := sarama.NewConfig()
 
 	// FIXME хардкод
@@ -37,10 +37,10 @@ func NewPaymentsSyncProducer(brokers []string) *PaymentsSyncProducer {
 	producer, err := sarama.NewSyncProducer(brokers, producerConfig)
 	if err != nil {
 		log.Printf("failed to start Sarama producer: %s\n", err)
-		return nil
+		return nil, err
 	}
 
-	return &PaymentsSyncProducer{producer: producer}
+	return &PaymentsSyncProducer{producer: producer}, nil
 }
 
 func (p *PaymentsSyncProducer) Produce(topic, eventType, key, orderId string) error {

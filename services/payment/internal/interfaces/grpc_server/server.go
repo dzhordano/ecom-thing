@@ -3,6 +3,9 @@ package grpc_server
 import (
 	"context"
 	"errors"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel/propagation"
+	tracesdk "go.opentelemetry.io/otel/sdk/trace"
 	"log"
 	"net"
 	"net/http"
@@ -10,7 +13,7 @@ import (
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/payment/internal/infrastructure"
-	"github.com/dzhordano/ecom-thing/services/payment/internal/interfaces/grpc/interceptors"
+	"github.com/dzhordano/ecom-thing/services/payment/internal/interfaces/grpc_server/interceptors"
 	api "github.com/dzhordano/ecom-thing/services/payment/pkg/api/payment/v1"
 	"github.com/dzhordano/ecom-thing/services/payment/pkg/logger"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
@@ -34,6 +37,7 @@ type Server struct {
 	ratelimiterBurst int
 
 	cb *gobreaker.Settings
+	tp *tracesdk.TracerProvider
 }
 
 func WithAddr(addr string) Option {
@@ -45,6 +49,12 @@ func WithAddr(addr string) Option {
 func WithProfiling() Option {
 	return func(s *Server) {
 		s.profilingOn = true
+	}
+}
+
+func WithTracerProvider(tp *tracesdk.TracerProvider) Option {
+	return func(s *Server) {
+		s.tp = tp
 	}
 }
 
@@ -121,7 +131,7 @@ func MustNew(log logger.Logger, handler api.PaymentServiceServer, opts ...Option
 
 	ratelimiter := interceptors.NewRateLimiter(s.ratelimiterLimit, s.ratelimiterBurst)
 
-	srv := grpc.NewServer(
+	sOpts := []grpc.ServerOption{
 		grpc.ChainUnaryInterceptor(
 			interceptors.NewCircuitBreaker(cb).UnaryServerInterceptor(),
 			ratelimiter.RateLimiterInterceptor(),
@@ -130,7 +140,20 @@ func MustNew(log logger.Logger, handler api.PaymentServiceServer, opts ...Option
 			interceptors.ErrorMapperInterceptor(),
 			interceptors.MetricsInterceptor(),
 		),
-	)
+	}
+
+	if s.tp != nil {
+		sOpts = append(sOpts,
+			grpc.StatsHandler(
+				otelgrpc.NewServerHandler(
+					otelgrpc.WithPropagators(propagation.TraceContext{}),
+					otelgrpc.WithTracerProvider(s.tp),
+				),
+			),
+		)
+	}
+
+	srv := grpc.NewServer(sOpts...)
 
 	api.RegisterPaymentServiceServer(srv, handler)
 
@@ -141,9 +164,9 @@ func MustNew(log logger.Logger, handler api.PaymentServiceServer, opts ...Option
 	return s
 }
 
-// Run starts grpc server using cmux.
+// Run starts grpc_server server using cmux.
 //
-// Handles all HTTP2 requests with 'content-type: application/grpc' headers with grpc server
+// Handles all HTTP2 requests with 'content-type: application/grpc_server' headers with grpc_server server
 // Other paths are hardcoded (for now at least).
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
@@ -196,7 +219,7 @@ func (s *Server) Run(ctx context.Context) error {
 		}
 	}()
 
-	log.Printf("starting grpc and http server on addr: %s", s.addr)
+	log.Printf("starting grpc_server and http server on addr: %s", s.addr)
 
 	return m.Serve()
 }

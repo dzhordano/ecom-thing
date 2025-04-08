@@ -136,10 +136,9 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 				case nil:
 					c.retryBackoff = 1 * time.Second
 				case sarama.ErrClosedConsumerGroup:
-					log.Println("consumer group is closed, exiting")
 					return
 				default:
-					log.Printf("error from consumer group: %v, retrying...", err)
+					log.Printf("error reading from kafka: %v, retrying...", err)
 					time.Sleep(c.retryBackoff)
 					c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
 				}

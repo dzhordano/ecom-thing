@@ -2,11 +2,13 @@ package main
 
 import (
 	"context"
+	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure/tracing/tracer"
 	"net"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
+	"time"
 
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/product/internal/config"
@@ -46,6 +48,19 @@ func main() {
 
 	productService := service.NewProductService(log, repo)
 
+	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "product")
+	if err != nil {
+		log.Error("error creating tracer provider", "error", err)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := tp.Shutdown(ctx); err != nil {
+			log.Error("error shutting down tracer provider", "error", err)
+		}
+	}()
+	tracer.SetGlobalTracerProvider(tp)
+
 	srv := grpc_server.MustNew(
 		log,
 		grpc_server.NewProductHandler(productService),
@@ -55,7 +70,7 @@ func main() {
 			cfg.CircuitBreaker.MaxRequests,
 			cfg.CircuitBreaker.Interval,
 			cfg.CircuitBreaker.Timeout),
-		grpc_server.WithProfiling(),
+		grpc_server.WithTracerProvider(tp),
 	)
 
 	q := make(chan os.Signal, 1)
