@@ -5,6 +5,8 @@ go 1.23.5
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/Masterminds/squirrel v1.5.4
+	github.com/golang/mock v1.6.0
+	github.com/golang/protobuf v1.5.4
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.0
 	github.com/ilyakaznacheev/cleanenv v1.5.0
@@ -14,6 +16,7 @@ require (
 	github.com/sethvargo/go-retry v0.3.0
 	github.com/soheilhy/cmux v0.1.5
 	github.com/sony/gobreaker/v2 v2.1.0
+	github.com/stretchr/testify v1.10.0
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.60.0
 	go.opentelemetry.io/otel v1.35.0
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0
@@ -55,6 +58,7 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect

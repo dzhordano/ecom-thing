@@ -62,7 +62,7 @@ func (h *ProductHandler) UpdateProduct(ctx context.Context, req *api.UpdateProdu
 
 	productId, err := uuid.Parse(req.GetId())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid grpc_server id")
+		return nil, status.Error(codes.InvalidArgument, "invalid product id")
 	}
 
 	span.AddEvent("call service")
@@ -95,7 +95,7 @@ func (h *ProductHandler) DeactivateProduct(ctx context.Context, req *api.Deactiv
 
 	productId, err := uuid.Parse(req.GetId())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid grpc_server id")
+		return nil, status.Error(codes.InvalidArgument, "invalid product id")
 	}
 
 	span.AddEvent("call service")
@@ -128,7 +128,7 @@ func (h *ProductHandler) GetProduct(ctx context.Context, req *api.GetProductRequ
 
 	productId, err := uuid.Parse(req.GetId())
 	if err != nil {
-		return nil, status.Error(codes.InvalidArgument, "invalid grpc_server id")
+		return nil, status.Error(codes.InvalidArgument, "invalid product id")
 	}
 
 	span.AddEvent("call service")

@@ -37,7 +37,7 @@ func mapError(err error) error {
 
 	for unwrappedErr := err; unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
 		if code, ok := errorMap[unwrappedErr]; ok {
-			return status.Error(code, unwrappedErr.Error())
+			return status.Error(code, err.Error())
 		}
 	}
 

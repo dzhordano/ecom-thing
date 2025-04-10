@@ -1,6 +1,6 @@
 package domain
 
-// Just for convienience.
+// Just for convenience.
 
 import "errors"
 

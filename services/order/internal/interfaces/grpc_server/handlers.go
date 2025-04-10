@@ -17,18 +17,18 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-type ItemHandler struct {
+type OrderHandler struct {
 	api.UnimplementedOrderServiceServer
 	service interfaces.OrderService
 }
 
-func NewItemHandler(s interfaces.OrderService) *ItemHandler {
-	return &ItemHandler{
+func NewOrderHandler(s interfaces.OrderService) *OrderHandler {
+	return &OrderHandler{
 		service: s,
 	}
 }
 
-func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderRequest) (*api.CreateOrderResponse, error) {
+func (h *OrderHandler) CreateOrder(ctx context.Context, req *api.CreateOrderRequest) (*api.CreateOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -74,7 +74,7 @@ func (h *ItemHandler) CreateOrder(ctx context.Context, req *api.CreateOrderReque
 	return resp, nil
 }
 
-func (h *ItemHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (*api.GetOrderResponse, error) {
+func (h *OrderHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (*api.GetOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -108,11 +108,11 @@ func (h *ItemHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (*
 }
 
 // TODO: implement
-func (h *ItemHandler) ListOrders(ctx context.Context, req *api.ListOrdersRequest) (*api.ListOrdersResponse, error) {
+func (h *OrderHandler) ListOrders(ctx context.Context, req *api.ListOrdersRequest) (*api.ListOrdersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "not implemented")
 }
 
-func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderRequest) (*api.UpdateOrderResponse, error) {
+func (h *OrderHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderRequest) (*api.UpdateOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -169,7 +169,7 @@ func (h *ItemHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderReque
 	return resp, nil
 }
 
-func (h *ItemHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequest) (*api.DeleteOrderResponse, error) {
+func (h *OrderHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequest) (*api.DeleteOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -200,7 +200,7 @@ func (h *ItemHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderReque
 	return &api.DeleteOrderResponse{}, nil
 }
 
-func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersRequest) (*api.SearchOrdersResponse, error) {
+func (h *OrderHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersRequest) (*api.SearchOrdersResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -244,7 +244,7 @@ func (h *ItemHandler) SearchOrders(ctx context.Context, req *api.SearchOrdersReq
 	return resp, nil
 }
 
-func (h *ItemHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrderRequest) (*api.CompleteOrderResponse, error) {
+func (h *OrderHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrderRequest) (*api.CompleteOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 
@@ -271,7 +271,7 @@ func (h *ItemHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrderR
 	return &api.CompleteOrderResponse{}, nil
 }
 
-func (h *ItemHandler) CancelOrder(ctx context.Context, req *api.CancelOrderRequest) (*api.CancelOrderResponse, error) {
+func (h *OrderHandler) CancelOrder(ctx context.Context, req *api.CancelOrderRequest) (*api.CancelOrderResponse, error) {
 	span := trace.SpanFromContext(ctx)
 	defer span.End()
 

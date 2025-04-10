@@ -75,7 +75,7 @@ func main() {
 
 	srv := grpc_server.MustNew(
 		log,
-		grpc_server.NewItemHandler(svc),
+		grpc_server.NewOrderHandler(svc),
 		grpc_server.WithAddr(cfg.GRPC.Addr()),
 		grpc_server.WithTracerProvider(tp),
 		// FIXME ещо

@@ -60,7 +60,7 @@ migrate.down:
 	@migrate -source file://migrations -database ${PG_MIGRATIONS_URL} down
 
 generate.mocks.handlers:
-	@mockgen -source=internal/application/interfaces/product.go -destination=internal/interfaces/grpc/mocks/mocks.go
+	@mockgen -source=internal/application/interfaces/product.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
 
 test.integration:
 	@docker run --name=product-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres

@@ -11,4 +11,7 @@ tasks:
       - sleep 2
       - migrate -source file://migrations -database $PG_MIGRATIONS_URL up
     silent: true
-
+  generate.mocks.handlers:
+    cmds:
+      - mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
+    silent: true

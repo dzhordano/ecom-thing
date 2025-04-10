@@ -105,7 +105,7 @@ func (o *Order) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w", fmt.Errorf("%s: %s", ErrInvalidArgument, strings.Join(errs, ", ")))
+		return fmt.Errorf("%w: %s", ErrInvalidArgument, strings.Join(errs, ", "))
 	}
 
 	return nil

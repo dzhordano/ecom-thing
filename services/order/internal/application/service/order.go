@@ -83,7 +83,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	}
 
 	order, err := domain.NewOrder(
-		uuid.New(), // FIXME Щас рандомный пользотель. Потом получать из контекста.
+		uuid.New(), // FIXME Щас рандомный пользователь. Потом получать из контекста.
 		info.Description,
 		domain.OrderPending.String(),
 		info.Currency,
@@ -97,7 +97,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	)
 	if err != nil {
 		o.log.Error("failed to create order", "error", err)
-		return nil, err //TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
+		return nil, err // TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
 	}
 
 	items := make(map[string]uint64)
@@ -185,6 +185,7 @@ func (o *OrderService) SearchOrders(ctx context.Context, filters map[string]any)
 	return orders, nil
 }
 
+// FIXME тут возможен возврат одной ошибки, когда можно вернуть несколько... испрвить.
 // UpdateOrder implements interfaces.OrderService.
 func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequest) (*domain.Order, error) {
 	order, err := o.repo.GetById(ctx, info.OrderID.String())
@@ -200,13 +201,7 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	}
 
 	if info.Status != nil {
-		s, err := domain.NewStatus(*info.Status)
-		if err != nil {
-			o.log.Error("failed to update order", "error", err, "order_id", info.OrderID.String())
-			return nil, err
-		}
-
-		order.Status = s
+		order.Status = domain.Status(*info.Status)
 	}
 
 	if info.TotalPrice != nil {
@@ -214,21 +209,11 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 	}
 
 	if info.PaymentMethod != nil {
-		pm, err := domain.NewPaymentMethod(*info.PaymentMethod)
-		if err != nil {
-			o.log.Error("failed to update order", "error", err, "order_id", info.OrderID.String())
-			return nil, err
-		}
-		order.PaymentMethod = pm
+		order.PaymentMethod = domain.PaymentMethod(*info.PaymentMethod)
 	}
 
 	if info.DeliveryMethod != nil {
-		dm, err := domain.NewDeliveryMethod(*info.DeliveryMethod)
-		if err != nil {
-			o.log.Error("failed to update order", "error", err, "order_id", info.OrderID.String())
-			return nil, err
-		}
-		order.DeliveryMethod = dm
+		order.DeliveryMethod = domain.DeliveryMethod(*info.DeliveryMethod)
 	}
 
 	if info.DeliveryAddress != nil {
@@ -243,7 +228,6 @@ func (o *OrderService) UpdateOrder(ctx context.Context, info dto.UpdateOrderRequ
 		order.Items = info.Items
 	}
 
-	// Допроверить поля на валидность.
 	if err = order.Validate(); err != nil {
 		o.log.Error("failed to update order", "error", err, "order_id", info.OrderID.String())
 		return nil, err

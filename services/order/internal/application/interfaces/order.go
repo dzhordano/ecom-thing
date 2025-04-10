@@ -22,11 +22,3 @@ type OrderService interface {
 	CompleteOrder(ctx context.Context, orderId uuid.UUID) error
 	CancelOrder(ctx context.Context, orderId uuid.UUID) error
 }
-
-type ProductService interface {
-	GetProductInfo(ctx context.Context, orderId uuid.UUID) (float64, bool, error)
-}
-
-type InventoryService interface {
-	IsReservable(ctx context.Context, items map[string]uint64) (bool, error)
-}

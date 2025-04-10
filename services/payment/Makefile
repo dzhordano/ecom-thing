@@ -20,8 +20,6 @@ migrate.down:
 	@migrate -source file://migrations -database ${PG_MIGRATIONS_URL} down
 
 generate.mocks.handlers:
-	@mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc/mocks/mocks.go
-	@mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc/mocks/mocks.go
-	@mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc/mocks/mocks.go
-	
+	@mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
+
 .PHONY: init.db stop.db exec.db migrate.up migrate.down
