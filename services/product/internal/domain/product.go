@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"strings"
 	"time"
@@ -73,7 +73,7 @@ func (c *Product) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("%w: %s", ErrInvalidArgument, strings.Join(errs, ", "))
+		return errors.New(strings.Join(errs, ", "))
 	}
 
 	return nil

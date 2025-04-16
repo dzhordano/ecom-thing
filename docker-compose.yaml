@@ -1,24 +1,213 @@
 volumes:
   prometheus_data:
   grafana_data:
+
 services:
-  
+  product-app:
+    hostname: product-app
+    container_name: product-app
+    build:
+      context: ./services/product
+      dockerfile: Dockerfile
+    env_file: ./services/product/.env
+    volumes:
+      - type: bind
+        source: ./services/product/.env
+        target: /app/.env
+        read_only: true
+    ports:
+      - ${GRPC_PRODUCT_PORT}:${GRPC_PRODUCT_PORT}
+    depends_on:
+      - product-db
+      - product-db-migrate
+    networks:
+      - default
+  inventory-app:
+    hostname: inventory-app
+    container_name: inventory-app
+    build:
+      context: ./services/inventory
+      dockerfile: Dockerfile
+    env_file: ./services/inventory/.env
+    volumes:
+      - type: bind
+        source: ./services/inventory/.env
+        target: /app/.env
+        read_only: true
+    ports:
+      - ${GRPC_INVENTORY_PORT}:${GRPC_INVENTORY_PORT}
+    depends_on:
+      - inventory-db
+      - inventory-db-migrate
+    networks:
+      - default
+  order-app:
+    hostname: order-app
+    container_name: order-app
+    build:
+      context: ./services/order
+      dockerfile: Dockerfile
+    env_file: ./services/order/.env
+    volumes:
+      - type: bind
+        source: ./services/order/.env
+        target: /app/.env
+        read_only: true
+    ports:
+      - ${GRPC_ORDER_PORT}:${GRPC_ORDER_PORT}
+    depends_on:
+      - order-db
+      - order-db-migrate
+    networks:
+      - default
+  payment-app:
+    hostname: payment-app
+    container_name: payment-app
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+    env_file: ./services/payment/.env
+    volumes:
+      - type: bind
+        source: ./services/payment/.env
+        target: /app/.env
+        read_only: true
+    ports:
+      - ${GRPC_PAYMENT_PORT}:${GRPC_PAYMENT_PORT}
+    depends_on:
+      - payment-db
+      - payment-db-migrate
+    networks:
+      - default
+  product-db:
+    hostname: product-db
+    container_name: product-db
+    image: postgres
+    ports:
+      - ${PRODUCT_PG_PORT}:${PRODUCT_PG_PORT}
+    environment:
+      POSTGRES_USER: ${PRODUCT_PG_USER}
+      POSTGRES_PASSWORD: ${PRODUCT_PG_PASSWORD}
+      POSTGRES_DB: ${PRODUCT_PG_DBNAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PRODUCT_PG_USER} -d ${PRODUCT_PG_DBNAME}" ]
+      interval: 5s
+      timeout: 5s
+    networks:
+      - default
+  inventory-db:
+    hostname: inventory-db
+    container_name: inventory-db
+    image: postgres
+    ports:
+      - ${INVENTORY_PG_PORT}:${INVENTORY_PG_PORT}
+    environment:
+      POSTGRES_USER: ${INVENTORY_PG_USER}
+      POSTGRES_PASSWORD: ${INVENTORY_PG_PASSWORD}
+      POSTGRES_DB: ${INVENTORY_PG_DBNAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${INVENTORY_PG_USER} -d ${INVENTORY_PG_DBNAME}" ]
+      interval: 5s
+      timeout: 5s
+    networks:
+      - default
+  order-db:
+    hostname: order-db
+    container_name: order-db
+    image: postgres
+    ports:
+      - ${ORDER_PG_PORT}:${ORDER_PG_PORT}
+    environment:
+      POSTGRES_USER: ${ORDER_PG_USER}
+      POSTGRES_PASSWORD: ${ORDER_PG_PASSWORD}
+      POSTGRES_DB: ${ORDER_PG_DBNAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${ORDER_PG_USER} -d ${ORDER_PG_DBNAME}" ]
+      interval: 5s
+      timeout: 5s
+    networks:
+      - default
+  payment-db:
+    hostname: payment-db
+    container_name: payment-db
+    image: postgres
+    ports:
+      - ${PAYMENT_PG_PORT}:${PAYMENT_PG_PORT}
+    environment:
+      POSTGRES_USER: ${PAYMENT_PG_USER}
+      POSTGRES_PASSWORD: ${PAYMENT_PG_PASSWORD}
+      POSTGRES_DB: ${PAYMENT_PG_DBNAME}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PAYMENT_PG_USER} -d ${PAYMENT_PG_DBNAME}" ]
+      interval: 5s
+      timeout: 5s
+    networks:
+      - default
+  product-db-migrate:
+    container_name: product-db-migrate
+    image: migrate/migrate
+    command: -source file://migrations -database ${PRODUCT_MIGRATION_URL} up
+    volumes:
+      - ./services/product/migrations:/migrations
+    depends_on:
+      product-db:
+        condition: service_healthy
+    networks:
+      - default
+  inventory-db-migrate:
+    container_name: inventory-db-migrate
+    image: migrate/migrate
+    command: -source file://migrations -database ${INVENTORY_MIGRATION_URL} up
+    volumes:
+      - ./services/inventory/migrations:/migrations
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+    networks:
+      - default
+  order-db-migrate:
+    container_name: order-db-migrate
+    image: migrate/migrate
+    command: -source file://migrations -database ${ORDER_MIGRATION_URL} up
+    volumes:
+      - ./services/order/migrations:/migrations
+    depends_on:
+      order-db:
+        condition: service_healthy
+    networks:
+      - default
+  payment-db-migrate:
+    container_name: payment-db-migrate
+    image: migrate/migrate
+    command: -source file://migrations -database ${PAYMENT_MIGRATION_URL} up
+    volumes:
+      - ./services/payment/migrations:/migrations
+    depends_on:
+      payment-db:
+        condition: service_healthy
+    networks:
+      - default
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
+    hostname: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
     ports:
       - "2181:2181"
-
+    networks:
+      - default
   schema-registry:
     image: confluentinc/cp-schema-registry:latest
     hostname: schema-registry
+    container_name: schema-registry
     depends_on:
       - kafka-broker-1
     ports:
       - "8081:8081"
+    networks:
+      - default
     environment:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
@@ -28,43 +217,51 @@ services:
 
   kafka-broker-1:
     image: confluentinc/cp-kafka:latest
-    hostname: kafka-broker-1
+    hostname: broker
+    container_name: kafka-broker-1
     ports:
       - "19092:19092"
     depends_on:
       - zookeeper
+    networks:
+      - default
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker-1:9092,PLAINTEXT_INTERNAL://localhost:19092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker:9092,PLAINTEXT_INTERNAL://localhost:19092
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
 
   prometheus:
       hostname: prometheus
+      container_name: prometheus
       image: prom/prometheus
-      network_mode: host
       ports:
           - "9090:9090"
       volumes:
           - prometheus_data:/prometheus
           - ./alerts.yaml:/etc/prometheus/alerts.yml
           - ./prometheus.yaml:/etc/prometheus/prometheus.yml
-          
+      networks:
+        - default
   grafana:
       hostname: grafana_data
       image: grafana/grafana
-      network_mode: host
       ports:
          - "3000:3000"
       volumes:
           - grafana_data:/var/lib/grafana
-          
+      networks:
+        - default
   jaeger:
       hostname: jaeger
+      container_name: jaeger
       image: jaegertracing/all-in-one:latest
-      network_mode: host
       ports:
           - "16686:16686"
           - "14268:14268"
-      
+      networks:
+          - default
+networks:
+  default:
+    driver: bridge

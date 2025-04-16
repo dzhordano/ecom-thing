@@ -46,18 +46,18 @@ func NewSearchParams(filters map[string]any) SearchParams {
 		s.MaxPrice = mx
 	}
 
-	l := filters["limit"].(*uint64)
-	if l != nil {
-		s.Limit = min(*l, MaxLimit)
-	} else {
+	l, ok := filters["limit"].(*uint64)
+	if !ok {
 		s.Limit = DefaultLimit
+	} else if l != nil {
+		s.Limit = min(*l, MaxLimit)
 	}
 
-	o := filters["offset"].(*uint64)
-	if o != nil {
-		s.Offset = *o
-	} else {
+	o, ok := filters["offset"].(*uint64)
+	if !ok {
 		s.Offset = DefaultOffset
+	} else if o != nil {
+		s.Offset = *o
 	}
 
 	return s

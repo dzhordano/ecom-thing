@@ -80,10 +80,6 @@ func main() {
 		}
 	}()
 
-	// TODO тута хардкод
-	outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second, billingSvc)
-	go outboxWorker.Start(ctx)
-
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 

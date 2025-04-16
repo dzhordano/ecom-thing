@@ -35,10 +35,15 @@ func mapError(err error) error {
 		return s.Err() // Return the status error if it's a gRPC error
 	}
 
-	for unwrappedErr := err; unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
-		if code, ok := errorMap[unwrappedErr]; ok {
-			return status.Error(code, err.Error())
+	var appErr *domain.AppError
+	if errors.As(err, &appErr) {
+		for unwrappedErr := appErr.Unwrap(); unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
+			if code, ok := errorMap[unwrappedErr]; ok {
+				return status.Error(code, appErr.Error())
+			}
 		}
+
+		return status.Error(codes.Internal, appErr.Error())
 	}
 
 	return status.Error(codes.Internal, "internal error")

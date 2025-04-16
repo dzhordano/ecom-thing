@@ -1,6 +1,8 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	ErrOperationUnknown  = errors.New("operation unknown")
@@ -13,4 +15,28 @@ var CriticalErrors = map[error]struct{}{}
 func CheckIfCriticalError(err error) bool {
 	_, ok := CriticalErrors[err]
 	return ok
+}
+
+type AppError struct {
+	Code error
+	Msg  string
+}
+
+func NewAppError(code error, message string) *AppError {
+	return &AppError{
+		Code: code,
+		Msg:  message,
+	}
+}
+
+func (e *AppError) Error() string {
+	return e.Msg
+}
+
+func (e *AppError) Is(target error) bool {
+	return errors.Is(e.Code, target)
+}
+
+func (e *AppError) Unwrap() error {
+	return e.Code
 }

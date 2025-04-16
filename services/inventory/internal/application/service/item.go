@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain/repository"
@@ -27,8 +26,7 @@ func (s *ItemService) GetItem(ctx context.Context, id uuid.UUID) (*domain.Item, 
 	item, err := s.repo.GetItem(ctx, id.String())
 	if err != nil {
 		s.log.Error("error getting item", "error", err, "item_id", id.String())
-
-		return nil, err
+		return nil, domain.NewAppError(err, "failed to get item")
 	}
 
 	return item, nil
@@ -48,7 +46,7 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 	resItems, err := s.repo.GetManyItems(ctx, keys)
 	if err != nil {
 		s.log.Error("error getting items", "error", err)
-		return false, err
+		return false, domain.NewAppError(err, "failed to get items")
 	}
 
 	if len(resItems) != len(items) {
@@ -73,7 +71,7 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 	item, err := s.repo.GetItem(ctx, id.String())
 	if err != nil && op != domain.OperationAdd {
 		s.log.Error("error getting item", "error", err, "item_id", id.String())
-		return err
+		return domain.NewAppError(err, "failed to get item")
 	}
 
 	if item == nil {
@@ -82,12 +80,12 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 
 	if err := performOp(item, quantity, op); err != nil {
 		s.log.Error("error performing operation", "error", err, "item_id", id.String())
-		return err
+		return domain.NewAppError(err, err.Error())
 	}
 
 	if err := s.repo.SetItem(ctx, item.ProductID.String(), item.AvailableQuantity, item.ReservedQuantity); err != nil {
 		s.log.Error("error setting item", "error", err, "item_id", id.String())
-		return err
+		return domain.NewAppError(err, "failed to set item")
 	}
 
 	s.log.Debug("item successfully set", "id", id.String())
@@ -109,7 +107,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 			// If product is not found and operation is add, it's ok.
 			if !(errors.Is(err, domain.ErrProductNotFound) && opAddFlag) {
 				s.log.Error("error getting item", "error", err, "item_id", id)
-				return err
+				return domain.NewAppError(err, "failed to get item")
 			}
 		}
 
@@ -120,7 +118,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 		if err := performOp(i, items[id], op); err != nil {
 			s.log.Error("error performing operation", "error", err, "item_id", id)
 
-			return err
+			return domain.NewAppError(err, err.Error())
 		}
 
 		dItems = append(dItems, *i)
@@ -129,7 +127,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 	if err := s.repo.SetManyItems(ctx, dItems); err != nil {
 		s.log.Error("error setting items", "error", err)
 
-		return err
+		return domain.NewAppError(err, "failed to set items")
 	}
 
 	s.log.Debug("items successfully set", "count", len(items), "op", op)

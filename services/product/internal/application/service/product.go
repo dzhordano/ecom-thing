@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"errors"
-
 	"github.com/dzhordano/ecom-thing/services/product/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/product/internal/domain/repository"
@@ -27,18 +25,18 @@ func (p *ProductService) CreateProduct(ctx context.Context, name, description, c
 	userId, err := uuid.NewUUID()
 	if err != nil {
 		p.log.Error("failed to create product", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(err, "failed to create userId")
 	}
 
 	product, err := domain.NewValidatedProduct(userId, name, description, category, price)
 	if err != nil {
 		p.log.Error("failed to create product", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(domain.ErrInvalidArgument, err.Error())
 	}
 
 	if err := p.repo.Save(ctx, product); err != nil {
 		p.log.Error("failed to save product", "error", err)
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to save product")
 	}
 
 	p.log.Debug("product created", "id", product.ID.String())
@@ -50,19 +48,19 @@ func (p *ProductService) UpdateProduct(ctx context.Context, id uuid.UUID, name, 
 	product, err := p.repo.GetById(ctx, id)
 	if err != nil {
 		p.log.Error("failed to update product", "error", err, "product_id", id.String())
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to get product")
 	}
 
 	product.Update(name, description, category, isActive, price)
 
 	if err := product.Validate(); err != nil {
 		p.log.Error("failed to update product", "error", err, "product_id", id.String())
-		return nil, err
+		return nil, domain.NewAppError(err, err.Error())
 	}
 
 	if err := p.repo.Update(ctx, product); err != nil {
 		p.log.Error("failed to update product", "error", err, "product_id", id.String())
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to update product")
 	}
 
 	p.log.Debug("product updated", "product_id", id.String())
@@ -74,12 +72,12 @@ func (p *ProductService) DeactivateProduct(ctx context.Context, id uuid.UUID) (*
 	product, err := p.repo.GetById(ctx, id)
 	if err != nil {
 		p.log.Error("failed to deactivate product", "error", err, "product_id", id.String())
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to get product")
 	}
 
 	if err := p.repo.Deactivate(ctx, id); err != nil {
 		p.log.Error("failed to deactivate product", "error", err, "product_id", id.String())
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to deactivate product")
 	}
 
 	p.log.Debug("product deactivated", "product_id", id.String())
@@ -91,7 +89,7 @@ func (p *ProductService) GetById(ctx context.Context, id uuid.UUID) (*domain.Pro
 	product, err := p.repo.GetById(ctx, id)
 	if err != nil {
 		p.log.Error("failed to get product", "error", err, "product_id", id.String())
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to get product")
 	}
 
 	p.log.Debug("product retrieved", "product_id", id.String())
@@ -104,13 +102,13 @@ func (p *ProductService) SearchProducts(ctx context.Context, filters map[string]
 
 	if err := params.Validate(); err != nil {
 		p.log.Error("failed to search products", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(err, err.Error())
 	}
 
 	products, err := p.repo.Search(ctx, params)
 	if err != nil {
 		p.log.Error("failed to search products", "error", err)
-		return nil, errors.Unwrap(err)
+		return nil, domain.NewAppError(err, "failed to search products")
 	}
 
 	p.log.Debug("products retrieved", "count", len(products))

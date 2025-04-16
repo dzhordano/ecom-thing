@@ -69,7 +69,7 @@ func (s *IntegrationSuite) SetupSuite() {
 
 	m, err := migrate.New("file://"+migrationsPath, dsn)
 	if err != nil {
-		panic(err)
+		log.Fatalf("failed to create migrate instance: %v", err)
 	}
 
 	if err = m.Up(); err != nil {
@@ -172,58 +172,65 @@ func ptrVal[T any](val T) *T {
 }
 
 func (s *IntegrationSuite) TestC_SearchProducts() {
-
-	resp1, err := s.productService.SearchProducts(
+	respDummyQuery, err := s.productService.SearchProducts(
 		context.Background(),
 		map[string]any{
 			"query": ptrVal("Dummy"),
 		})
 
 	if s.Assert().NoError(err) {
-		s.Assert().Len(resp1, 2)
+		s.Assert().Len(respDummyQuery, 2)
 	}
 
-	resp2, err := s.productService.SearchProducts(
+	resp1Query, err := s.productService.SearchProducts(
 		context.Background(),
 		map[string]any{
 			"query": ptrVal("1"),
 		})
 
 	if s.Assert().NoError(err) {
-		s.Assert().Len(resp2, 1)
+		s.Assert().Len(resp1Query, 1)
 	}
 
-	resp3, err := s.productService.SearchProducts(
+	respCatQuery, err := s.productService.SearchProducts(
 		context.Background(),
 		map[string]any{
 			"category": ptrVal("Dummy2"),
 		})
 
 	if s.Assert().NoError(err) {
-		s.Assert().Len(resp3, 1)
+		s.Assert().Len(respCatQuery, 1)
 	}
 
-	resp4, err := s.productService.SearchProducts(
+	respMinPriceQuery, err := s.productService.SearchProducts(
 		context.Background(),
 		map[string]any{
 			"minPrice": ptrVal(10.09),
 		})
 
 	if s.Assert().NoError(err) {
-		s.Assert().Len(resp4, 3)
+		s.Assert().Len(respMinPriceQuery, 3)
 	}
 
-	resp5, err := s.productService.SearchProducts(
+	respMaxPriceQuery, err := s.productService.SearchProducts(
 		context.Background(),
 		map[string]any{
 			"maxPrice": ptrVal(10.11),
 		})
 
 	if s.Assert().NoError(err) {
-		s.Assert().Len(resp5, 2)
+		s.Assert().Len(respMaxPriceQuery, 2)
 	}
 
-	// TODO With offset
+	respLimitQuery, err := s.productService.SearchProducts(
+		context.Background(),
+		map[string]any{
+			"limit": ptrVal(uint64(1)),
+		})
+
+	if s.Assert().NoError(err) {
+		s.Assert().Len(respLimitQuery, 1)
+	}
 }
 
 func (s *IntegrationSuite) TestD_UpdateProduct() {
@@ -244,6 +251,14 @@ func (s *IntegrationSuite) TestD_UpdateProduct() {
 		s.Assert().NoError(err)
 	}
 
+	repoProd, err := s.productRepo.GetById(context.Background(), s.testProduct1.ID)
+	if s.Assert().NoError(err) {
+		s.Assert().Equal("NewDummy1", repoProd.Name)
+		s.Assert().Equal("NewDummy1", repoProd.Desc)
+		s.Assert().Equal("NewDummy1", repoProd.Category)
+		s.Assert().Equal(true, repoProd.IsActive)
+		s.Assert().Equal(12.12, repoProd.Price)
+	}
 }
 
 func (s *IntegrationSuite) TestE_DeactivateProduct() {

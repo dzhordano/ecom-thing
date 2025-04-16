@@ -11,6 +11,10 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
+const (
+	filePrefix = "file://"
+)
+
 // MustMigrateUpWithNoChange applies migrations. Upon getting ErrNoChange error from migrate does nothing.
 func MustMigrateUpWithNoChange(url string) {
 	_, currentFile, _, _ := runtime.Caller(0)
@@ -21,7 +25,7 @@ func MustMigrateUpWithNoChange(url string) {
 
 	migrationsPath := filepath.Join(projectDir, "migrations")
 
-	m, err := migrate.New("file://"+migrationsPath, url)
+	m, err := migrate.New(filePrefix+migrationsPath, url)
 	if err != nil {
 		panic(err)
 	}

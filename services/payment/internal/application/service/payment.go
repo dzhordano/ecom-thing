@@ -37,17 +37,17 @@ func (p *PaymentService) CreatePayment(ctx context.Context, req dto.CreatePaymen
 	)
 	if err != nil {
 		p.log.Error("create payment error", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(err, "failed to create payment")
 	}
 
 	if err := payment.Validate(); err != nil {
 		p.log.Error("create payment error", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(err, err.Error())
 	}
 
 	if err = p.repo.Save(ctx, payment); err != nil {
 		p.log.Error("create payment error", "error", err)
-		return nil, err
+		return nil, domain.NewAppError(err, "failed to save payment")
 	}
 
 	p.log.Debug("create payment success")
@@ -60,7 +60,7 @@ func (p *PaymentService) GetPaymentStatus(ctx context.Context, paymentId, userId
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
 		p.log.Error("get payment status error", "error", err, "payment_id", paymentId.String())
-		return "", err
+		return "", domain.NewAppError(err, "failed to get payment")
 	}
 
 	p.log.Debug("get payment status success")
@@ -73,24 +73,24 @@ func (p *PaymentService) RetryPayment(ctx context.Context, paymentId, userId uui
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
 		p.log.Error("retry payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to get payment")
 	}
 
 	if payment.Status == domain.PaymentCompleted {
 		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyCompleted, "payment_id", paymentId.String())
-		return domain.ErrPaymentAlreadyCompleted
+		return domain.NewAppError(domain.ErrPaymentAlreadyCompleted, "payment already completed")
 	}
 
 	if payment.Status == domain.PaymentPending {
 		p.log.Error("retry payment error", "error", domain.ErrPaymentAlreadyPending, "payment_id", paymentId.String())
-		return domain.ErrPaymentAlreadyPending
+		return domain.NewAppError(domain.ErrPaymentAlreadyPending, "payment already pending")
 	}
 
 	payment.SetStatus(domain.PaymentPending)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
 		p.log.Error("retry payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to update payment")
 	}
 
 	p.log.Debug("retry payment success", "payment_id", paymentId.String())
@@ -103,19 +103,19 @@ func (p *PaymentService) CancelPayment(ctx context.Context, paymentId, userId uu
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
 		p.log.Error("cancel payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to get payment")
 	}
 
 	if payment.Status != domain.PaymentPending {
 		p.log.Error("cancel payment error", "error", domain.ErrInvalidPayment, "payment_id", paymentId.String())
-		return domain.ErrInvalidPayment
+		return domain.NewAppError(domain.ErrInvalidPayment, "invalid payment")
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
 		p.log.Error("cancel payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to update payment")
 	}
 
 	p.log.Debug("cancel payment success")
@@ -128,19 +128,19 @@ func (p *PaymentService) ConfirmPayment(ctx context.Context, paymentId, userId u
 	payment, err := p.repo.GetById(ctx, paymentId.String(), userId.String())
 	if err != nil {
 		p.log.Error("confirm payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to get payment")
 	}
 
 	if payment.Status != domain.PaymentPending {
 		p.log.Error("confirm payment error", "error", domain.ErrInvalidPayment, "payment_id", paymentId.String())
-		return domain.ErrInvalidPayment
+		return domain.NewAppError(domain.ErrInvalidPayment, "invalid payment")
 	}
 
 	payment.SetStatus(domain.PaymentCompleted)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
 		p.log.Error("confirm payment error", "error", err, "payment_id", paymentId.String())
-		return err
+		return domain.NewAppError(err, "failed to update payment")
 	}
 
 	p.log.Debug("confirm payment success")
