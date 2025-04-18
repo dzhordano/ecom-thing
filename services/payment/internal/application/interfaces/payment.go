@@ -8,6 +8,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type Billing interface {
+	// NewPayment handles process of payment. Is BLOCKING (supposedly) operation.
+	NewPayment(ctx context.Context, currency string, totalPrice float64, paymentDescription string) error
+}
+
 type PaymentService interface {
 	CreatePayment(ctx context.Context, req dto.CreatePaymentRequest) (*domain.Payment, error)
 	GetPaymentStatus(ctx context.Context, paymentId, userId uuid.UUID) (string, error)

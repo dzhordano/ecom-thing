@@ -2,16 +2,15 @@ package billing
 
 import (
 	"context"
+	"github.com/dzhordano/ecom-thing/services/payment/internal/application/interfaces"
 	"log"
 	"time"
-
-	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
 )
 
 type StubBilling struct {
 }
 
-func NewStubBilling() domain.Billing {
+func NewStubBilling() interfaces.Billing {
 	return &StubBilling{}
 }
 

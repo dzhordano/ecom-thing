@@ -3,6 +3,7 @@ package outbox
 import (
 	"context"
 	"encoding/json"
+	"github.com/dzhordano/ecom-thing/services/payment/internal/application/interfaces"
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/payment/internal/domain"
@@ -17,7 +18,7 @@ type OutboxProcessor struct {
 	prod     kafka.Producer
 	interval time.Duration
 
-	biller domain.Billing
+	biller interfaces.Billing
 }
 
 type OutboxMessage struct {
@@ -28,7 +29,7 @@ type OutboxMessage struct {
 	CreatedAt time.Time
 }
 
-func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.Producer, interval time.Duration, biller domain.Billing) *OutboxProcessor {
+func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.Producer, interval time.Duration, biller interfaces.Billing) *OutboxProcessor {
 	return &OutboxProcessor{
 		log:      log,
 		db:       db,

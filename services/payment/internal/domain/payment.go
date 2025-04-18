@@ -1,7 +1,6 @@
 package domain
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,10 +11,6 @@ import (
 
 // Service for payment
 // FIXME ХЗ КУДА
-type Billing interface {
-	// NewPayment handles process of payment. Is BLOCKING (supposedly) operation.
-	NewPayment(ctx context.Context, currency string, totalPrice float64, paymentDescription string) error
-}
 
 const (
 	MaxPaymentDataLength = 255

@@ -10,6 +10,13 @@ services:
       context: ./services/product
       dockerfile: Dockerfile
     env_file: ./services/product/.env
+    environment:
+      PG_HOST: ${PRODUCT_PG_HOST}
+      PG_PORT: 5432 # gotta be local
+      PG_USER: ${PRODUCT_PG_USER}
+      PG_PASSWORD: ${PRODUCT_PG_PASSWORD}
+      PG_DBNAME: ${PRODUCT_PG_DBNAME}
+      PG_SSLMODE: ${PRODUCT_PG_SSLMODE}
     volumes:
       - type: bind
         source: ./services/product/.env
@@ -29,6 +36,13 @@ services:
       context: ./services/inventory
       dockerfile: Dockerfile
     env_file: ./services/inventory/.env
+    environment:
+      PG_HOST: ${INVENTORY_PG_HOST}
+      PG_PORT: 5432 # gotta be local
+      PG_USER: ${INVENTORY_PG_USER}
+      PG_PASSWORD: ${INVENTORY_PG_PASSWORD}
+      PG_DBNAME: ${INVENTORY_PG_DBNAME}
+      PG_SSLMODE: ${INVENTORY_PG_SSLMODE}
     volumes:
       - type: bind
         source: ./services/inventory/.env
@@ -48,6 +62,13 @@ services:
       context: ./services/order
       dockerfile: Dockerfile
     env_file: ./services/order/.env
+    environment:
+      PG_HOST: ${ORDER_PG_HOST}
+      PG_PORT: 5432 # gotta be local
+      PG_USER: ${ORDER_PG_USER}
+      PG_PASSWORD: ${ORDER_PG_PASSWORD}
+      PG_DBNAME: ${ORDER_PG_DBNAME}
+      PG_SSLMODE: ${ORDER_PG_SSLMODE}
     volumes:
       - type: bind
         source: ./services/order/.env
@@ -67,6 +88,13 @@ services:
       context: ./services/payment
       dockerfile: Dockerfile
     env_file: ./services/payment/.env
+    environment:
+      PG_HOST: ${PAYMENT_PG_HOST}
+      PG_PORT: 5432 # gotta be local
+      PG_USER: ${PAYMENT_PG_USER}
+      PG_PASSWORD: ${PAYMENT_PG_PASSWORD}
+      PG_DBNAME: ${PAYMENT_PG_DBNAME}
+      PG_SSLMODE: ${PAYMENT_PG_SSLMODE}
     volumes:
       - type: bind
         source: ./services/payment/.env
@@ -84,7 +112,7 @@ services:
     container_name: product-db
     image: postgres
     ports:
-      - ${PRODUCT_PG_PORT}:${PRODUCT_PG_PORT}
+      - ${PRODUCT_PG_PORT}:5432
     environment:
       POSTGRES_USER: ${PRODUCT_PG_USER}
       POSTGRES_PASSWORD: ${PRODUCT_PG_PASSWORD}
@@ -100,7 +128,7 @@ services:
     container_name: inventory-db
     image: postgres
     ports:
-      - ${INVENTORY_PG_PORT}:${INVENTORY_PG_PORT}
+      - ${INVENTORY_PG_PORT}:5432
     environment:
       POSTGRES_USER: ${INVENTORY_PG_USER}
       POSTGRES_PASSWORD: ${INVENTORY_PG_PASSWORD}
@@ -116,7 +144,7 @@ services:
     container_name: order-db
     image: postgres
     ports:
-      - ${ORDER_PG_PORT}:${ORDER_PG_PORT}
+      - ${ORDER_PG_PORT}:5432
     environment:
       POSTGRES_USER: ${ORDER_PG_USER}
       POSTGRES_PASSWORD: ${ORDER_PG_PASSWORD}
@@ -132,7 +160,7 @@ services:
     container_name: payment-db
     image: postgres
     ports:
-      - ${PAYMENT_PG_PORT}:${PAYMENT_PG_PORT}
+      - ${PAYMENT_PG_PORT}:5432
     environment:
       POSTGRES_USER: ${PAYMENT_PG_USER}
       POSTGRES_PASSWORD: ${PAYMENT_PG_PASSWORD}

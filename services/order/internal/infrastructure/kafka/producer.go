@@ -1,6 +1,8 @@
 package kafka
 
 import (
+	"context"
+	"github.com/sethvargo/go-retry"
 	"log"
 	"sync"
 
@@ -24,7 +26,7 @@ var (
 )
 
 type OrdersSyncProducer struct {
-	producerLock *sync.Mutex
+	producerLock sync.Mutex
 	producer     sarama.SyncProducer
 }
 
@@ -36,14 +38,25 @@ func NewOrdersSyncProducer(brokers []string) (*OrdersSyncProducer, error) {
 	producerConfig.Producer.RequiredAcks = sarama.WaitForAll
 	producerConfig.Producer.Return.Successes = true
 
-	producer, err := sarama.NewSyncProducer(brokers, producerConfig)
-	if err != nil {
-		log.Printf("failed to start Sarama producer: %s\n", err)
+	var producer sarama.SyncProducer
+	var err error
+	if err = retry.Do(
+		context.Background(),                                      // Need to pass outer context here.
+		retry.NewFibonacci(producerConfig.Metadata.Retry.Backoff), // TODO: fix, Using kafka default for now.
+		func(ctx context.Context) error {
+			producer, err = sarama.NewSyncProducer(brokers, producerConfig)
+			if err != nil {
+				log.Printf("failed to start Sarama producer: %s\n", err)
+				return retry.RetryableError(err)
+			}
+			return nil
+		},
+	); err != nil {
 		return nil, err
 	}
 
 	return &OrdersSyncProducer{
-		producerLock: &sync.Mutex{},
+		producerLock: sync.Mutex{},
 		producer:     producer,
 	}, nil
 }
