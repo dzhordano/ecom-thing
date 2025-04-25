@@ -37,11 +37,11 @@ func (g *GRPCConfig) Addr() string {
 }
 
 type PostgresConfig struct {
-	Host     string `env:"PG_HOST"`
-	Port     string `env:"PG_PORT"`
-	User     string `env:"PG_USER"`
-	Password string `env:"PG_PASSWORD"`
-	DBName   string `env:"PG_DBNAME"`
+	Host     string `env:"PG_HOST" env-default:"localhost"`
+	Port     string `env:"PG_PORT" env-default:"5432"`
+	User     string `env:"PG_USER" env-default:"postgres"`
+	Password string `env:"PG_PASSWORD" env-default:"postgres"`
+	DBName   string `env:"PG_DBNAME" env-default:"postgres"`
 	SSLMode  string `env:"PG_SSLMODE" env-default:"disable"`
 }
 

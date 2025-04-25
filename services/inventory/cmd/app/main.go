@@ -2,12 +2,13 @@ package main
 
 import (
 	"context"
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/tracing/tracer"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/dzhordano/ecom-thing/services/inventory/internal/infrastructure/tracing/tracer"
 
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/service"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/config"
@@ -34,7 +35,7 @@ func main() {
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 	defer pool.Close()
 
-	repo := pg.NewPGRepository(ctx, pool)
+	repo := pg.NewInventoryRepository(ctx, pool)
 
 	svc := service.NewItemService(log, repo)
 

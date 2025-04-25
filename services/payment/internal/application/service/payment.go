@@ -111,7 +111,7 @@ func (p *PaymentService) CancelPayment(ctx context.Context, paymentId, userId uu
 		return domain.NewAppError(domain.ErrInvalidPayment, "invalid payment")
 	}
 
-	payment.SetStatus(domain.PaymentCompleted)
+	payment.SetStatus(domain.PaymentCancelled)
 
 	if err = p.repo.Update(ctx, payment); err != nil {
 		p.log.Error("cancel payment error", "error", err, "payment_id", paymentId.String())

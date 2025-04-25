@@ -57,3 +57,10 @@ test.load:
 	--rps 100 --total 30000 \
 	-d '{"item": {"product_id": "00000000-0000-0000-0000-000000000000", "quantity": "1"}, "operation_type": "1"}' \
 	localhost:50001
+
+test.integration:
+	@docker run --name=inventory-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
+	@sleep 1
+	@bash -c 'trap "docker rm -f inventory-test-db" EXIT; \
+		go test ./tests/integration -v; RESULT=$$?; \
+		exit $$RESULT'

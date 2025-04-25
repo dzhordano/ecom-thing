@@ -15,16 +15,16 @@ const (
 	itemsTable = "items"
 )
 
-type PGRepostory struct {
+type InventoryRepository struct {
 	db *pgxpool.Pool
 }
 
-func NewPGRepository(ctx context.Context, db *pgxpool.Pool) repository.ItemRepository {
-	return &PGRepostory{db: db}
+func NewInventoryRepository(db *pgxpool.Pool) repository.ItemRepository {
+	return &InventoryRepository{db: db}
 }
 
-func (r *PGRepostory) GetItem(ctx context.Context, id string) (*domain.Item, error) {
-	const op = "repository.PGRepostory.GetItem"
+func (r *InventoryRepository) GetItem(ctx context.Context, id string) (*domain.Item, error) {
+	const op = "repository.InventoryRepository.GetItem"
 
 	query := fmt.Sprintf(
 		`SELECT product_id, available_quantity, reserved_quantity FROM %s WHERE product_id = $1`,
@@ -41,8 +41,8 @@ func (r *PGRepostory) GetItem(ctx context.Context, id string) (*domain.Item, err
 	return &item, nil
 }
 
-func (r *PGRepostory) SetItem(ctx context.Context, id string, availableQuantity, reservedQuantity uint64) error {
-	const op = "repository.PGRepostory.SetItem"
+func (r *InventoryRepository) SetItem(ctx context.Context, id string, availableQuantity, reservedQuantity uint64) error {
+	const op = "repository.InventoryRepository.SetItem"
 
 	// Insert. If exists -> update.
 	query := fmt.Sprintf(
@@ -58,8 +58,9 @@ func (r *PGRepostory) SetItem(ctx context.Context, id string, availableQuantity,
 	return nil
 }
 
-func (r *PGRepostory) GetManyItems(ctx context.Context, ids []string) ([]*domain.Item, error) {
-	const op = "repository.PGRepostory.GetManyItems"
+// TODO было бы идеально, если бы собиралась ошибка, которая укажет на ненайденные айди
+func (r *InventoryRepository) GetManyItems(ctx context.Context, ids []string) ([]*domain.Item, error) {
+	const op = "repository.InventoryRepository.GetManyItems"
 
 	query := fmt.Sprintf(
 		`SELECT product_id, available_quantity, reserved_quantity FROM %s WHERE product_id = ANY($1)`,
@@ -83,8 +84,8 @@ func (r *PGRepostory) GetManyItems(ctx context.Context, ids []string) ([]*domain
 	return items, nil
 }
 
-func (r *PGRepostory) SetManyItems(ctx context.Context, items []domain.Item) error {
-	const op = "repository.PGRepostory.SetManyItems"
+func (r *InventoryRepository) SetManyItems(ctx context.Context, items []domain.Item) error {
+	const op = "repository.InventoryRepository.SetManyItems"
 
 	return r.withTx(ctx, func(ctx context.Context, tx pgx.Tx) error {
 
@@ -104,7 +105,7 @@ func (r *PGRepostory) SetManyItems(ctx context.Context, items []domain.Item) err
 	})
 }
 
-func (r *PGRepostory) withTx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
+func (r *InventoryRepository) withTx(ctx context.Context, fn func(ctx context.Context, tx pgx.Tx) error) error {
 	tx, err := r.db.Begin(ctx)
 	if err != nil {
 		return err

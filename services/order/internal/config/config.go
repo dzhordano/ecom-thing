@@ -51,7 +51,6 @@ type GRPCInventoryConfig struct {
 	GRPCServiceConfig
 }
 
-// TODO maybe порт тестовой бд тоже нужен
 type PostgresConfig struct {
 	Host     string `env:"PG_HOST"`
 	Port     string `env:"PG_PORT"`

@@ -24,6 +24,8 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
+// TODO this one is worse than in other services. might fix :/ also depends on order
+
 type IntegrationSuite struct {
 	suite.Suite
 
@@ -76,7 +78,7 @@ func (s *IntegrationSuite) SetupSuite() {
 		panic(err)
 	}
 
-	nilLogger := logger.MustInit("warn", "product-test", "json", false)
+	nilLogger := logger.MustInit(logger.LevelDebug, "product-test.log", "json", false)
 
 	s.db = pool
 	s.productRepo = pg.NewProductRepository(s.db)

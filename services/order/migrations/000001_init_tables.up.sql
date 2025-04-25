@@ -15,28 +15,28 @@ CREATE TABLE IF NOT EXISTS orders(
   payment_method VARCHAR(255) NOT NULL,
   delivery_method VARCHAR(255) NOT NULL,
   delivery_address VARCHAR(255) NOT NULL,
-  delivery_date TIMESTAMP NOT NULL,
+  delivery_date TIMESTAMPTZ NOT NULL,
   items item[] NOT NULL,
-  created_at TIMESTAMP NOT NULL,
-  updated_at TIMESTAMP NOT NULL
+  created_at TIMESTAMPTZ NOT NULL,
+  updated_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS coupons(
   id SERIAL PRIMARY KEY,
   code VARCHAR(255) NOT NULL UNIQUE,
   discount DECIMAL(10, 2) NOT NULL,
-  valid_from TIMESTAMP NOT NULL,
-  valid_to TIMESTAMP NOT NULL
+  valid_from TIMESTAMPTZ NOT NULL,
+  valid_to TIMESTAMPTZ NOT NULL
 );
 
--- #FIXME убрать генерацию отсюда в application?
+-- FIXME убрать генерацию отсюда?
 CREATE TABLE IF NOT EXISTS outbox (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   topic VARCHAR(100) NOT NULL,
   event_type VARCHAR(100) NOT NULL,
   payload JSONB NOT NULL,
-  created_at TIMESTAMP NOT NULL,
-  processed_at TIMESTAMP
+  created_at TIMESTAMPTZ NOT NULL,
+  processed_at TIMESTAMPTZ
 );
 
 -- test coupon

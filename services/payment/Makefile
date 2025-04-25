@@ -22,4 +22,13 @@ migrate.down:
 generate.mocks.handlers:
 	@mockgen -source=internal/application/interfaces/payment.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
 
-.PHONY: init.db stop.db exec.db migrate.up migrate.down
+test.integration:
+	@docker run --name=payment-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
+	@sleep 1
+	@bash -c 'trap "docker rm -f payment-test-db" EXIT; \
+		go test ./tests/integration -v; RESULT=$$?; \
+		exit $$RESULT'
+
+.PHONY: \
+	init.db stop.db exec.db \
+	migrate.up migrate.down

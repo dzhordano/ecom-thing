@@ -51,7 +51,7 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 
 	if len(resItems) != len(items) {
 		s.log.Debug("not all items found", "got", len(resItems), "expected", len(items))
-		return false, nil
+		return false, domain.NewAppError(domain.ErrProductNotFound, "not all items found")
 	}
 
 	for i := range keys {

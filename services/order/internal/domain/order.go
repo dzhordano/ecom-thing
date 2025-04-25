@@ -53,8 +53,8 @@ func NewOrder(userId uuid.UUID, description, status, currency string, totalPrice
 		DeliveryAddress: deliveryAddress,
 		DeliveryDate:    deliveryDate,
 		Items:           items,
-		CreatedAt:       time.Now(),
-		UpdatedAt:       time.Now(),
+		CreatedAt:       time.Now().UTC(),
+		UpdatedAt:       time.Now().UTC(),
 	}
 
 	if err := o.Validate(); err != nil {

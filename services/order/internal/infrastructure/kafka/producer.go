@@ -41,7 +41,7 @@ func NewOrdersSyncProducer(brokers []string) (*OrdersSyncProducer, error) {
 	var producer sarama.SyncProducer
 	var err error
 	if err = retry.Do(
-		context.Background(),                                      // Need to pass outer context here.
+		context.Background(), // Need to pass outer context here.
 		retry.NewFibonacci(producerConfig.Metadata.Retry.Backoff), // TODO: fix, Using kafka default for now.
 		func(ctx context.Context) error {
 			producer, err = sarama.NewSyncProducer(brokers, producerConfig)

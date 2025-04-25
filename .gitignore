@@ -26,6 +26,8 @@
 
 *.bin
 *logs
+*.log
+
 TODO.md
 
 # Protoc gen files

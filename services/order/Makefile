@@ -25,6 +25,14 @@ test.load:
 	-d '{"order_id": "00000000-0000-0000-0000-000000000001"}' \
 	localhost:50003
 
+test.integration:
+	@docker run --name=order-test-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_TEST_PORT}:5432 -d postgres
+	@sleep 1
+	@bash -c 'trap "docker rm -f order-test-db" EXIT; \
+		go test ./tests/integration -v; RESULT=$$?; \
+		exit $$RESULT'
+
+
 generate.mocks.handlers:
 	@mockgen -source=internal/application/interfaces/order.go -destination=internal/interfaces/grpc_server/mocks/mocks.go
 
