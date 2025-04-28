@@ -14,10 +14,15 @@ run.nodocker:
 install-deps:
 	@GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 	@GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@GOBIN=$(LOCAL_BIN) go install -mod=mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	@GOBIN=$(LOCAL_BIN) go install -mod=mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+
 
 get-deps:
 	@go get -u google.golang.org/protobuf/cmd/protoc-gen-go
 	@go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	@go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+	@go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
 
 generate-buf:
 	@buf generate

@@ -1,3 +1,21 @@
+LOCAL_BIN:=$(CURDIR)/.bin
+
+install-deps:
+	@GOBIN=$(LOCAL_BIN) go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+	@GOBIN=$(LOCAL_BIN) go install -mod=mod google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+	@GOBIN=$(LOCAL_BIN) go install -mod=mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+	@GOBIN=$(LOCAL_BIN) go install -mod=mod github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+
+get-deps:
+	@go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+	@go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	@go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway
+	@go get -u github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2
+
+buf.gen:
+	@buf generate --path=proto/third_party
+	@buf generate --path=proto/api
+
 include .env
 init.db:
 	@docker run --name=order-db -e POSTGRES_PASSWORD=${PG_PASSWORD} -p ${PG_PORT}:5432 -d postgres

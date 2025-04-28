@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
-	inventory_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/inventory/v1"
+	api "github.com/dzhordano/ecom-thing/services/order/pkg/third_party/inventory/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
 	"google.golang.org/grpc/credentials/insecure"
@@ -27,7 +27,7 @@ func WithTracing(tp *tracesdk.TracerProvider) ClientOption {
 }
 
 type inventoryClient struct {
-	c    inventory_v1.InventoryServiceClient
+	c    api.InventoryServiceClient
 	addr string
 	tp   *tracesdk.TracerProvider
 }
@@ -80,7 +80,7 @@ func NewInventoryClient(addr string, opts ...ClientOption) interfaces.InventoryS
 		return nil
 	}
 
-	client.c = inventory_v1.NewInventoryServiceClient(conn)
+	client.c = api.NewInventoryServiceClient(conn)
 	client.addr = addr
 
 	return &client
@@ -98,10 +98,10 @@ func (i *inventoryClient) IsReservable(ctx context.Context, items map[string]uin
 		),
 	)
 
-	protoItems := make([]*inventory_v1.ItemOP, 0, len(items))
+	protoItems := make([]*api.ItemOP, 0, len(items))
 
 	for id := range items {
-		protoItems = append(protoItems, &inventory_v1.ItemOP{
+		protoItems = append(protoItems, &api.ItemOP{
 			ProductId: id,
 			Quantity:  items[id],
 		})
@@ -109,7 +109,7 @@ func (i *inventoryClient) IsReservable(ctx context.Context, items map[string]uin
 
 	span.AddEvent("performing rpc")
 
-	resp, err := i.c.IsReservable(ctx, &inventory_v1.IsReservableRequest{
+	resp, err := i.c.IsReservable(ctx, &api.IsReservableRequest{
 		Items: protoItems,
 	})
 	if err != nil {

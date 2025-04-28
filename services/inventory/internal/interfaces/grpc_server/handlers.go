@@ -31,11 +31,11 @@ func (h *ItemHandler) GetItem(ctx context.Context, req *api.GetItemRequest) (*ap
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("item_id", req.GetId()),
+			attribute.String("product_id", req.GetProductId()),
 		),
 	)
 
-	itemId, err := parseUUID(req.GetId())
+	itemId, err := parseUUID(req.GetProductId())
 	if err != nil {
 		return nil, err
 	}
@@ -68,7 +68,7 @@ func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*ap
 	span.AddEvent(
 		"parse item",
 		trace.WithAttributes(
-			attribute.String("item_id", req.Item.GetProductId()),
+			attribute.String("product_id", req.Item.GetProductId()),
 			attribute.Stringer("op", req.OperationType),
 		),
 	)

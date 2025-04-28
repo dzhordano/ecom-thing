@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package api.inventory.v1;
 
-option go_package = "dzhordano/ecom-thing/services/order/pkg/api/inventory/v1;inventory_v1";
+option go_package = "pkg/api/inventory/v1;inventory_v1";
 
 // InventoryService provides basic operations with product inventory.
 service InventoryService {

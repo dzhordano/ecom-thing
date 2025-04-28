@@ -3,82 +3,662 @@ syntax = "proto3";
 package api.product.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "buf/validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option go_package = "dzhordano/ecom-thing/services/product/pkg/api/product/v1;product_v1";
+option go_package = "pkg/api/product/v1;product_v1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Product Service"
+    version: "1.0.0"
+    description: "Product Service"
+    contact: {
+      name: "swageland"
+      url: "https://example.com"
+      email: "g2E5w@example.com"
+    }
+    license: {
+      name: "MIT License"
+      url: "https://opensource.org/licenses/MIT"
+    }
+  }
+  base_path: "/api/v1"
+  external_docs: {
+    url: "https://github.com/grpc-ecosystem/grpc-gateway"
+    description: "More about gRPC-Gateway"
+  }
+
+  schemes: HTTP
+//  schemes: HTTPS // TODO uncomment if https implemented
+  consumes: "application/json"
+  produces: "application/json"
+
+  security_definitions: {
+    security: {
+      key: "JWT Token"
+      value: {
+        name: "Authorization Token"
+        description: "JWT Token"
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        scopes: {
+          scope: {
+            key: "user"
+            value: "authorized user scope"
+          },
+          scope: {
+            key: "admin"
+            value: "authorized admin scope"
+          }
+        }
+      }
+    }
+  }
+};
 
 service ProductService {
-  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
-  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse);
-  rpc DeactivateProduct(DeactivateProductRequest) returns (DeactivateProductResponse);
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    name: "ProductService"
+    description: "Product Service"
+  };
 
-  rpc GetProduct(GetProductRequest) returns (GetProductResponse);
-  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
+  rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse) {
+    option (google.api.http) = {
+      post: "/products"
+      body: "*"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Create a new product"
+      summary: "CreateProduct"
+      tags: ["ProductService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+
+  rpc UpdateProduct(UpdateProductRequest) returns (UpdateProductResponse) {
+    option (google.api.http) = {
+      put: "/products/{id}"
+      body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Update a product."
+      summary: "UpdateProduct"
+      tags: ["ProductService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+  rpc DeactivateProduct(DeactivateProductRequest) returns (DeactivateProductResponse) {
+    option (google.api.http) = {
+      patch: "/products/{id}/deactivate"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Deactivate a product"
+      summary: "DeactivateProduct"
+      tags: ["ProductService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+
+  rpc GetProduct(GetProductRequest) returns (GetProductResponse) {
+    option (google.api.http) = {
+      get: "/products/{id}"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Get a product"
+      summary: "GetProduct"
+      tags: ["ProductService"]
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+
+  rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse) {
+    option (google.api.http) = {
+      get: "/products"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Search products"
+      summary: "SearchProducts"
+      tags: ["ProductService"]
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
 }
 
 message Product {
-  string id = 1;
-  string category = 2;
-  string name = 3;
-  string desc = 4;
-  double price = 5;
-  bool is_active = 6;
-  google.protobuf.Timestamp created_at = 7;
-  google.protobuf.Timestamp updated_at = 8;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Product"
+      description: "Product"
+    }
+  };
+
+  string id = 1 [
+    json_name = "id",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "ID (UUID)" }
+  ];
+  string category = 2 [
+    json_name = "category",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Category" }
+  ];
+  string name = 3 [
+    json_name = "name",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Name of the product" }
+  ];
+  string desc = 4 [
+    json_name = "desc",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Description" }
+  ];
+  double price = 5 [
+    json_name = "price",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Price" }
+  ];
+  bool is_active = 6 [
+    json_name = "is_active",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Is active (available)" }
+  ];
+  google.protobuf.Timestamp created_at = 7 [
+    json_name = "created_at",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Created at" }
+  ];
+  google.protobuf.Timestamp updated_at = 8 [
+    json_name = "updated_at",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Updated at" }
+  ];
 }
 
 message CreateProductRequest {
-  string name = 1;
-  string category = 2;
-  string desc = 3;
-  double price = 4;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CreateProductRequest"
+      description: "Represents a request for product creation"
+      required: ["name", "category", "desc", "price"]
+    }
+  };
+
+  string name = 1 [
+    json_name = "name",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 256
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "name"
+      description: "Name of the product"
+      example: "\"Example Product Name\""
+      min_length: 1
+      max_length: 256
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  string category = 2 [
+    json_name = "category",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "category"
+      description: "Category description"
+      example: "\"Cool Category\""
+      min_length: 1
+      max_length: 32
+      pattern: "^[A-Za-z ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  string desc = 3 [
+    json_name = "desc",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 2048
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "desc"
+      description: "Product description"
+      example: "\"Example Description\""
+      pattern: "^[A-Za-z0-9 ]+$"
+      min_length: 1
+      max_length: 2048
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  double price = 4 [
+    json_name = "price",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).double = {
+      gt: 0.01
+      lt: 128000.00
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "price"
+      description: "Product price"
+      example: "\"99.99\""
+      minimum: 0.01
+      maximum: 128000.00
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+      type: NUMBER
+      format: "double"
+    }
+  ];
 }
 
 message CreateProductResponse {
-  Product product = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CreateProductResponse"
+      description: "Response for product creation"
+    }
+  };
+
+  Product product = 1 [
+    json_name = "product",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Created product"
+    }
+  ];
 }
 
 message GetProductRequest {
-  string id = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetProductRequest"
+      description: "Get product info with specified id"
+      required: ["id"]
+    }
+  };
+
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Product id"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 message GetProductResponse {
-  Product product = 1;
-}
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetProductResponse"
+      description: "Contains product info"
+    }
+  };
 
-message GetProductsResponse {
-  repeated Product products = 1;
+  Product product = 1 [
+    json_name = "product",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "product"
+      description: "Product info"
+    }
+  ];
 }
 
 message UpdateProductRequest {
-  string id = 1;
-  string category = 2;
-  string name = 3;
-  string desc = 4;
-  bool is_active = 5;
-  double price = 6;
-}
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "UpdateProductRequest"
+      description: "Update product info"
+      required: ["id"]
+    }
+  };
 
-message SearchProductsRequest {
-  optional string query = 1;
-  optional string category = 2;
-  optional double min_price = 3;
-  optional double max_price = 4;
-  optional uint64 limit = 5;
-  optional uint64 offset = 6;
-}
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Product id"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 
-message SearchProductsResponse {
-  repeated Product products = 1;
+  string category = 2 [
+    json_name = "category",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "category"
+      description: "Category description"
+      example: "\"Cool Category\""
+      min_length: 1
+      max_length: 32
+      pattern: "^[A-Za-z ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  string name = 3 [
+    json_name = "name",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 256
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "name"
+      description: "Name of the product"
+      example: "\"Example Product Name\""
+      min_length: 1
+      max_length: 256
+      pattern: "^[A-Za-z ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  string desc = 4 [
+    json_name = "desc",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 2048
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "desc"
+      description: "Product description"
+      example: "\"Example Description\""
+      min_length: 1
+      max_length: 2048
+      type: STRING
+      format: "string"
+    }
+  ];
+
+  bool is_active = 5 [
+    json_name = "is_active",
+    (google.api.field_behavior) = REQUIRED,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "is_active"
+      description: "Product status"
+      example: "true"
+      type: BOOLEAN
+      format: "boolean"
+    }
+  ];
+
+  double price = 6 [
+    json_name = "price",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).double = {
+      gt: 0.01
+      lt: 128000.00
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "price"
+      description: "Product price"
+      example: "\"99.99\""
+      minimum: 0.01
+      maximum: 128000.00
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+      type: NUMBER
+      format: "double"
+    }
+  ];
 }
 
 message UpdateProductResponse {
-  Product product = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "UpdateProductResponse"
+      description: "Contains updated product info"
+    }
+  };
+
+  Product product = 1 [
+    json_name = "product",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Updated product"
+    }
+  ];
+}
+
+
+message SearchProductsRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetProductResponse"
+      description: "Contains product info"
+    }
+  };
+
+  optional string query = 1 [
+    json_name = "query",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 256
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "query"
+      description: "Search query"
+      example: "\"Example Query\""
+      type: STRING
+      format: "string"
+    }
+  ];
+  optional string category = 2 [
+    json_name = "category",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "category"
+      description: "Category description"
+      example: "\"Cool Category\""
+      type: STRING
+      format: "string"
+    }
+  ];
+  optional double min_price = 3 [
+    json_name = "min_price",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).double = {
+      gt: 0.01
+      lt: 128000.00
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "min_price"
+      description: "Product price"
+      example: "\"99.99\""
+      minimum: 0.01
+      maximum: 128000.00
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+      type: NUMBER
+      format: "double"
+    }
+  ];
+  optional double max_price = 4 [
+    json_name = "max_price",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).double = {
+      gt: 0.01
+      lt: 128000.00
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "max_price"
+      description: "Product price"
+      example: "\"99.99\""
+      minimum: 0.01
+      maximum: 128000.00
+      pattern: "^[0-9]+(\\.[0-9]{1,2})?$"
+      type: NUMBER
+      format: "double"
+    }
+  ];
+  optional uint64 limit = 5 [
+    json_name = "limit",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+      lt: 100
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "limit"
+      description: "Number of products to return"
+      example: "10"
+      default: "20"
+      minimum: 1
+      maximum: 100
+      pattern: "^[0-9]+$"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
+  optional uint64 offset = 6 [
+    json_name = "offset",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "offset"
+      description: "Number of products to skip"
+      example: "10"
+      default: "0"
+      minimum: 0
+      pattern: "^[0-9]+$"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
+}
+
+message SearchProductsResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetProductResponse"
+      description: "Contains product info"
+    }
+  };
+
+  repeated Product products = 1 [
+    json_name = "products",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "products"
+      description: "List of products with info"
+    }
+  ];
 }
 
 message DeactivateProductRequest {
-  string id = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "DeactivateProductRequest"
+      description: "Deactivates product"
+      required: ["id"]
+    }
+  };
+
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Product id"
+    }
+  ];
 }
 
 message DeactivateProductResponse {
-  Product product = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "DeactivateProductResponse"
+      description: "Contains deactivated product info"
+    }
+  };
+
+  Product product = 1 [
+    json_name = "product",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      description: "Deactivated product info"
+    }
+  ];
 }

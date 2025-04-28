@@ -80,11 +80,11 @@ func (h *OrderHandler) GetOrder(ctx context.Context, req *api.GetOrderRequest) (
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("order_id", req.GetOrderId()),
+			attribute.String("order_id", req.GetId()),
 		),
 	)
 
-	orderId, err := uuid.Parse(req.GetOrderId())
+	orderId, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
@@ -127,7 +127,7 @@ func (h *OrderHandler) UpdateOrder(ctx context.Context, req *api.UpdateOrderRequ
 		return nil, err
 	}
 
-	oid, err := uuid.Parse(req.GetOrderId())
+	oid, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
@@ -175,11 +175,11 @@ func (h *OrderHandler) DeleteOrder(ctx context.Context, req *api.DeleteOrderRequ
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("order_id", req.GetOrderId()),
+			attribute.String("order_id", req.GetId()),
 		),
 	)
 
-	oid, err := uuid.Parse(req.GetOrderId())
+	oid, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
@@ -250,11 +250,11 @@ func (h *OrderHandler) CompleteOrder(ctx context.Context, req *api.CompleteOrder
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("order_id", req.GetOrderId()),
+			attribute.String("order_id", req.GetId()),
 		),
 	)
 
-	oid, err := uuid.Parse(req.GetOrderId())
+	oid, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}
@@ -277,11 +277,11 @@ func (h *OrderHandler) CancelOrder(ctx context.Context, req *api.CancelOrderRequ
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("order_id", req.GetOrderId()),
+			attribute.String("order_id", req.GetId()),
 		),
 	)
 
-	oid, err := uuid.Parse(req.GetOrderId())
+	oid, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, domain.ErrInvalidUUID
 	}

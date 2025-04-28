@@ -1,0 +1,906 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Order Service",
+    "description": "Order Service",
+    "version": "1.0.0",
+    "contact": {
+      "name": "swageland",
+      "url": "https://example.com",
+      "email": "g2E5w@example.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [
+    {
+      "name": "OrderService",
+      "description": "Order Service"
+    }
+  ],
+  "basePath": "/api/v1",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/orders": {
+      "get": {
+        "summary": "ListOrders",
+        "description": "List orders with limit and offset.",
+        "operationId": "OrderService_ListOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "limit\n\nLimit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64",
+            "default": "10"
+          },
+          {
+            "name": "offset",
+            "description": "offset\n\nOffset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64",
+            "default": "0"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      },
+      "post": {
+        "summary": "CreateOrder",
+        "description": "Create new order. Produces event for payment to handle it immediately after creation.",
+        "operationId": "OrderService_CreateOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Represents request to create a new order.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrderRequest"
+            }
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/orders/search": {
+      "get": {
+        "summary": "SearchOrders",
+        "description": "Search orders with limit and offset and optional filters.",
+        "operationId": "OrderService_SearchOrders",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SearchOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "limit",
+            "description": "limit\n\nLimit",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64",
+            "default": "10"
+          },
+          {
+            "name": "offset",
+            "description": "offset\n\nOffset",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int64",
+            "default": "0"
+          },
+          {
+            "name": "query",
+            "description": "query\n\nQuery",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "description",
+            "description": "description\n\nDescription",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "status",
+            "description": "status\n\nStatus",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "currency",
+            "description": "currency\n\nCurrency",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "min_price",
+            "description": "min_price\n\nMin price",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "max_price",
+            "description": "max_price\n\nMax price",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "double"
+          },
+          {
+            "name": "payment_method",
+            "description": "payment_method\n\nPayment method",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "delivery_method",
+            "description": "delivery_method\n\nDelivery method",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9 ]+$"
+          },
+          {
+            "name": "delivery_address",
+            "description": "delivery_address\n\nDelivery address",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "string",
+            "pattern": "^[A-Za-z0-9. ]+$"
+          },
+          {
+            "name": "deliveryDateFrom",
+            "description": "delivery_date_from\n\nDelivery date from",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "deliveryDateTo",
+            "description": "delivery_date_to\n\nDelivery date to",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "format": "date-time"
+          },
+          {
+            "name": "minItemsAmount",
+            "description": "min_items_amount\n\nMin items amount",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "int64"
+          },
+          {
+            "name": "maxItemsAmount",
+            "description": "max_items_amount\n\nMax items amount",
+            "in": "query",
+            "required": false,
+            "type": "number",
+            "format": "int64"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "summary": "GetOrder",
+        "description": "Get order info with specified id.",
+        "operationId": "OrderService_GetOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "UUID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      },
+      "delete": {
+        "summary": "DeleteOrder",
+        "description": "Delete order.",
+        "operationId": "OrderService_DeleteOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Order id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      },
+      "put": {
+        "summary": "UpdateOrder",
+        "description": "Update order",
+        "operationId": "OrderService_UpdateOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "UUID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/OrderServiceUpdateOrderBody"
+            }
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/orders/{id}/cancel": {
+      "patch": {
+        "summary": "CancelOrder",
+        "description": "Cancels order.",
+        "operationId": "OrderService_CancelOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CancelOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Order id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/orders/{id}/complete": {
+      "patch": {
+        "summary": "CompleteOrder",
+        "description": "Complete order. Marks order as completed (paid and retrieved).",
+        "operationId": "OrderService_CompleteOrder",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CompleteOrderResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Order id",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "OrderService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    }
+  },
+  "definitions": {
+    "OrderServiceUpdateOrderBody": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "format": "string",
+          "example": "Order description",
+          "description": "Description",
+          "title": "description",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ]+$"
+        },
+        "status": {
+          "type": "string",
+          "format": "string",
+          "example": "pending",
+          "description": "Status",
+          "title": "status",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ]+$"
+        },
+        "total_price": {
+          "type": "number",
+          "format": "double",
+          "example": 150.99,
+          "description": "Total price",
+          "title": "total_price",
+          "minimum": 0.01
+        },
+        "payment_method": {
+          "type": "string",
+          "format": "string",
+          "example": "cash",
+          "description": "Payment method",
+          "title": "payment_method",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ]+$"
+        },
+        "delivery_method": {
+          "type": "string",
+          "format": "string",
+          "example": "standard",
+          "description": "Delivery method",
+          "title": "delivery_method",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_ ]+$"
+        },
+        "delivery_address": {
+          "type": "string",
+          "format": "string",
+          "example": "Delivery address",
+          "description": "Delivery address",
+          "title": "delivery_address",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9. ]+$"
+        },
+        "delivery_date": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2022-01-01T00:00:00Z",
+          "description": "Delivery date",
+          "title": "delivery_date"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "format": "array",
+            "$ref": "#/definitions/v1Item"
+          },
+          "description": "Order items",
+          "title": "items",
+          "minItems": 1
+        }
+      },
+      "description": "Represents request to update an order.",
+      "title": "UpdateOrderRequest"
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1CancelOrderResponse": {
+      "type": "object",
+      "description": "Canceled order info",
+      "title": "CancelOrderResponse"
+    },
+    "v1CompleteOrderResponse": {
+      "type": "object",
+      "description": "Completed order info",
+      "title": "CompleteOrderResponse"
+    },
+    "v1CreateOrderRequest": {
+      "type": "object",
+      "properties": {
+        "description": {
+          "type": "string",
+          "format": "string",
+          "example": "Order description",
+          "description": "Description",
+          "title": "description",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9 ]+$"
+        },
+        "currency": {
+          "type": "string",
+          "format": "string",
+          "example": "USD",
+          "description": "Currency",
+          "title": "currency",
+          "maxLength": 3,
+          "minLength": 1,
+          "pattern": "^[A-Za-z]{3}$"
+        },
+        "coupon": {
+          "type": "string",
+          "format": "string",
+          "example": "COUPON1",
+          "description": "Coupon for discount",
+          "title": "coupon",
+          "maxLength": 32
+        },
+        "payment_method": {
+          "type": "string",
+          "format": "string",
+          "example": "bank_card",
+          "description": "Payment method",
+          "title": "payment_method",
+          "maxLength": 32,
+          "minLength": 1,
+          "pattern": "^[A-Za-z_ ]+$"
+        },
+        "delivery_method": {
+          "type": "string",
+          "format": "string",
+          "example": "standard",
+          "description": "Delivery method",
+          "title": "delivery_method",
+          "maxLength": 32,
+          "minLength": 1,
+          "pattern": "^[A-Za-z ]+$"
+        },
+        "delivery_address": {
+          "type": "string",
+          "format": "string",
+          "example": "Delivery address",
+          "description": "Delivery address",
+          "title": "delivery_address",
+          "maxLength": 255,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9. ]+$"
+        },
+        "delivery_date": {
+          "type": "string",
+          "format": "date-time",
+          "example": "2021-01-01T00:00:00Z",
+          "description": "Delivery date",
+          "title": "delivery_date"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "format": "array",
+            "$ref": "#/definitions/v1Item"
+          },
+          "description": "Order items",
+          "title": "items",
+          "minItems": 1
+        }
+      },
+      "description": "Represents request to create a new order.",
+      "title": "CreateOrderRequest",
+      "required": [
+        "description",
+        "currency",
+        "coupon",
+        "payment_method",
+        "delivery_method",
+        "delivery_address",
+        "delivery_date",
+        "items"
+      ]
+    },
+    "v1CreateOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/v1Order",
+          "description": "Created order"
+        }
+      },
+      "description": "Represents response to create a new order.",
+      "title": "CreateOrderResponse"
+    },
+    "v1DeleteOrderResponse": {
+      "type": "object",
+      "description": "Deleted order info",
+      "title": "DeleteOrderResponse"
+    },
+    "v1GetOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/v1Order",
+          "description": "Order"
+        }
+      },
+      "description": "Represents response to get an order.",
+      "title": "GetOrderResponse"
+    },
+    "v1Item": {
+      "type": "object",
+      "properties": {
+        "item_id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "item_id"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int64",
+          "example": 1,
+          "description": "Category",
+          "title": "quantity"
+        }
+      },
+      "description": "Item represent an item (product) in user's order.",
+      "title": "Item"
+    },
+    "v1ListOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Order"
+          },
+          "description": "Orders"
+        }
+      },
+      "description": "Represents response to list orders.",
+      "title": "ListOrdersResponse"
+    },
+    "v1Order": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "id"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "user_id"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status"
+        },
+        "currency": {
+          "type": "string",
+          "example": "USD",
+          "description": "Currency"
+        },
+        "total_price": {
+          "type": "number",
+          "format": "double",
+          "description": "Total price to pay"
+        },
+        "payment_method": {
+          "type": "string",
+          "description": "Payment method"
+        },
+        "delivery_method": {
+          "type": "string",
+          "description": "Delivery Method"
+        },
+        "delivery_address": {
+          "type": "string",
+          "description": "Delivery address"
+        },
+        "delivery_date": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order delivery date"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Item"
+          },
+          "description": "Order items"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Order creation date"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last time order was updated"
+        }
+      },
+      "description": "Represents order.",
+      "title": "Orders"
+    },
+    "v1SearchOrdersResponse": {
+      "type": "object",
+      "properties": {
+        "orders": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1Order"
+          },
+          "description": "Orders"
+        }
+      },
+      "description": "Search orders response",
+      "title": "SearchOrdersResponse"
+    },
+    "v1UpdateOrderResponse": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/v1Order",
+          "description": "Created order"
+        }
+      },
+      "description": "Updated order info",
+      "title": "UpdateOrderResponse"
+    }
+  },
+  "securityDefinitions": {
+    "JWT Token": {
+      "type": "apiKey",
+      "description": "JWT Token",
+      "name": "Authorization Token",
+      "in": "header",
+      "scopes": {
+        "admin": "authorized admin scope",
+        "user": "authorized user scope"
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "More about gRPC-Gateway",
+    "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+  }
+}

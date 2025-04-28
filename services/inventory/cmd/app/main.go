@@ -35,7 +35,7 @@ func main() {
 	pool := pg.MustNewPGXPool(ctx, cfg.PG.DSN())
 	defer pool.Close()
 
-	repo := pg.NewInventoryRepository(ctx, pool)
+	repo := pg.NewInventoryRepository(pool)
 
 	svc := service.NewItemService(log, repo)
 

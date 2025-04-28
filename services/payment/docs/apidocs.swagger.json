@@ -1,0 +1,410 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Payment Service",
+    "description": "Payment Service",
+    "version": "1.0.0",
+    "contact": {
+      "name": "swageland",
+      "url": "https://example.com",
+      "email": "g2E5w@example.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [
+    {
+      "name": "PaymentService",
+      "description": "Payment Service"
+    }
+  ],
+  "basePath": "/api/v1",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/payments": {
+      "post": {
+        "summary": "Creates a payment and starts transaction.",
+        "description": "Create payment",
+        "operationId": "PaymentService_CreatePayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CreatePaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Request for creating a payment.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreatePaymentRequest"
+            }
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/payments/{id}": {
+      "get": {
+        "summary": "Returns payment status with provided id.",
+        "description": "Returns payment status.",
+        "operationId": "PaymentService_GetPaymentStatus",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetPaymentStatusResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID (UUID)",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/payments/{id}/cancel": {
+      "patch": {
+        "summary": "Marks payment with provided id as canceled.",
+        "description": "Marks payment as canceled.",
+        "operationId": "PaymentService_CancelPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1CancelPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID (UUID)",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/payments/{id}/confirm": {
+      "patch": {
+        "summary": "Marks payment with provided id as completed.",
+        "description": "Marks payment as completed.",
+        "operationId": "PaymentService_ConfirmPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ConfirmPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID (UUID)",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/payments/{id}/retry": {
+      "patch": {
+        "summary": "Tries to redo payment with provided id.",
+        "description": "Retries payment process (if payment was not canceled or completed).",
+        "operationId": "PaymentService_RetryPayment",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1RetryPaymentResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "description": "ID (UUID)",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "PaymentService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1CancelPaymentResponse": {
+      "type": "object",
+      "description": "Not useful, look for code.",
+      "title": "CancelPaymentResponse"
+    },
+    "v1ConfirmPaymentResponse": {
+      "type": "object",
+      "description": "Not useful, look for code.",
+      "title": "ConfirmPaymentResponse"
+    },
+    "v1CreatePaymentRequest": {
+      "type": "object",
+      "properties": {
+        "order": {
+          "$ref": "#/definitions/v1Order",
+          "description": "Order info",
+          "title": "order"
+        },
+        "payment_method": {
+          "type": "string",
+          "format": "string",
+          "example": "cash",
+          "description": "Payment method (bank_card, cash, trasfer).",
+          "title": "payment_method"
+        },
+        "payment_description": {
+          "type": "string",
+          "format": "string",
+          "example": "Some description",
+          "description": "Payment description.",
+          "title": "payment_description"
+        },
+        "redirect_url": {
+          "type": "string",
+          "format": "string",
+          "description": "URL to redirect to.",
+          "title": "redirect_url"
+        }
+      },
+      "description": "Request for creating a payment.",
+      "title": "CreatePaymentRequest",
+      "required": [
+        "order",
+        "payment_method",
+        "payment_description",
+        "redirect_url"
+      ]
+    },
+    "v1CreatePaymentResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "id"
+        }
+      },
+      "description": "Payment creation response.",
+      "title": "CreatePaymentResponse"
+    },
+    "v1GetPaymentStatusResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Payment status",
+          "title": "status"
+        }
+      },
+      "description": "Payment status.",
+      "title": "GetPaymentStatusResponse"
+    },
+    "v1Order": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "id"
+        },
+        "user_id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "user_id"
+        },
+        "currency": {
+          "type": "string",
+          "format": "uuid",
+          "example": "USD",
+          "description": "Currency",
+          "title": "currency"
+        },
+        "total_price": {
+          "type": "number",
+          "format": "double",
+          "description": "Total price of order in provided currency",
+          "title": "total_price"
+        }
+      },
+      "description": "Represents order info for payment building.",
+      "title": "Order"
+    },
+    "v1RetryPaymentResponse": {
+      "type": "object",
+      "description": "Not useful, look for code.",
+      "title": "RetryPaymentResponse"
+    }
+  },
+  "securityDefinitions": {
+    "JWT Token": {
+      "type": "apiKey",
+      "description": "JWT Token",
+      "name": "Authorization Token",
+      "in": "header",
+      "scopes": {
+        "admin": "authorized admin scope",
+        "user": "authorized user scope"
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "More about gRPC-Gateway",
+    "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+  }
+}

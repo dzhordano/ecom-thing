@@ -37,7 +37,7 @@ func TestPaymentHandler_RetryPayment(t *testing.T) {
 			name: "OK",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.RetryPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().RetryPayment(
@@ -53,7 +53,7 @@ func TestPaymentHandler_RetryPayment(t *testing.T) {
 			name: "INVALID UUID",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.RetryPaymentRequest{
-				PaymentId: "invalid uuid",
+				Id: "invalid uuid",
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -63,7 +63,7 @@ func TestPaymentHandler_RetryPayment(t *testing.T) {
 			name: "ERROR",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.RetryPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().RetryPayment(
@@ -118,7 +118,7 @@ func TestPaymentHandler_GetPaymentStatus(t *testing.T) {
 			name: "OK",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.GetPaymentStatusRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().GetPaymentStatus(
@@ -136,7 +136,7 @@ func TestPaymentHandler_GetPaymentStatus(t *testing.T) {
 			name: "INVALID UUID",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.GetPaymentStatusRequest{
-				PaymentId: "invalid uuid",
+				Id: "invalid uuid",
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -146,7 +146,7 @@ func TestPaymentHandler_GetPaymentStatus(t *testing.T) {
 			name: "INVALID USER UUID",
 			ctx:  context.WithValue(context.Background(), "userId", "invalid uuid"),
 			req: &api.GetPaymentStatusRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -156,7 +156,7 @@ func TestPaymentHandler_GetPaymentStatus(t *testing.T) {
 			name: "ERROR",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.GetPaymentStatusRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().GetPaymentStatus(
@@ -211,7 +211,7 @@ func TestPaymentHandler_CancelPayment(t *testing.T) {
 			name: "OK",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.CancelPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().CancelPayment(
@@ -227,7 +227,7 @@ func TestPaymentHandler_CancelPayment(t *testing.T) {
 			name: "INVALID UUID",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.CancelPaymentRequest{
-				PaymentId: "invalid uuid",
+				Id: "invalid uuid",
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -237,7 +237,7 @@ func TestPaymentHandler_CancelPayment(t *testing.T) {
 			name: "INVALID USER UUID",
 			ctx:  context.WithValue(context.Background(), "userId", "invalid uuid"),
 			req: &api.CancelPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -247,7 +247,7 @@ func TestPaymentHandler_CancelPayment(t *testing.T) {
 			name: "ERROR",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.CancelPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().CancelPayment(
@@ -302,7 +302,7 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 			name: "OK",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.ConfirmPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().ConfirmPayment(
@@ -318,7 +318,7 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 			name: "INVALID UUID",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.ConfirmPaymentRequest{
-				PaymentId: "invalid uuid",
+				Id: "invalid uuid",
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -328,7 +328,7 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 			name: "INVALID USER UUID",
 			ctx:  context.WithValue(context.Background(), "userId", "invalid uuid"),
 			req: &api.ConfirmPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {},
 			expectedResp:  nil,
@@ -338,7 +338,7 @@ func TestPaymentHandler_ConfirmPayment(t *testing.T) {
 			name: "ERROR",
 			ctx:  context.WithValue(context.Background(), "userId", testUserId.String()),
 			req: &api.ConfirmPaymentRequest{
-				PaymentId: testPaymentId.String(),
+				Id: testPaymentId.String(),
 			},
 			mockBehaviour: func(s *mock_interfaces.MockPaymentService, paymentId, userId uuid.UUID) {
 				s.EXPECT().ConfirmPayment(

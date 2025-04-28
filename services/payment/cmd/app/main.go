@@ -55,14 +55,16 @@ func main() {
 	}()
 	tracer.SetGlobalTracerProvider(tp)
 
-	kafkaProducer, err := kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
-	if err == nil {
-		outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second, billingSvc)
-		go outboxWorker.Start(ctx)
-		defer kafkaProducer.Close()
-	} else {
-		log.Error("error creating kafka producer", "error", err)
-	}
+	go func() {
+		kafkaProducer, err := kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
+		if err == nil {
+			outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second, billingSvc)
+			go outboxWorker.Start(ctx)
+			defer kafkaProducer.Close()
+		} else {
+			log.Error("error creating kafka producer", "error", err)
+		}
+	}()
 
 	go func() {
 		c, err := kafka.NewConsumerGroup(

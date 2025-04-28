@@ -71,12 +71,18 @@ func main() {
 			cfg.CircuitBreaker.Interval,
 			cfg.CircuitBreaker.Timeout),
 		grpc_server.WithTracerProvider(tp),
+		grpc_server.WithProfiling(),
 	)
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	go srv.Run(ctx)
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			log.Error("error running server", "error", err)
+			panic(err)
+		}
+	}()
 
 	<-q
 

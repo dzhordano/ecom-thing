@@ -52,7 +52,7 @@ type GRPCInventoryConfig struct {
 }
 
 type PostgresConfig struct {
-	Host     string `env:"PG_HOST"`
+	Host     string `env:"PG_HOST" env-default:"localhost"`
 	Port     string `env:"PG_PORT"`
 	User     string `env:"PG_USER"`
 	Password string `env:"PG_PASSWORD"`

@@ -1,0 +1,393 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Inventory Service",
+    "description": "Inventory Service",
+    "version": "1.0.0",
+    "contact": {
+      "name": "swageland",
+      "url": "https://example.com",
+      "email": "g2E5w@example.com"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "tags": [
+    {
+      "name": "InventoryService",
+      "description": "Inventory Service"
+    }
+  ],
+  "basePath": "/api/v1",
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api.inventory.v1.InventoryService/IsReservable": {
+      "post": {
+        "operationId": "InventoryService_IsReservable",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1IsReservableResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Takes item_ops. Returns true whether provided quantity for each item is available.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1IsReservableRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InventoryService"
+        ],
+        "deprecated": true
+      }
+    },
+    "/items": {
+      "post": {
+        "summary": "Applies operation on provided item.",
+        "description": "Set item operates with item's quantity (available and reserved) applying provided operation",
+        "operationId": "InventoryService_SetItem",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SetItemResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Takes item_op and operation to execute on item.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SetItemRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InventoryService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/items/many": {
+      "post": {
+        "summary": "Applies operation on provided items.",
+        "description": "Works similar to SetItem, but accepts many items with operation to execute.",
+        "operationId": "InventoryService_SetItems",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1SetItemsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "description": "Takes item_ops and an operation to execute on items.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SetItemsRequest"
+            }
+          }
+        ],
+        "tags": [
+          "InventoryService"
+        ],
+        "security": [
+          {
+            "JWT Token": [
+              "user",
+              "admin"
+            ]
+          }
+        ],
+        "x-irreversible": true
+      }
+    },
+    "/items/{product_id}": {
+      "get": {
+        "summary": "Returns item with info (id + available \u0026 reserved quantities)",
+        "description": "Get item by product_id (uuid).",
+        "operationId": "InventoryService_GetItem",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetItemResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "product_id",
+            "description": "UUID",
+            "in": "path",
+            "required": true,
+            "type": "string",
+            "format": "uuid"
+          }
+        ],
+        "tags": [
+          "InventoryService"
+        ],
+        "x-irreversible": true
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "v1GetItemResponse": {
+      "type": "object",
+      "properties": {
+        "item": {
+          "$ref": "#/definitions/v1Item",
+          "description": "Item"
+        }
+      },
+      "description": "Returns item info.",
+      "title": "GetItemResponse"
+    },
+    "v1IsReservableRequest": {
+      "type": "object",
+      "properties": {
+        "item_ops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ItemOP"
+          },
+          "description": "Item OPs"
+        }
+      },
+      "description": "Takes item_ops. Returns true whether provided quantity for each item is available.",
+      "title": "IsReservableRequest",
+      "required": [
+        "item_ops"
+      ]
+    },
+    "v1IsReservableResponse": {
+      "type": "object",
+      "properties": {
+        "is_reservable": {
+          "type": "boolean",
+          "format": "boolean",
+          "description": "Reservable or not.",
+          "title": "is_reservable"
+        }
+      },
+      "description": "Returns true is item(s) is(are) available for reservation.",
+      "title": "IsReservableResponse"
+    },
+    "v1Item": {
+      "type": "object",
+      "properties": {
+        "product_id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "product_id"
+        },
+        "available_quantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Available stock for reservation.",
+          "title": "available_quantity"
+        },
+        "reserved_quantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Reserved stock.",
+          "title": "reserved_quantity"
+        }
+      },
+      "description": "Represents and item (product) with it's stock (available and reserved quantities).",
+      "title": "Item"
+    },
+    "v1ItemOP": {
+      "type": "object",
+      "properties": {
+        "product_id": {
+          "type": "string",
+          "format": "uuid",
+          "example": "00000000-0000-0000-0000-000000000000",
+          "description": "ID (UUID)",
+          "title": "product_id"
+        },
+        "quantity": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Some amount of product.",
+          "title": "quantity"
+        }
+      },
+      "description": "Contains product_id and quantity.",
+      "title": "ItemOP"
+    },
+    "v1OperationType": {
+      "type": "string",
+      "example": "OPERATION_TYPE_ADD",
+      "enum": [
+        "OPERATION_TYPE_UNSPECIFIED",
+        "OPERATION_TYPE_ADD",
+        "OPERATION_TYPE_SUB",
+        "OPERATION_TYPE_LOCK",
+        "OPERATION_TYPE_UNLOCK",
+        "OPERATION_TYPE_SUB_LOCKED"
+      ],
+      "default": "OPERATION_TYPE_UNSPECIFIED",
+      "description": "Represents operation to execute on product's (item's) quantity.",
+      "title": "OperationType"
+    },
+    "v1SetItemRequest": {
+      "type": "object",
+      "properties": {
+        "item_op": {
+          "$ref": "#/definitions/v1ItemOP",
+          "description": "Item OP"
+        },
+        "operation_type": {
+          "$ref": "#/definitions/v1OperationType",
+          "description": "Operation Type"
+        }
+      },
+      "description": "Takes item_op and operation to execute on item.",
+      "title": "SetItemRequest",
+      "required": [
+        "item_op",
+        "operation_type"
+      ]
+    },
+    "v1SetItemResponse": {
+      "type": "object",
+      "description": "Returns nothing. OK if request was successful.",
+      "title": "SetItemResponse"
+    },
+    "v1SetItemsRequest": {
+      "type": "object",
+      "properties": {
+        "item_ops": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ItemOP"
+          },
+          "description": "Item OPs"
+        },
+        "operation_type": {
+          "$ref": "#/definitions/v1OperationType",
+          "description": "Operation Type"
+        }
+      },
+      "description": "Takes item_ops and an operation to execute on items.",
+      "title": "SetItemsRequest",
+      "required": [
+        "item_ops",
+        "operation_type"
+      ]
+    },
+    "v1SetItemsResponse": {
+      "type": "object",
+      "description": "Returns nothing. OK if request was successful.",
+      "title": "SetItemsResponse"
+    }
+  },
+  "securityDefinitions": {
+    "JWT Token": {
+      "type": "apiKey",
+      "description": "JWT Token",
+      "name": "Authorization Token",
+      "in": "header",
+      "scopes": {
+        "admin": "authorized admin scope",
+        "user": "authorized user scope"
+      }
+    }
+  },
+  "externalDocs": {
+    "description": "More about gRPC-Gateway",
+    "url": "https://github.com/grpc-ecosystem/grpc-gateway"
+  }
+}

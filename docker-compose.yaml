@@ -24,6 +24,7 @@ services:
         read_only: true
     ports:
       - ${GRPC_PRODUCT_PORT}:${GRPC_PRODUCT_PORT}
+      - "8000:8000" # TODO swap after config change in services
     depends_on:
       - product-db
       - product-db-migrate
@@ -50,6 +51,7 @@ services:
         read_only: true
     ports:
       - ${GRPC_INVENTORY_PORT}:${GRPC_INVENTORY_PORT}
+      - "8001:8001" # TODO swap after config change in services
     depends_on:
       - inventory-db
       - inventory-db-migrate
@@ -76,6 +78,7 @@ services:
         read_only: true
     ports:
       - ${GRPC_ORDER_PORT}:${GRPC_ORDER_PORT}
+      - "8002:8002" # TODO swap after config change in services
     depends_on:
       - order-db
       - order-db-migrate
@@ -102,6 +105,7 @@ services:
         read_only: true
     ports:
       - ${GRPC_PAYMENT_PORT}:${GRPC_PAYMENT_PORT}
+      - "8003:8003" # TODO swap after config change in services
     depends_on:
       - payment-db
       - payment-db-migrate

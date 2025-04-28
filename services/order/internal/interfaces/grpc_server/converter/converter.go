@@ -9,7 +9,7 @@ import (
 
 func FromDomainToProto_Order(order *domain.Order) *order_v1.Order {
 	return &order_v1.Order{
-		OrderId:         order.ID.String(),
+		Id:              order.ID.String(),
 		UserId:          order.UserID.String(),
 		Description:     order.Description,
 		Status:          order.Status.String(),
@@ -45,7 +45,7 @@ func FromDomainToProto_Orders(orders []*domain.Order) []*order_v1.Order {
 // FromDomainToProto_OrderWItems is same as FromDomainToProto_Order but with items for better performance.
 func FromDomainToProto_OrderWItems(order *domain.Order, items []*order_v1.Item) *order_v1.Order {
 	return &order_v1.Order{
-		OrderId:         order.ID.String(),
+		Id:              order.ID.String(),
 		UserId:          order.UserID.String(),
 		Description:     order.Description,
 		Status:          order.Status.String(),

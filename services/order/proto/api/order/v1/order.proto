@@ -3,211 +3,1242 @@ syntax = "proto3";
 package api.order.v1;
 
 import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "buf/validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
 
-option go_package = "dzhordano/ecom-thing/services/order/pkg/api/order/v1;order_v1";
+option go_package = "pkg/api/order/v1;order_v1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Order Service"
+    version: "1.0.0"
+    description: "Order Service"
+    contact: {
+      name: "swageland"
+      url: "https://example.com"
+      email: "g2E5w@example.com"
+    }
+    license: {
+      name: "MIT License"
+      url: "https://opensource.org/licenses/MIT"
+    }
+  }
+  base_path: "/api/v1"
+  external_docs: {
+    url: "https://github.com/grpc-ecosystem/grpc-gateway"
+    description: "More about gRPC-Gateway"
+  }
+
+  schemes: HTTP
+  //  schemes: HTTPS // TODO uncomment if https implemented
+  consumes: "application/json"
+  produces: "application/json"
+
+  security_definitions: {
+    security: {
+      key: "JWT Token"
+      value: {
+        name: "Authorization Token"
+        description: "JWT Token"
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        scopes: {
+          scope: {
+            key: "user"
+            value: "authorized user scope"
+          },
+          scope: {
+            key: "admin"
+            value: "authorized admin scope"
+          }
+        }
+      }
+    }
+  }
+};
 
 // OrderService provides basic operations with orders.
 service OrderService {
-  // CreateOrder creates a new order.
-  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {}
-  // GetOrder returns Order object with requested id.
-  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {}
-  // List order returns a list of user's orders.
-  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {}
-  // UpdateOrder updates an order.
-  rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {} // Not for users.
-  // DeleteOrder soft deletes an order.
-  rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse) {} // Not for users.
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    name: "OrderService"
+    description: "Order Service"
+  };
 
+  // CreateOrder creates a new order.
+  rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse) {
+    option (google.api.http) = {
+      post: "/orders"
+      body: "*"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Create new order. Produces event for payment to handle it immediately after creation."
+      summary: "CreateOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+           scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+  // GetOrder returns Order object with requested id.
+  rpc GetOrder(GetOrderRequest) returns (GetOrderResponse) {
+    option (google.api.http) = {
+      get: "/orders/{id}"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Get order info with specified id."
+      summary: "GetOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+  // List order returns a list of user's orders.
+  rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse) {
+    option (google.api.http) = {
+      get: "/orders"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "List orders with limit and offset."
+      summary: "ListOrders"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+  // UpdateOrder updates an order.
+  rpc UpdateOrder(UpdateOrderRequest) returns (UpdateOrderResponse) {
+    option (google.api.http) = {
+      put: "/orders/{id}"
+      body: "*"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Update order"
+      summary: "UpdateOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+  // DeleteOrder soft deletes an order.
+  rpc DeleteOrder(DeleteOrderRequest) returns (DeleteOrderResponse) {
+    option (google.api.http) = {
+      delete: "/orders/{id}"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Delete order."
+      summary: "DeleteOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
   // SearchOrders returns a list of user's orders with applied filters.
-  rpc SearchOrders(SearchOrdersRequest) returns (SearchOrdersResponse) {} // Not for users.
+  rpc SearchOrders(SearchOrdersRequest) returns (SearchOrdersResponse) {
+    option (google.api.http) = {
+      get: "/orders/search"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Search orders with limit and offset and optional filters."
+      summary: "SearchOrders"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
+
   // CompleteOrder marks order as completed.
-  rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse) {}
+  rpc CompleteOrder(CompleteOrderRequest) returns (CompleteOrderResponse) {
+    option (google.api.http) = {
+      patch: "/orders/{id}/complete"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Complete order. Marks order as completed (paid and retrieved)."
+      summary: "CompleteOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
   // CancelOrder marks order as canceled.
-  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {}
+  rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse) {
+    option (google.api.http) = {
+      patch: "/orders/{id}/cancel"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Cancels order."
+      summary: "CancelOrder"
+      tags: ["OrderService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  }
 }
 
 // Item represent an item in user's order.
 message Item {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Item"
+      description: "Item represent an item (product) in user's order."
+    }
+  };
+
   // ProductID.
-  string item_id = 1;
+  string item_id = 1 [
+    json_name = "item_id",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "item_id"
+      description: "ID (UUID)"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // Quantity of product.
-  uint64 quantity = 2;
+  uint64 quantity = 2 [
+    json_name = "quantity",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "quantity"
+      example: "1"
+      description: "Category"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
 }
 
 // Order contains all information about user's order.
 message Order {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Orders"
+      description: "Represents order."
+    }
+  };
+
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "ID (UUID)"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // UUID.
-  string user_id = 2;
+  string user_id = 2 [
+    json_name = "user_id",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "user_id"
+      description: "ID (UUID)"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // Order description.
-  string description = 3;
+  string description = 3 [
+    json_name = "description",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Description" }
+  ];
   // Order status.
-  string status = 4;
+  string status = 4 [
+    json_name = "status",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Status" }
+  ];
   // Order currency.
-  string currency = 5;
+  string currency = 5 [
+    json_name = "currency",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      example: "\"USD\""
+      description: "Currency"
+    }
+  ];
   // Total price in order currency.
-  double total_price = 6;
+  double total_price = 6 [
+    json_name = "total_price",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Total price to pay" }
+  ];
   // Payment method.
-  string payment_method = 7;
+  string payment_method = 7 [
+    json_name = "payment_method",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Payment method" }
+  ];
   // Delivery method.
-  string delivery_method = 8;
+  string delivery_method = 8 [
+    json_name = "delivery_method",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Delivery Method" }
+  ];
   // Delivery address.
-  string delivery_address = 9;
+  string delivery_address = 9 [
+    json_name = "delivery_address",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Delivery address" }
+  ];
   // Delivery date.
-  google.protobuf.Timestamp delivery_date = 10;
+  google.protobuf.Timestamp delivery_date = 10 [
+    json_name = "delivery_date",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Order delivery date" }
+  ];
   // Order items.
-  repeated Item items = 11;
+  repeated Item items = 11 [
+    json_name = "items",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Order items" }
+  ];
   // Order creation date.
-  google.protobuf.Timestamp created_at = 12;
+  google.protobuf.Timestamp created_at = 12 [
+    json_name = "created_at",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Order creation date" }
+  ];
   // Order last update date.
-  google.protobuf.Timestamp updated_at = 13;
+  google.protobuf.Timestamp updated_at = 13 [
+    json_name = "updated_at",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Last time order was updated" }
+  ];
 }
 
 // CreateOrderRequest is a request to create a new order.
 message CreateOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CreateOrderRequest"
+      description: "Represents request to create a new order."
+      required: ["description", "currency", "coupon", "payment_method", "delivery_method", "delivery_address", "delivery_date", "items" ]
+    }
+  };
+
   // Order description.
-  optional string description = 1;
+  optional string description = 1 [
+    json_name = "description",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "description"
+      description: "Description"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Order currency.
-  string currency = 2;
+  string currency = 2 [
+    json_name = "currency",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 3
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "currency"
+      description: "Currency"
+      example: "\"USD\""
+      min_length: 1
+      max_length: 3
+      pattern: "^[A-Za-z]{3}$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Coupon for discount.
-  optional string coupon = 3;
+  optional string coupon = 3 [
+    json_name = "coupon",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 0
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "coupon"
+      description: "Coupon for discount"
+      example: "\"COUPON1\""
+      min_length: 0
+      max_length: 32
+      type: STRING
+      format: "string"
+    }
+  ];
   // Payment method.
-  string payment_method = 4;
+  string payment_method = 4 [
+    json_name = "payment_method",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "payment_method"
+      description: "Payment method"
+      example: "\"bank_card\""
+      min_length: 1
+      max_length: 32
+      pattern: "^[A-Za-z_ ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery method.
-  string delivery_method = 5;
+  string delivery_method = 5 [
+    json_name = "delivery_method",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 32
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_method"
+      description: "Delivery method"
+      example: "\"standard\""
+      min_length: 1
+      max_length: 32
+      pattern: "^[A-Za-z ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery address.
-  string delivery_address = 6;
+  string delivery_address = 6 [
+    json_name = "delivery_address",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_address"
+      description: "Delivery address"
+      example: "\"Delivery address\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9. ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery date.
-  google.protobuf.Timestamp delivery_date = 7;
+  google.protobuf.Timestamp delivery_date = 7 [
+    json_name = "delivery_date",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).timestamp = {},
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_date"
+      description: "Delivery date"
+      example: "\"2021-01-01T00:00:00Z\""
+      type: STRING
+      format: "date-time"
+    }
+  ];
   // Order items.
-  repeated Item items = 8;
+  repeated Item items = 8 [
+    json_name = "items",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).repeated = {
+      min_items: 1
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "items"
+      description: "Order items"
+      min_items: 1
+      type: ARRAY
+      format: "array"
+    }
+  ];
 }
 
 // CreateOrderResponse is a response to create a new order.
 message CreateOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CreateOrderResponse"
+      description: "Represents response to create a new order."
+    }
+  };
+
   // Order.
-  Order order = 1;
+  Order order = 1 [
+    json_name = "order",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Created order" }
+  ];
 }
 
 // GetOrderRequest is a request to get an order.
 message GetOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "UpdateProductRequest"
+      description: "Update product info"
+      required: ["id"]
+    }
+  };
+
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 36
+      max_len: 36
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "UUID"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 // GetOrderResponse is a response to get an order.
 message GetOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetOrderResponse"
+      description: "Represents response to get an order."
+    }
+  };
   // Order.
-  Order order = 1;
+  Order order = 1 [
+    json_name = "order",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Order" }
+  ];
 }
 
 // ListOrdersRequest is a request to list orders.
 message ListOrdersRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "ListOrdersRequest"
+      description: "Represents request to list orders."
+    }
+  };
+
   // Limit.
-  uint64 limit = 1;
+  uint64 limit = 1 [
+    json_name = "limit",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+      lt: 100
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "limit"
+      description: "Limit"
+      minimum : 1
+      maximum: 100
+      default: "10"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
   // Offset.
-  uint64 offset = 2;
+  uint64 offset = 2 [
+    json_name = "offset",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "offset"
+      description: "Offset"
+      minimum : 1
+      default: "0"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
 }
 
 // ListOrdersResponse is a response to list orders.
 message ListOrdersResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "ListOrdersResponse"
+      description: "Represents response to list orders."
+    }
+  };
   // Orders.
-  repeated Order orders = 1;
+  repeated Order orders = 1 [
+    json_name = "orders",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Orders" }
+  ];
 }
 
 // UpdateOrderRequest is a request to update an order.
 message UpdateOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "UpdateOrderRequest"
+      description: "Represents request to update an order."
+      required: ["id"]
+    }
+  };
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 36
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "UUID"
+      example: "c4f2b6b6-2b7a-4a0c-8c1d-5d5d5d5d5d5d"
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // Order description.
-  optional string description = 2;
+  optional string description = 2 [
+    json_name = "description",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "description"
+      description: "Description"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Order status.
-  optional string status = 3;
+  optional string status = 3 [
+    json_name = "status",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "status"
+      description: "Status"
+      example: "\"pending\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Total price in order currency.
-  optional double total_price = 4;
+  optional double total_price = 4 [
+    json_name = "total_price",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).double = {
+      gt: 0.01
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "total_price"
+      description: "Total price"
+      minimum : 0.01
+      example: "150.99"
+      type: NUMBER
+      format: "double"
+    }
+  ];
   // Payment method.
-  optional string payment_method = 5;
+  optional string payment_method = 5 [
+    json_name = "payment_method",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "payment_method"
+      description: "Payment method"
+      example: "\"cash\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery method.
-  optional string delivery_method = 6;
+  optional string delivery_method = 6 [
+    json_name = "delivery_method",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_method"
+      description: "Delivery method"
+      example: "\"standard\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z_ ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery address.
-  optional string delivery_address = 7;
+  optional string delivery_address = 7 [
+    json_name = "delivery_address",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_address"
+      description: "Delivery address"
+      example: "\"Delivery address\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9. ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery date.
-  optional google.protobuf.Timestamp delivery_date = 8;
+  optional google.protobuf.Timestamp delivery_date = 8 [
+    json_name = "delivery_date",
+    (google.api.field_behavior) = OPTIONAL,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_date"
+      description: "Delivery date"
+      example: "\"2022-01-01T00:00:00Z\""
+      type: STRING
+      format: "date-time"
+    }
+  ];
   // Order items.
-  repeated Item items = 9;
+  repeated Item items = 9 [
+    json_name = "items",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).repeated = {
+      min_items: 1
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "items"
+      description: "Order items"
+      min_items: 1
+      type: ARRAY
+      format: "array"
+    }
+  ];
 }
 
 // UpdateOrderResponse is a response to update an order.
 message UpdateOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "UpdateOrderResponse"
+      description: "Updated order info"
+    }
+  };
+
   // Order.
-  Order order = 1;
+  Order order = 1 [
+    json_name = "order",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Created order" }
+  ];
 }
 
 // DeleteOrderRequest is a request to delete an order.
 message DeleteOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "DeleteOrderRequest"
+      description: "Delete order request"
+      required: ["id"]
+    }
+  };
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Order id"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 // DeleteOrderResponse is a response to delete an order.
-message DeleteOrderResponse {}
+message DeleteOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "DeleteOrderResponse"
+      description: "Deleted order info"
+    }
+  };
+}
 
 // SearchOrdersRequest is a request to search orders.
 message SearchOrdersRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SearchOrdersRequest"
+      description: "Search orders request"
+    }
+  };
+
   // Limit.
-  optional uint64 limit = 1;
+  optional uint64 limit = 1 [
+    json_name = "limit",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+      lt: 100
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "limit"
+      description: "Limit"
+      minimum : 1
+      maximum: 100
+      default: "10"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
   // Offset.
-  optional uint64 offset = 2;
+  optional uint64 offset = 2 [
+    json_name = "offset",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "offset"
+      description: "Offset"
+      minimum : 1
+      default: "0"
+      type: INTEGER
+      format: "int64"
+    }
+  ];
   // Status.
-  optional string query = 3;
+  optional string query = 3 [
+    json_name = "query",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "query"
+      description: "Query"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Order description.
-  optional string description = 4;
+  optional string description = 4 [
+    json_name = "description",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "description"
+      description: "Description"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Status.
-  optional string status = 5;
+  optional string status = 5 [
+    json_name = "status",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "status"
+      description: "Status"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Currency.
-  optional string currency = 6;
+  optional string currency = 6 [
+    json_name = "currency",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 3
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "currency"
+      description: "Currency"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 3
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Order's total price min from.
-  optional double min_price = 7;
+  optional double min_price = 7 [
+    json_name = "min_price",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).double = {
+      gt: 0.01
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "min_price"
+      description: "Min price"
+      minimum : 0.01
+      type: NUMBER
+      format: "double"
+    }
+  ];
   // Order's total price max to.
-  optional double max_price = 8;
+  optional double max_price = 8 [
+    json_name = "max_price",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).double = {
+      gt: 0.01
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "max_price"
+      description: "Max price"
+      minimum : 0.01
+      type: NUMBER
+      format: "double"
+    }
+  ];
   // Payment method in order.
-  optional string payment_method = 9;
+  optional string payment_method = 9 [
+    json_name = "payment_method",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "payment_method"
+      description: "Payment method"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery method.
-  optional string delivery_method = 10;
+  optional string delivery_method = 10 [
+    json_name = "delivery_method",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_method"
+      description: "Delivery method"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9 ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery address.
-  optional string delivery_address = 11;
+  optional string delivery_address = 11 [
+    json_name = "delivery_address",
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).string = {
+      min_len: 1
+      max_len: 255
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_address"
+      description: "Delivery address"
+      example: "\"Order description\""
+      min_length: 1
+      max_length: 255
+      pattern: "^[A-Za-z0-9. ]+$"
+      type: STRING
+      format: "string"
+    }
+  ];
   // Delivery date from.
-  optional google.protobuf.Timestamp delivery_date_from = 12;
+  optional google.protobuf.Timestamp delivery_date_from = 12 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).timestamp = {},
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_date_from"
+      description: "Delivery date from"
+      example: "\"2022-01-01T00:00:00Z\""
+      type: STRING
+      format: "date-time"
+    }
+  ];
   // Delivery date to.
-  optional google.protobuf.Timestamp delivery_date_to = 13;
+  optional google.protobuf.Timestamp delivery_date_to = 13 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).timestamp = {},
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "delivery_date_to"
+      description: "Delivery date to"
+      example: "\"2022-01-01T00:00:00Z\""
+      type: STRING
+      format: "date-time"
+    }
+  ];
   // Min items amount.
-  optional uint64 min_items_amount = 14;
+  optional uint64 min_items_amount = 14 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "min_items_amount"
+      description: "Min items amount"
+      minimum : 1
+      type: NUMBER
+      format: "int64"
+    }
+  ];
   // Max items amount.
-  optional uint64 max_items_amount = 15;
+  optional uint64 max_items_amount = 15 [
+    (google.api.field_behavior) = OPTIONAL,
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "max_items_amount"
+      description: "Max items amount"
+      minimum : 1
+      type: NUMBER
+      format: "int64"
+    }
+  ];
 }
 
 // SearchOrdersResponse is a response to search orders.
 message SearchOrdersResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SearchOrdersResponse"
+      description: "Search orders response"
+    }
+  };
   // Orders.
-  repeated Order orders = 1;
+  repeated Order orders = 1 [
+    json_name = "orders",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Orders" }
+  ];
 }
 
 // CompleteOrderRequest is a request to complete an order.
 message CompleteOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CompleteOrderRequest"
+      description: "Complete order request"
+      required: ["id"]
+    }
+  };
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Order id"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 // CompleteOrderResponse is a response to complete an order.
-message CompleteOrderResponse {}
+message CompleteOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CompleteOrderResponse"
+      description: "Completed order info"
+    }
+  };
+}
 
 // CancelOrderRequest is a request to cancel an order.
 message CancelOrderRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CancelOrderRequest"
+      description: "Cancel order request"
+      required: ["id"]
+    }
+  };
   // UUID.
-  string order_id = 1;
+  string id = 1 [
+    json_name = "id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "id"
+      description: "Order id"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 // CancelOrderResponse is a response to cancel an order.
-message CancelOrderResponse {}
+message CancelOrderResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "CancelOrderResponse"
+      description: "Canceled order info"
+    }
+  };
+}

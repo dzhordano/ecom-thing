@@ -60,14 +60,21 @@ func main() {
 
 	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr(), inventory.WithTracing(tp))
 
-	kafkaProducer, err := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
-	if err == nil {
-		outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second)
-		go outboxWorker.Start(ctx)
-		defer kafkaProducer.Close()
-	} else {
-		log.Error("error creating kafka producer", "error", err)
-	}
+	go func() {
+		kafkaProducer, err := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
+		if err == nil {
+			outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second)
+			go outboxWorker.Start(ctx)
+			defer func(kafkaProducer *kafka.OrdersSyncProducer) {
+				err := kafkaProducer.Close()
+				if err != nil {
+					log.Error("error closing kafka producer", "error", err)
+				}
+			}(kafkaProducer)
+		} else {
+			log.Error("error creating kafka producer", "error", err)
+		}
+	}()
 
 	// TODO тута хардкод
 
@@ -100,7 +107,11 @@ func main() {
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	go srv.Run(ctx)
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			log.Error("error starting grpc server", "error", err)
+		}
+	}()
 
 	<-q
 

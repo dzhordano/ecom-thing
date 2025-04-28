@@ -31,7 +31,7 @@ func TestItemHandler_GetItem(t *testing.T) {
 		{
 			name: "OK",
 			req: &api.GetItemRequest{
-				Id: testId.String(),
+				ProductId: testId.String(),
 			},
 			mockBehavior: func(s *mock_interfaces.MockItemService, id uuid.UUID) {
 				s.EXPECT().GetItem(
@@ -55,7 +55,7 @@ func TestItemHandler_GetItem(t *testing.T) {
 		{
 			name: "ERROR",
 			req: &api.GetItemRequest{
-				Id: testId.String(),
+				ProductId: testId.String(),
 			},
 			mockBehavior: func(s *mock_interfaces.MockItemService, id uuid.UUID) {
 				s.EXPECT().GetItem(

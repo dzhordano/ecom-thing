@@ -3,25 +3,31 @@ package grpc_server
 import (
 	"context"
 	"errors"
+	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel/propagation"
 	tracesdk "go.opentelemetry.io/otel/sdk/trace"
+	"google.golang.org/grpc/credentials/insecure"
 	"log"
 	"net"
 	"net/http"
 	"net/http/pprof"
+
 	"time"
 
-	"github.com/dzhordano/ecom-thing/services/product/internal/infrastructure"
 	"github.com/dzhordano/ecom-thing/services/product/internal/interfaces/grpc_server/interceptors"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/soheilhy/cmux"
 	"github.com/sony/gobreaker/v2"
 
 	api "github.com/dzhordano/ecom-thing/services/product/pkg/api/product/v1"
 	"github.com/dzhordano/ecom-thing/services/product/pkg/logger"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/logging"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/interceptors/recovery"
+	_ "github.com/swaggo/echo-swagger/example/docs"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -107,7 +113,7 @@ func MustNew(log logger.Logger, handler api.ProductServiceServer, opts ...Option
 
 	recoveryOpts := []recovery.Option{
 		recovery.WithRecoveryHandler(func(p interface{}) (err error) {
-			log.Error("Recovered from panic", "panic", p)
+			log.Error("recovered from panic", "panic", p)
 			return
 		}),
 	}
@@ -178,57 +184,74 @@ func MustNew(log logger.Logger, handler api.ProductServiceServer, opts ...Option
 //
 // Hardcoded ones are: <addr>/metrics. And if profiling is enabled: <addr>/debug/pprof{/,/cmdline,/profile,/symbol,/trace}.
 func (s *Server) Run(ctx context.Context) error {
-	list, err := net.Listen("tcp", s.addr)
+	grpcLis, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		return err
 	}
 
-	m := cmux.New(list)
+	gwMux := runtime.NewServeMux()
+	dialOpts := []grpc.DialOption{
+		grpc.WithTransportCredentials(
+			insecure.NewCredentials(),
+		),
+	}
 
-	grpcL := m.MatchWithWriters(
-		cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"),
+	if err := api.RegisterProductServiceHandlerFromEndpoint(ctx, gwMux, s.addr, dialOpts); err != nil {
+		return err
+	}
+
+	r := echo.New()
+
+	// Endpoint for getting swagger docs.
+	r.GET("/swagger.json", func(c echo.Context) error {
+		return c.File("docs/apidocs.swagger.json")
+	})
+
+	// Add Swagger UI with /swagger.json a path specified to pull docs.
+	// I don't like the way it has doc.json & doc.yaml though.
+	r.GET("/swagger/*", echoSwagger.EchoWrapHandler(echoSwagger.URL("/swagger.json")))
+
+	r.Use(
+		middleware.Recover(),
 	)
 
-	httpL := m.Match(cmux.Any())
+	apiGroup := r.Group("/api/v1")
+	// Wrap gateway mux.
+	apiGroup.Any("/*", echo.WrapHandler(http.StripPrefix("/api/v1", gwMux)))
 
-	mux := http.NewServeMux()
-
-	mux.Handle("/metrics", promhttp.Handler())
+	r.GET("/metrics", echo.WrapHandler(promhttp.Handler()))
 	infrastructure.InitMetrics()
 
-	// Turn pprof server ON if flag 'profilingOn' is set.
 	if s.profilingOn {
-		mux.HandleFunc("/debug/pprof/", pprof.Index)
-		mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-		mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-		mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-		mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		r.GET("/debug/pprof/*", echo.WrapHandler(http.HandlerFunc(pprof.Index)))
+		r.GET("/debug/pprof/cmdline", echo.WrapHandler(http.HandlerFunc(pprof.Cmdline)))
+		r.GET("/debug/pprof/profile", echo.WrapHandler(http.HandlerFunc(pprof.Profile)))
+		r.GET("/debug/pprof/symbol", echo.WrapHandler(http.HandlerFunc(pprof.Symbol)))
+		r.GET("/debug/pprof/trace", echo.WrapHandler(http.HandlerFunc(pprof.Trace)))
 	}
 
-	// Создаём HTTP сервер для метрик.
-	httpServer := &http.Server{
-		Handler: mux,
-	}
-
-	// gRPC сервер в отдельной горутине.
 	go func() {
-		if err := s.s.Serve(grpcL); err != nil {
-			log.Fatalf("failed to serve gRPC: %v", err)
+		log.Printf("grpc listening on %s", s.addr)
+		if err := s.s.Serve(grpcLis); err != nil {
+			log.Printf("grpc serve failed: %v", err)
 		}
 	}()
 
-	// HTTP сервер в отдельной горутине.
+	// FIXME аддресс надо не хардкод
 	go func() {
-		defer httpServer.Shutdown(ctx)
-		// Сравнение с ошибкой прежде чем фаталить, т.к. при закрытии (GracefulStop) как раз таки вызывается ошибка, которую надо бы обработать.
-		if err := httpServer.Serve(httpL); err != nil && errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("failed to serve HTTP: %v", err)
+		if err := r.Start(":8000"); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Printf("http serve failed: %v", err)
 		}
 	}()
 
-	log.Printf("starting grpc_server and http server on addr: %s", s.addr)
+	<-ctx.Done()
 
-	return m.Serve()
+	log.Println("shutting down servers...")
+	s.s.GracefulStop()
+
+	ctxShut, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return r.Shutdown(ctxShut)
 }
 
 func (s *Server) GracefulStop() {

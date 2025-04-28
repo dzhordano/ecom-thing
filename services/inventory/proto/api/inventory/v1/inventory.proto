@@ -2,48 +2,246 @@ syntax = "proto3";
 
 package api.inventory.v1;
 
-option go_package = "dzhordano/ecom-thing/services/order/pkg/api/inventory/v1;inventory_v1";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "buf/validate/validate.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
+option go_package = "pkg/api/inventory/v1;inventory_v1";
+
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "Inventory Service"
+    version: "1.0.0"
+    description: "Inventory Service"
+    contact: {
+      name: "swageland"
+      url: "https://example.com"
+      email: "g2E5w@example.com"
+    }
+    license: {
+      name: "MIT License"
+      url: "https://opensource.org/licenses/MIT"
+    }
+  }
+  base_path: "/api/v1"
+  external_docs: {
+    url: "https://github.com/grpc-ecosystem/grpc-gateway"
+    description: "More about gRPC-Gateway"
+  }
+
+  schemes: HTTP
+  //  schemes: HTTPS // TODO uncomment if https implemented
+  consumes: "application/json"
+  produces: "application/json"
+
+  security_definitions: {
+    security: {
+      key: "JWT Token"
+      value: {
+        name: "Authorization Token"
+        description: "JWT Token"
+        type: TYPE_API_KEY
+        in: IN_HEADER
+        scopes: {
+          scope: {
+            key: "user"
+            value: "authorized user scope"
+          },
+          scope: {
+            key: "admin"
+            value: "authorized admin scope"
+          }
+        }
+      }
+    }
+  }
+};
 
 // InventoryService provides basic operations with product inventory.
 service InventoryService {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_tag) = {
+    name: "InventoryService"
+    description: "Inventory Service"
+  };
+
   // GetItem returns Item object with requested id.
-  rpc GetItem(GetItemRequest) returns (GetItemResponse);
-  // SetItem sets (according to provided operation) Item'm quantity amount for requested id.
-  rpc SetItem(SetItemRequest) returns (SetItemResponse);
+  rpc GetItem(GetItemRequest) returns (GetItemResponse) {
+    option (google.api.http) = {
+      get: "/items/{product_id}"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Get item by product_id (uuid)."
+      summary: "Returns item with info (id + available & reserved quantities)"
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  };
+  // SetItem sets (according to provided operation) Item's quantity amount for requested id.
+  rpc SetItem(SetItemRequest) returns (SetItemResponse) {
+    option (google.api.http) = {
+      post: "/items"
+      body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Set item operates with item's quantity (available and reserved) applying provided operation"
+      summary: "Applies operation on provided item."
+      tags: ["InventoryService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  };
   // SetItems works like SetItem, but for multiple items.
   //
-  // If contains dublicates, last repeated is used for checking.
-  rpc SetItems(SetItemsRequest) returns (SetItemsResponse);
+  // If contains duplicates, last repeated is used for checking.
+  rpc SetItems(SetItemsRequest) returns (SetItemsResponse) {
+    option (google.api.http) = {
+      post: "/items/many" // Kinda bad ngl
+      body: "*"
+      response_body: "*"
+    };
+
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      description: "Works similar to SetItem, but accepts many items with operation to execute."
+      summary: "Applies operation on provided items."
+      tags: ["InventoryService"]
+      security: {
+        security_requirement: {
+          key: "JWT Token"
+          value: {
+            scope: ["user", "admin"]
+          }
+        }
+      }
+      extensions: {
+        key: "x-irreversible";
+        value: {
+          bool_value: true
+        }
+      }
+    };
+  };
   // IsReservable checks if the items can be reserved.
   //
   // If contains dublicates, last repeated is used for checking.
-  rpc IsReservable(IsReservableRequest) returns (IsReservableResponse);
+  // I think more valid name would be AreReservable...
+  // TODO вынести в отдельный сервис. Это не должны вызываться извне.
+  rpc IsReservable(IsReservableRequest) returns (IsReservableResponse) {
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation).deprecated = true;
+  };
 }
 
 // Item represents an item in the inventory.
 message Item {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "Item"
+      description: "Represents and item (product) with it's stock (available and reserved quantities)."
+    }
+  };
+
   // ID of the product.
-  string product_id = 1;
+  string product_id = 1 [
+    json_name = "product_id",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "product_id"
+      description: "ID (UUID)"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // Available quantity of the product.
-  uint64 available_quantity = 2;
+  uint64 available_quantity = 2 [
+    json_name = "available_quantity",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "available_quantity"
+      description: "Available stock for reservation."
+      type: INTEGER
+      format: "int64"
+    }
+  ];
   // Reserved (locked) quantity of the product.
-  uint64 reserved_quantity = 3;
+  uint64 reserved_quantity = 3 [
+    json_name = "reserved_quantity",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "reserved_quantity"
+      description: "Reserved stock."
+      type: INTEGER
+      format: "int64"
+    }
+  ];
 }
 
 // ItemOP represents an item in the inventory with quantity.
 //
 // Used for perforimng operations (adding, subtracting, locking, unlocking).
+// TODO Надо переделать (...). API в целом будет более гибким, если внедрить OPERATION_TYPE сюда.
 message ItemOP {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "ItemOP"
+      description: "Contains product_id and quantity."
+    }
+  };
+
   // ID of the product.
-  string product_id = 1;
+  string product_id = 1 [
+    json_name = "product_id",
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "product_id"
+      description: "ID (UUID)"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      type: STRING
+      format: "uuid"
+    }
+  ];
   // Quantity of the product.
-  uint64 quantity = 2;
+  uint64 quantity = 2 [
+    json_name = "quantity",
+    (buf.validate.field).uint64 = {
+      gt: 0
+    },
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "quantity"
+      description: "Some amount of product."
+      type: INTEGER
+      format: "int64"
+    }
+  ];
 }
 
 // Operation type represents operation that is going to be performed.
 //
 // Used for perforimng operations (adding, subtracting, locking, unlocking) on the item's quantity.
 enum OperationType {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_enum) = {
+    title: "OperationType"
+    description: "Represents operation to execute on product's (item's) quantity."
+    example: "\"OPERATION_TYPE_ADD\""
+  };
+
   // Unspecified.
   OPERATION_TYPE_UNSPECIFIED = 0;
   // Add item quantity.
@@ -60,46 +258,142 @@ enum OperationType {
 
 // Takes ID of the item.
 message GetItemRequest {
-  // ID.
-  string id = 1;
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetItemRequest"
+      description: "Contains product_id for stock info retrieval."
+      required: ["product_id"]
+    }
+  };
+
+  // ID (UUID).
+  string product_id = 1 [
+    json_name = "product_id",
+    (google.api.field_behavior) = REQUIRED,
+    (buf.validate.field).string.uuid = true,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "product_id"
+      description: "UUID"
+      example: "\"00000000-0000-0000-0000-000000000000\""
+      pattern: "^[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$"
+      type: STRING
+      format: "uuid"
+    }
+  ];
 }
 
 // Returns Item object with requested id.
 message GetItemResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "GetItemResponse"
+      description: "Returns item info."
+    }
+  };
+
   // Item object.
-  Item item = 1;
+  Item item = 1 [
+    json_name = "item",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Item" }
+  ];
 }
 
 // Takes UUID of the item and quantity to perform operation on.
 message SetItemRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SetItemRequest"
+      description: "Takes item_op and operation to execute on item."
+      required: ["item", "operation_type"]
+    }
+  };
+
   // Items with ID and quantity to set.
-  ItemOP item = 1;
+  ItemOP item = 1 [
+    json_name = "item_op",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Item OP" }
+  ];
   // Operation type.
-  OperationType operation_type = 2;
+  OperationType operation_type = 2 [
+    json_name = "operation_type",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Operation Type" }
+  ];
 }
 
 // Empty.
-message SetItemResponse {}
+message SetItemResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SetItemResponse"
+      description: "Returns nothing. OK if request was successful."
+    }
+  };
+}
 
 // Takes IDs of the items and quantities to perform operation on.
 message SetItemsRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SetItemsRequest"
+      description: "Takes item_ops and an operation to execute on items."
+      required: ["item_ops", "operation_type"]
+    }
+  };
   // Items with ID and quantity to set.
-  repeated ItemOP items = 1;
+  repeated ItemOP items = 1 [
+    json_name = "item_ops",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Item OPs" }
+  ];
   // Operation type.
-  OperationType operation_type = 2;
+  OperationType operation_type = 2 [
+    json_name = "operation_type",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Operation Type" }
+  ];
 }
 
 // Empty.
-message SetItemsResponse {}
+message SetItemsResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "SetItemsResponse"
+      description: "Returns nothing. OK if request was successful."
+    }
+  };
+}
 
 // Takes IDs of the items.
 message IsReservableRequest {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "IsReservableRequest"
+      description: "Takes item_ops. Returns true whether provided quantity for each item is available."
+      required: ["item_ops"]
+    }
+  };
   // IDs.
-  repeated ItemOP items = 1;
+  repeated ItemOP items = 1 [
+    json_name = "item_ops",
+    (google.api.field_behavior) = REQUIRED,
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = { description: "Item OPs" }
+  ];
 }
 
 // Returns true if the items can be reserved.
 message IsReservableResponse {
+  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
+    json_schema: {
+      title: "IsReservableResponse"
+      description: "Returns true is item(s) is(are) available for reservation."
+    }
+  };
   // True if the items can be reserved.
-  bool is_reservable = 1;
+  bool is_reservable = 1 [
+    json_name = "is_reservable",
+    (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+      title: "is_reservable"
+      description: "Reservable or not."
+      type: BOOLEAN
+      format: "boolean"
+    }
+  ];
 }

@@ -63,7 +63,7 @@ func (h *PaymentHandler) CreatePayment(ctx context.Context, req *api.CreatePayme
 	span.AddEvent("payment created")
 
 	return &api.CreatePaymentResponse{
-		PaymentId: p.ID.String(),
+		Id: p.ID.String(),
 	}, nil
 }
 
@@ -74,11 +74,11 @@ func (h *PaymentHandler) GetPaymentStatus(ctx context.Context, req *api.GetPayme
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("payment_id", req.GetPaymentId()),
+			attribute.String("payment_id", req.GetId()),
 		),
 	)
 
-	paymentId, err := uuid.Parse(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
@@ -113,11 +113,11 @@ func (h *PaymentHandler) RetryPayment(ctx context.Context, req *api.RetryPayment
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("payment_id", req.GetPaymentId()),
+			attribute.String("payment_id", req.GetId()),
 		),
 	)
 
-	paymentId, err := uuid.Parse(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
@@ -149,11 +149,11 @@ func (h *PaymentHandler) CancelPayment(ctx context.Context, req *api.CancelPayme
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("payment_id", req.GetPaymentId()),
+			attribute.String("payment_id", req.GetId()),
 		),
 	)
 
-	paymentId, err := uuid.Parse(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}
@@ -185,11 +185,11 @@ func (h *PaymentHandler) ConfirmPayment(ctx context.Context, req *api.ConfirmPay
 
 	span.AddEvent("parse id",
 		trace.WithAttributes(
-			attribute.String("payment_id", req.GetPaymentId()),
+			attribute.String("payment_id", req.GetId()),
 		),
 	)
 
-	paymentId, err := uuid.Parse(req.GetPaymentId())
+	paymentId, err := uuid.Parse(req.GetId())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, "invalid payment uuid")
 	}

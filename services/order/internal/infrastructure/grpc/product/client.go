@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
-	product_v1 "github.com/dzhordano/ecom-thing/services/order/pkg/api/product/v1"
+	api "github.com/dzhordano/ecom-thing/services/order/pkg/third_party/product/v1"
 	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/backoff"
@@ -27,7 +27,7 @@ func WithTracing(tp *tracesdk.TracerProvider) ClientOption {
 }
 
 type productClient struct {
-	c    product_v1.ProductServiceClient
+	c    api.ProductServiceClient
 	addr string
 	tp   *tracesdk.TracerProvider
 }
@@ -78,7 +78,7 @@ func NewProductClient(addr string, opts ...ClientOption) interfaces.ProductServi
 	}
 
 	return &productClient{
-		c:    product_v1.NewProductServiceClient(conn),
+		c:    api.NewProductServiceClient(conn),
 		addr: addr,
 	}
 }
@@ -89,7 +89,7 @@ func (c *productClient) GetProductInfo(ctx context.Context, orderId uuid.UUID) (
 
 	span.AddEvent("performing rpc")
 
-	resp, err := c.c.GetProduct(ctx, &product_v1.GetProductRequest{
+	resp, err := c.c.GetProduct(ctx, &api.GetProductRequest{
 		Id: orderId.String(),
 	})
 	if err != nil {

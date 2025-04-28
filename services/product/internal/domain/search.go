@@ -47,16 +47,16 @@ func NewSearchParams(filters map[string]any) SearchParams {
 	}
 
 	l, ok := filters["limit"].(*uint64)
-	if !ok {
+	if !ok || l == nil {
 		s.Limit = DefaultLimit
-	} else if l != nil {
+	} else {
 		s.Limit = min(*l, MaxLimit)
 	}
 
 	o, ok := filters["offset"].(*uint64)
-	if !ok {
+	if !ok || o == nil {
 		s.Offset = DefaultOffset
-	} else if o != nil {
+	} else {
 		s.Offset = *o
 	}
 

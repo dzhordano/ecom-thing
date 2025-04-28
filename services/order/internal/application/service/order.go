@@ -74,8 +74,8 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 		}
 
 		if !isActive {
-			o.log.Error("failed to get product info", "error", domain.ErrProductUnavailable, "product_id", item.ProductID)
-			return nil, domain.NewAppError(domain.ErrProductUnavailable, "product service unavailable")
+			o.log.Error("product unavailable", "error", domain.ErrProductUnavailable, "product_id", item.ProductID)
+			return nil, domain.NewAppError(domain.ErrProductUnavailable, "product unavailable")
 		}
 
 		totalPrice += float64(item.Quantity) * price
@@ -96,7 +96,7 @@ func (o *OrderService) CreateOrder(ctx context.Context, info dto.CreateOrderRequ
 	)
 	if err != nil {
 		o.log.Error("failed to create order", "error", err)
-		return nil, domain.NewAppError(err, "failed to create order") // TODO Internal так как не хочу давать контекста туда куда-то. (или все таки нет, т.к. тут и валидация...).
+		return nil, domain.NewAppError(err, err.Error()) // TODO В идеале все таки валидацию вне NewOrder, т.к. там может вернуть что uuid не получилос сгенерить.
 	}
 
 	items := make(map[string]uint64)

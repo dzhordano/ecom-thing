@@ -4,7 +4,7 @@ package api.product.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "dzhordano/ecom-thing/services/order/pkg/api/product/v1;product_v1";
+option go_package = "pkg/api/product/v1;product_v1";
 
 service ProductService {
   rpc CreateProduct(CreateProductRequest) returns (CreateProductResponse);
