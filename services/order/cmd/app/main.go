@@ -60,19 +60,19 @@ func main() {
 
 	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr(), inventory.WithTracing(tp))
 
+	var kp *kafka.OrdersSyncProducer
 	go func() {
-		kafkaProducer, err := kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
-		if err == nil {
-			outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second)
-			go outboxWorker.Start(ctx)
-			defer func(kafkaProducer *kafka.OrdersSyncProducer) {
-				err := kafkaProducer.Close()
-				if err != nil {
-					log.Error("error closing kafka producer", "error", err)
-				}
-			}(kafkaProducer)
-		} else {
+		kp, err = kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
+		if err != nil {
 			log.Error("error creating kafka producer", "error", err)
+			return
+		}
+		outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second)
+		go outboxWorker.Start(ctx)
+	}()
+	defer func() {
+		if err := kp.Close(); err != nil {
+			log.Error("error closing kafka producer", "error", err)
 		}
 	}()
 
@@ -88,8 +88,9 @@ func main() {
 		// FIXME ещо
 	)
 
+	var cg *kafka.Consumer
 	go func() {
-		c, err := kafka.NewConsumerGroup(
+		cg, err = kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
 			cfg.Kafka.GroupID,
@@ -99,8 +100,13 @@ func main() {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := c.Start(ctx, []string{"payment-events"}); err != nil {
+		if err := cg.Start(ctx, []string{"payment-events"}); err != nil {
 			log.Error("error starting consumer group", "error", err)
+		}
+	}()
+	defer func() {
+		if err := cg.Close(); err != nil {
+			log.Error("error closing consumer group", "error", err)
 		}
 	}()
 

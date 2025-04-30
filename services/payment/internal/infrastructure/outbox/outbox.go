@@ -40,22 +40,18 @@ func NewOutboxProcessor(log logger.Logger, db *pgxpool.Pool, prod kafka.Producer
 	}
 }
 
-// Start запускает воркер в отдельной горутине
 func (op *OutboxProcessor) Start(ctx context.Context) {
-	go func() {
-		ticker := time.NewTicker(op.interval)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-ticker.C:
-				op.processOutbox(ctx)
-			case <-ctx.Done():
-				op.log.Info("outbox processor shutting down")
-				return
-			}
+	ticker := time.NewTicker(op.interval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			op.processOutbox(ctx)
+		case <-ctx.Done():
+			op.log.Info("outbox processor shutting down")
+			return
 		}
-	}()
+	}
 }
 
 // processOutbox читает события из Outbox и публикует их в Kafka

@@ -13,21 +13,16 @@ type Producer interface {
 	Produce(topic, eventType, key, orderId string) error
 }
 
-const (
-	TopicPaymentCompleted = "payment-completed"
-	TopicPaymentFailed    = "payment-failed"
-	TopicPaymentCancelled = "payment-cancelled"
-)
-
 var (
 	EventTypeHeaderKey = []byte("event_type")
 )
 
 type PaymentsSyncProducer struct {
-	producerLock sync.Mutex
+	producerLock *sync.Mutex
 	producer     sarama.SyncProducer
 }
 
+// NewPaymentsSyncProducer is blocking due to retries.
 func NewPaymentsSyncProducer(brokers []string) (*PaymentsSyncProducer, error) {
 	producerConfig := sarama.NewConfig()
 
@@ -55,7 +50,7 @@ func NewPaymentsSyncProducer(brokers []string) (*PaymentsSyncProducer, error) {
 	}
 
 	return &PaymentsSyncProducer{
-		producerLock: sync.Mutex{},
+		producerLock: &sync.Mutex{},
 		producer:     producer,
 	}, nil
 }

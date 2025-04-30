@@ -168,3 +168,7 @@ func (c *Consumer) Start(ctx context.Context, topics []string) error {
 	<-c.ready
 	return nil
 }
+
+func (c *Consumer) Close() error {
+	return c.cg.Close()
+}

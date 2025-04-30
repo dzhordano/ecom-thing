@@ -59,8 +59,9 @@ func main() {
 		grpc_server.WithTracerProvider(tp),
 	)
 
+	var cg *kafka.Consumer
 	go func() {
-		c, err := kafka.NewConsumerGroup(
+		cg, err = kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
 			cfg.Kafka.GroupID,
@@ -70,15 +71,24 @@ func main() {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := c.Start(ctx, cfg.Kafka.Topics); err != nil {
+		if err := cg.Start(ctx, cfg.Kafka.Topics); err != nil {
 			log.Error("error starting consumer group", "error", err)
+		}
+	}()
+	defer func() {
+		if err := cg.Close(); err != nil {
+			log.Error("error closing consumer group", "error", err)
 		}
 	}()
 
 	q := make(chan os.Signal, 1)
 	signal.Notify(q, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
-	go srv.Run(ctx)
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			log.Error("error running server", "error", err)
+		}
+	}()
 
 	<-q
 

@@ -42,32 +42,43 @@ func main() {
 
 	svc := service.NewPaymerService(log, repo)
 
+	shutdownWG.Add(1)
 	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "payment")
 	if err != nil {
 		log.Error("error creating tracer provider", "error", err)
 	}
 	defer func() {
+		defer shutdownWG.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := tp.Shutdown(ctx); err != nil {
 			log.Error("error shutting down tracer provider", "error", err)
+			return
 		}
+		log.Debug("tracer provider closed")
 	}()
 	tracer.SetGlobalTracerProvider(tp)
 
+	var kp *kafka.PaymentsSyncProducer
 	go func() {
-		kafkaProducer, err := kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
-		if err == nil {
-			outboxWorker := outbox.NewOutboxProcessor(log, db, kafkaProducer, 5*time.Second, billingSvc)
-			go outboxWorker.Start(ctx)
-			defer kafkaProducer.Close()
-		} else {
+		kp, err = kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
+		if err != nil {
 			log.Error("error creating kafka producer", "error", err)
+			return
+		}
+
+		outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second, billingSvc)
+		go outboxWorker.Start(ctx)
+	}()
+	defer func() {
+		if err := kp.Close(); err != nil {
+			log.Error("error closing kafka producer", "error", err)
 		}
 	}()
 
+	var cg *kafka.Consumer
 	go func() {
-		c, err := kafka.NewConsumerGroup(
+		cg, err = kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
 			cfg.Kafka.GroupID,
@@ -77,8 +88,13 @@ func main() {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := c.Start(ctx, cfg.Kafka.Topics); err != nil {
+		if err := cg.Start(ctx, cfg.Kafka.Topics); err != nil {
 			log.Error("error starting consumer group", "error", err)
+		}
+	}()
+	defer func() {
+		if err := cg.Close(); err != nil {
+			log.Error("error closing consumer group", "error", err)
 		}
 	}()
 
@@ -92,7 +108,11 @@ func main() {
 		grpc_server.WithTracerProvider(tp),
 	)
 
-	go srv.Run(ctx)
+	go func() {
+		if err := srv.Run(ctx); err != nil {
+			log.Panic("error running server", "error", err)
+		}
+	}()
 
 	<-q
 
