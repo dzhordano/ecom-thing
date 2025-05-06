@@ -25,8 +25,9 @@ import (
 // улучшить логгер (просто избаться от зависимости zap в сервисах для начала).
 
 func main() {
-	ctx := context.Background()
-	shutdownWG := &sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	wg := sync.WaitGroup{}
 
 	cfg := config.MustNew()
 
@@ -45,6 +46,7 @@ func main() {
 	if err != nil {
 		log.Error("error creating tracer provider", "error", err)
 	}
+	tracer.SetGlobalTracerProvider(tp)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -52,7 +54,6 @@ func main() {
 			log.Error("error shutting down tracer provider", "error", err)
 		}
 	}()
-	tracer.SetGlobalTracerProvider(tp)
 
 	repo := pg.NewOrderRepository(db)
 
@@ -60,21 +61,14 @@ func main() {
 
 	is := inventory.NewInventoryClient(cfg.GRPCInventory.Addr(), inventory.WithTracing(tp))
 
-	var kp *kafka.OrdersSyncProducer
-	go func() {
-		kp, err = kafka.NewOrdersSyncProducer(cfg.Kafka.Brokers)
-		if err != nil {
-			log.Error("error creating kafka producer", "error", err)
-			return
-		}
-		outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second)
-		go outboxWorker.Start(ctx)
-	}()
-	defer func() {
-		if err := kp.Close(); err != nil {
-			log.Error("error closing kafka producer", "error", err)
-		}
-	}()
+	kp := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.TopicsToProduce, time.Second, 0)
+	defer kp.Close()
+	if err != nil {
+		log.Error("error creating kafka producer", "error", err)
+		return
+	}
+	outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second)
+	go outboxWorker.Start(ctx)
 
 	// TODO тута хардкод
 
@@ -88,26 +82,26 @@ func main() {
 		// FIXME ещо
 	)
 
-	var cg *kafka.Consumer
+	// TODO хардкод
 	go func() {
-		cg, err = kafka.NewConsumerGroup(
+		cg, err := kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
-			cfg.Kafka.GroupID,
+			cfg.Kafka.TopicsToConsume,
 			svc,
+			time.Second,
+			uint(100),
 		)
 		if err != nil {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := cg.Start(ctx, []string{"payment-events"}); err != nil {
-			log.Error("error starting consumer group", "error", err)
+		if err := cg.CreateTopics(ctx, 8, 2); err != nil {
+			log.Error("error creating kafka topics", "error", err)
+			return
 		}
-	}()
-	defer func() {
-		if err := cg.Close(); err != nil {
-			log.Error("error closing consumer group", "error", err)
-		}
+		log.Info("topics created", "topics", cfg.Kafka.TopicsToConsume)
+		cg.RunConsumers(ctx, 2, &wg)
 	}()
 
 	q := make(chan os.Signal, 1)
@@ -115,15 +109,20 @@ func main() {
 
 	go func() {
 		if err := srv.Run(ctx); err != nil {
-			log.Error("error starting grpc server", "error", err)
+			log.Panic("error starting grpc server", "error", err)
 		}
 	}()
 
+	// TODO вроде можно объединить?
 	<-q
+	cancel()
 
+	shutdownWG := &sync.WaitGroup{}
 	shutdownWG.Add(1)
 	go func() {
 		defer shutdownWG.Done()
+		// Wait till resources are freed (closed)
+		wg.Wait()
 		srv.GracefulStop()
 	}()
 

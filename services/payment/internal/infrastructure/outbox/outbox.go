@@ -94,13 +94,13 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 
 			// FIXME Сейчас тут cancelled, а по факту, если не прошло -> failed.
 			// Cancelled - обрабатывать отдельно. Оно также должно быть правильно обработано в Order сервисе.
-			err = op.prod.Produce(msg.Topic, domain.PaymentCancelled.String(), msg.ID, pmtEv.OrderID)
+			err = op.prod.Produce(ctx, domain.PaymentCancelled.String(), msg.ID, pmtEv.OrderID)
 			if err != nil {
 				op.log.Error("failed to send Kafka message", "error", err)
 				continue
 			}
 		} else {
-			err = op.prod.Produce(msg.Topic, domain.PaymentCompleted.String(), msg.ID, pmtEv.OrderID)
+			err = op.prod.Produce(ctx, domain.PaymentCompleted.String(), msg.ID, pmtEv.OrderID)
 			if err != nil {
 				op.log.Error("failed to send Kafka message", "error", err)
 				continue

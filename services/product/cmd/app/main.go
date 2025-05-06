@@ -29,7 +29,6 @@ import (
 
 func main() {
 	ctx := context.Background()
-	shutdownWG := &sync.WaitGroup{}
 
 	cfg := config.MustNew()
 
@@ -85,6 +84,8 @@ func main() {
 	}()
 
 	<-q
+
+	shutdownWG := &sync.WaitGroup{}
 
 	shutdownWG.Add(1)
 	go func() {

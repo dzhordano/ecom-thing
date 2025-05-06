@@ -98,14 +98,14 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 	dItems := make([]domain.Item, 0, len(items))
 
 	// Flag for checking if operation is add.
-	opAddFlag := op == domain.OperationAdd
+	isOpAdd := op == domain.OperationAdd
 
 	// TODO optimize?
 	for id := range items {
 		i, err := s.repo.GetItem(ctx, id)
 		if err != nil {
-			// If product is not found and operation is add, it's ok.
-			if !(errors.Is(err, domain.ErrProductNotFound) && opAddFlag) {
+			// If a product is not found and operation is added, it's ok.
+			if errors.Is(err, domain.ErrProductNotFound) && !isOpAdd {
 				s.log.Error("error getting item", "error", err, "item_id", id)
 				return domain.NewAppError(err, "failed to get item")
 			}

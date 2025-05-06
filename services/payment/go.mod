@@ -17,8 +17,8 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/prometheus/client_golang v1.21.1
+	github.com/segmentio/kafka-go v0.4.47
 	github.com/sethvargo/go-retry v0.3.0
-	github.com/soheilhy/cmux v0.1.5
 	github.com/sony/gobreaker/v2 v2.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/echo-swagger v1.4.1

@@ -2,78 +2,77 @@ package kafka
 
 import (
 	"context"
-	"github.com/sethvargo/go-retry"
+	"github.com/segmentio/kafka-go"
 	"log"
-	"sync"
-
-	"github.com/IBM/sarama"
+	"math"
+	"time"
 )
 
 type Producer interface {
-	Produce(topic, eventType, key, orderId string) error
+	Produce(ctx context.Context, eventType, key, orderId string) error
 }
 
 var (
-	EventTypeHeaderKey = []byte("event_type")
+	EventTypeHeaderKey = "event_type"
 )
 
-type PaymentsSyncProducer struct {
-	producerLock *sync.Mutex
-	producer     sarama.SyncProducer
+type KafkaProducer struct {
+	ws []*kafka.Writer
+
+	brokers      []string
+	topics       []string
+	retryBackoff time.Duration
+	retries      uint
 }
 
-// NewPaymentsSyncProducer is blocking due to retries.
-func NewPaymentsSyncProducer(brokers []string) (*PaymentsSyncProducer, error) {
-	producerConfig := sarama.NewConfig()
-
-	// FIXME хардкод
-	producerConfig.Net.MaxOpenRequests = 1
-	producerConfig.Producer.RequiredAcks = sarama.WaitForAll
-	producerConfig.Producer.Return.Successes = true
-
-	var producer sarama.SyncProducer
-	var err error
-	if err = retry.Do(
-		context.Background(), // Need to pass outer context here.
-		retry.NewFibonacci(producerConfig.Metadata.Retry.Backoff), // TODO: fix, Using kafka default for now.
-		func(ctx context.Context) error {
-			producer, err = sarama.NewSyncProducer(brokers, producerConfig)
-			if err != nil {
-				log.Printf("failed to start Sarama producer: %s\n", err)
-				return retry.RetryableError(err)
-			}
-
-			return nil
-		},
-	); err != nil {
-		return nil, err
+// NewProducer creates KafkaProducer.
+//
+// If retries set 0, infinite (max uint) number of retries will be set.
+func NewProducer(brokers []string, topics []string, retryBackoff time.Duration, retries uint) *KafkaProducer {
+	if retries == 0 {
+		retries = math.MaxUint
 	}
 
-	return &PaymentsSyncProducer{
-		producerLock: &sync.Mutex{},
-		producer:     producer,
-	}, nil
+	var ws []*kafka.Writer
+
+	for _, topic := range topics {
+		ws = append(ws, &kafka.Writer{
+			Addr:     kafka.TCP(brokers...),
+			Topic:    topic,
+			Balancer: &kafka.RoundRobin{},
+		})
+	}
+
+	return &KafkaProducer{ws: ws, brokers: brokers, topics: topics, retryBackoff: retryBackoff, retries: retries}
 }
 
-func (p *PaymentsSyncProducer) Produce(topic, eventType, key, orderId string) error {
-	p.producerLock.Lock()
-	defer p.producerLock.Unlock()
-
-	_, _, err := p.producer.SendMessage(&sarama.ProducerMessage{
-		Topic: topic,
-		Headers: []sarama.RecordHeader{
+func (p *KafkaProducer) Produce(ctx context.Context, eventType, key, orderId string) error {
+	m := kafka.Message{
+		Key:   []byte(key),
+		Value: []byte(orderId),
+		Headers: []kafka.Header{
 			{
 				Key:   EventTypeHeaderKey,
 				Value: []byte(eventType),
 			},
 		},
-		Key:   sarama.StringEncoder(key),
-		Value: sarama.ByteEncoder(orderId),
-	})
+	}
 
-	return err
+	for i := range p.ws {
+		err := p.ws[i].WriteMessages(ctx, m)
+		if err != nil {
+			log.Printf("error writing message to kafka: %v\n", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
-func (p *PaymentsSyncProducer) Close() error {
-	return p.producer.Close()
+func (p *KafkaProducer) Close() {
+	for _, w := range p.ws {
+		if err := w.Close(); err != nil {
+			log.Printf("error closing KafkaProducer: %v\n", err)
+		}
+	}
 }

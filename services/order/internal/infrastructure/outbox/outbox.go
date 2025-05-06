@@ -55,7 +55,7 @@ func (op *OutboxProcessor) Start(ctx context.Context) {
 func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 
 	rows, err := op.db.Query(ctx,
-		`SELECT id, topic, event_type, payload, created_at 
+		`SELECT id, event_type, payload, created_at 
 		FROM outbox 
 		WHERE processed_at IS NULL 
 		ORDER BY created_at ASC LIMIT 10`) // TODO магич число 10
@@ -67,7 +67,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	var messages []OutboxMessage
 	for rows.Next() {
 		var msg OutboxMessage
-		if err := rows.Scan(&msg.ID, &msg.Topic, &msg.EventType, &msg.Payload, &msg.CreatedAt); err != nil {
+		if err := rows.Scan(&msg.ID, &msg.EventType, &msg.Payload, &msg.CreatedAt); err != nil {
 			op.log.Error("failed to scan outbox row", "error", err)
 			continue
 		}
@@ -80,7 +80,7 @@ func (op *OutboxProcessor) processOutbox(ctx context.Context) {
 	}
 
 	for _, msg := range messages {
-		err = op.prod.Produce(msg.Topic, msg.EventType, msg.ID, msg.Payload)
+		err = op.prod.Produce(ctx, msg.EventType, msg.ID, msg.Payload)
 		if err != nil {
 			op.log.Error("failed to send Kafka message", "error", err)
 			continue

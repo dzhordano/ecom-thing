@@ -2,157 +2,232 @@ package kafka
 
 import (
 	"context"
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+	"github.com/segmentio/kafka-go"
+	"io"
 	"log"
+	"math"
+	"sync"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/dzhordano/ecom-thing/services/order/internal/application/interfaces"
-	"github.com/google/uuid"
-	"github.com/sethvargo/go-retry"
 )
 
-// Consumer represents a Sarama consumer group consumer with item service
+var (
+	ErrInvalidEventType = errors.New("invalid event type")
+
+	// To filter out unnecessary events
+	events = map[string]bool{
+		"cancelled": true,
+		"completed": true,
+	}
+)
+
+const (
+	serviceGroupID = "order-consumer-group"
+)
+
+// FIXME inject logger or use it here somehow
+
 type Consumer struct {
-	cg           sarama.ConsumerGroup
-	orderService interfaces.OrderService
-	ready        chan bool
+	brokers      []string
+	topics       []string
+	os           interfaces.OrderService
 	retryBackoff time.Duration
+	retries      uint
 }
 
-// Setup is run at the beginning of a new session, before ConsumeClaim
-func (c *Consumer) Setup(sarama.ConsumerGroupSession) error {
-	// Mark the consumer as ready
-	c.ready = make(chan bool)
-	return nil
-}
-
-// Cleanup is run at the end of a session, once all ConsumeClaim goroutines have exited
-func (c *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
-	return nil
-}
-
-// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
-// Once the Messages() channel is closed, the Handler must finish its processing
-// loop and exit.
+// NewConsumerGroup returns new consumer group.
 //
-// FIXME Почему в примере НИКАКАЯ ошибка не возвращается?
-func (c *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for {
-		select {
-		case message, ok := <-claim.Messages():
-			if !ok {
-				log.Printf("message channel was closed")
-				return nil
-			}
-			log.Printf("Message claimed: value = %s, timestamp = %v, topic = %s, headers[0].key = %v, headers[0].value = %v", string(message.Value), message.Timestamp, message.Topic, string(message.Headers[0].Key), string(message.Headers[0].Value))
+// If retries amount provided as 0, infinite (max uint) number of retries will be set.
+func NewConsumerGroup(ctx context.Context, brokers, topics []string, os interfaces.OrderService, retryBackoff time.Duration, retries uint) (*Consumer, error) {
+	if retries == 0 {
+		retries = math.MaxUint
+	}
 
-			orderIdValue := string(message.Value)
+	r := retries
+	rb := retryBackoff
+	var err error
 
-			var eventType string
-			for _, h := range message.Headers {
-				if string(h.Key) == "event_type" {
-					eventType = string(h.Value)
-					break
-				}
-			}
-			if len(eventType) == 0 {
-				log.Printf("event_type header not found")
-				return nil
+	for ; r > 0; r-- {
+		for i := range brokers {
+			if ctx.Err() != nil {
+				return nil, err
 			}
 
-			orderID, err := uuid.Parse(orderIdValue)
+			_, err = kafka.Dial("tcp", brokers[i])
 			if err != nil {
-				log.Printf("error parsing order event's order id: %v", err)
-				return nil
+				log.Println("error dialing broker:", brokers[i])
+				continue
 			}
-
-			// FIXME Тут мб константы тоже
-			switch eventType {
-			case "cancelled":
-				c.orderService.CancelOrder(session.Context(), orderID)
-			case "completed":
-				c.orderService.CompleteOrder(session.Context(), orderID)
-			}
-
-			session.MarkMessage(message, "")
-
-		case <-session.Context().Done():
-			return nil // TODO тут правильно?
+		}
+		if err != nil {
+			time.Sleep(rb)
+			rb = min((rb*150)/100, 30*time.Second)
+			continue
 		}
 	}
-}
-
-// Creates new consumer group.
-//
-// WARNING:
-// Infinite retry loop when connecting to Kafka so it's BLOCKING.
-func NewConsumerGroup(ctx context.Context, brokers []string, groupID string, orderService interfaces.OrderService) (*Consumer, error) {
-	c := sarama.NewConfig()
-
-	// TODO Настроить конфиг наверно.
-	c.Version = sarama.MaxVersion
-	c.Consumer.Return.Errors = true
-	c.Consumer.Offsets.Initial = sarama.OffsetOldest
-
-	// TODO Поменять на не бесконечный retry.
-	var cg sarama.ConsumerGroup
-	if err := retry.Do(
-		ctx,
-		retry.NewFibonacci(c.Metadata.Retry.Backoff),
-		func(ctx context.Context) error {
-			var err error
-			cg, err = sarama.NewConsumerGroup(brokers, groupID, c)
-			if err != nil {
-				log.Printf("failed to create consumer group: %v, retrying...", err)
-				return retry.RetryableError(err)
-			}
-			return nil
-		},
-	); err != nil {
+	if err != nil {
+		log.Printf("error dialing brokers: %s. error: %v", brokers, err)
 		return nil, err
 	}
 
 	return &Consumer{
-		orderService: orderService,
-		cg:           cg,
-		ready:        make(chan bool),
-		retryBackoff: 1 * time.Second,
+		brokers:      brokers,
+		topics:       topics,
+		os:           os,
+		retryBackoff: retryBackoff,
+		retries:      retries,
 	}, nil
 }
 
-func (c *Consumer) Start(ctx context.Context, topics []string) error {
-	go func() {
-		defer close(c.ready)
-		defer c.cg.Close()
+// RunConsumers runs amount * topics consumers. Also accepts waitgroup for graceful shutdown.
+//
+// If errors from service occur or commit fails, it retries.
+func (c *Consumer) RunConsumers(ctx context.Context, amount int, wg *sync.WaitGroup) {
 
-		// TODO аналогично, бесконечный ретрай..
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				err := c.cg.Consume(ctx, topics, c)
-				switch err {
-				case nil:
-					c.retryBackoff = 1 * time.Second
-				case sarama.ErrClosedConsumerGroup:
-					return
-				default:
-					log.Printf("error reading from kafka: %v, retrying...", err)
-					time.Sleep(c.retryBackoff)
-					c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
+	wg.Add(amount * len(c.topics)) // Total consumers we'll be running.
+
+	for _, topic := range c.topics {
+		log.Printf("starting %d consumers for topic: %s\n", amount, topic)
+
+		for range amount {
+			go func(topic string, retries uint) {
+				defer wg.Done()
+				r := kafka.NewReader(kafka.ReaderConfig{
+					Brokers:  c.brokers,
+					GroupID:  serviceGroupID,
+					Topic:    topic,
+					MinBytes: 10e2, // 1  KB
+					MaxBytes: 10e6, // 10 MB
+				})
+				defer func() {
+					if err := r.Close(); err != nil {
+						log.Printf("error closing consumer: %v\n", err)
+					}
+				}()
+
+				for {
+					m, err := r.FetchMessage(ctx)
+					if err != nil {
+						log.Printf("error fetching messages: %v\n", err)
+						if errors.Is(err, io.EOF) || errors.Is(err, context.Canceled) {
+							break
+						}
+
+						if retries == 0 {
+							log.Printf("unable to reconnect after %d retries.\n", c.retries)
+							break
+						}
+
+						log.Printf("retrying after: %v", c.retryBackoff)
+						time.Sleep(c.retryBackoff)
+						c.retryBackoff = min((c.retryBackoff*150)/100, 30*time.Second)
+						retries--
+						continue
+					}
+
+					if err := c.executeEvent(ctx, m); err != nil {
+						// Retry if an event was correct. Otherwise,
+						if !errors.Is(err, ErrInvalidEventType) {
+							continue
+						}
+					}
+
+					// FIXME здесь нет гарантии что коммит успешен, НАДО ввести ретраи + сделать записи идемпотентными. пока что risky...
+
+					if err := r.CommitMessages(ctx, m); err != nil {
+						log.Printf("error while commiting message with key: %v. err: %v\n", m.Key, err)
+						continue
+					}
 				}
-				if ctx.Err() != nil {
-					return
-				}
-			}
+			}(topic, c.retries)
+		}
+	}
+}
+
+func (c *Consumer) CreateTopics(_ context.Context, partitions, replicationFactor int) (err error) {
+	var conn *kafka.Conn
+	for i := range c.brokers {
+		conn, err = kafka.Dial("tcp", c.brokers[i])
+		if err != nil {
+			log.Printf("error dialing broker: %s. error: %v", c.brokers[i], err)
+			return err
+		}
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Printf("error closing kafka conn: %v\n", err)
 		}
 	}()
 
-	<-c.ready
+	ctrl, err := conn.Controller()
+	if err != nil {
+		return fmt.Errorf("error getting controller for broker: %s. error: %v", c.brokers[0], err)
+	}
+
+	controllerAddr := fmt.Sprintf("%s:%d", ctrl.Host, ctrl.Port)
+	ctrlConn, err := kafka.Dial("tcp", controllerAddr)
+	if err != nil {
+		return fmt.Errorf("error dialing controller: %v", err)
+	}
+	defer func() {
+		if err := ctrlConn.Close(); err != nil {
+			log.Printf("error closing controller connection: %v\n", err)
+		}
+	}()
+
+	var tcfgs []kafka.TopicConfig
+
+	for _, t := range c.topics {
+		tcfgs = append(tcfgs, kafka.TopicConfig{
+			Topic:             t,
+			NumPartitions:     partitions,
+			ReplicationFactor: replicationFactor,
+		})
+	}
+
+	err = ctrlConn.CreateTopics(tcfgs...)
+	if err != nil {
+		return fmt.Errorf("error creating topics on controller %s. error: %v", controllerAddr, err)
+	}
+
 	return nil
 }
 
-func (c *Consumer) Close() error {
-	return c.cg.Close()
+func (c *Consumer) executeEvent(ctx context.Context, m kafka.Message) error {
+	orderIdValue := string(m.Value)
+
+	var eventType string
+	for _, h := range m.Headers {
+		if string(h.Key) == "event_type" {
+			eventType = string(h.Value)
+			break
+		}
+	}
+	if !events[eventType] {
+		return ErrInvalidEventType
+	}
+
+	orderID, err := uuid.Parse(orderIdValue)
+	if err != nil {
+		return err
+	}
+
+	// FIXME Тут мб константы тоже
+	switch eventType {
+	case "cancelled":
+		if err := c.os.CancelOrder(ctx, orderID); err != nil {
+			return err
+		}
+	case "completed":
+		// FIXME Сейчас тут complete, а по факту должен заказ в paid... тупануллллллс
+		if err := c.os.CompleteOrder(ctx, orderID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

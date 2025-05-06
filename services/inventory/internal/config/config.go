@@ -78,7 +78,7 @@ type KafkaConfig struct {
 	// The group id to use when consuming messages.
 	GroupID string `env:"KAFKA_GROUP_ID" env-default:"inventory-service"`
 	// Topics to consume messages from.
-	Topics []string `env:"KAFKA_TOPICS" env-default:"inventory-events"`
+	TopicsToConsume []string `env:"KAFKA_TOPICS_CONSUME" env-default:"order-events"`
 }
 
 // MustNew Reads .env file and returns Config.

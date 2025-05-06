@@ -85,7 +85,9 @@ type KafkaConfig struct {
 	// The group id to use when consuming messages.
 	GroupID string `env:"KAFKA_GROUP_ID" env-default:"order-service"`
 	// Topics to consume messages from.
-	Topics []string `env:"KAFKA_TOPICS" env-default:"order-events"`
+	TopicsToConsume []string `env:"KAFKA_TOPICS_CONSUME" env-default:"payment-events"`
+	// Topics to produce messages to.
+	TopicsToProduce []string `env:"KAFKA_TOPICS_PRODUCE" env-default:"order-events"`
 }
 
 type TracingConfig struct {

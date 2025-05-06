@@ -26,8 +26,7 @@ var (
 	kafkaEventQuantityReleased   = "quantity-released"
 	kafkaEventQuantitySubtracted = "quantity-subtracted"
 
-	kafkaOrderTopic     = "order-events"
-	kafkaInventoryTopic = "inventory-events"
+	kafkaOrderTopic = "order-events"
 )
 
 type OrderRepository struct {
@@ -81,7 +80,7 @@ func (o *OrderRepository) Save(ctx context.Context, order *domain.Order) error {
 
 		insertQuery = sq.Insert(outboxTable).
 			Columns("topic", "event_type", "payload", "created_at").
-			Values(kafkaInventoryTopic, kafkaEventQuantityRequested, order.InventoryEvent(), order.CreatedAt).
+			Values(kafkaOrderTopic, kafkaEventQuantityRequested, order.InventoryEvent(), order.CreatedAt).
 			PlaceholderFormat(sq.Dollar)
 
 		query, args, err = insertQuery.ToSql()
@@ -223,7 +222,7 @@ func (o *OrderRepository) Update(ctx context.Context, order *domain.Order) error
 		// insert to inventory outbox
 		insertQuery := sq.Insert(outboxTable).
 			Columns("topic", "event_type", "payload", "created_at").
-			Values(kafkaInventoryTopic, kafkaEvent, order.InventoryEvent(), order.UpdatedAt).
+			Values(kafkaOrderTopic, kafkaEvent, order.InventoryEvent(), order.UpdatedAt).
 			PlaceholderFormat(sq.Dollar)
 
 		query, args, err = insertQuery.ToSql()

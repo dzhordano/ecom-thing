@@ -20,8 +20,9 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	shutdownWG := &sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	wg := sync.WaitGroup{}
 
 	cfg := config.MustNew()
 
@@ -42,13 +43,14 @@ func main() {
 
 	svc := service.NewPaymerService(log, repo)
 
-	shutdownWG.Add(1)
+	wg.Add(1)
 	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "payment")
 	if err != nil {
-		log.Error("error creating tracer provider", "error", err)
+		log.Panic("error creating tracer provider", "error", err)
 	}
+	tracer.SetGlobalTracerProvider(tp)
 	defer func() {
-		defer shutdownWG.Done()
+		defer wg.Done()
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		if err := tp.Shutdown(ctx); err != nil {
@@ -57,45 +59,36 @@ func main() {
 		}
 		log.Debug("tracer provider closed")
 	}()
-	tracer.SetGlobalTracerProvider(tp)
 
-	var kp *kafka.PaymentsSyncProducer
+	kp := kafka.NewProducer(cfg.Kafka.Brokers, cfg.Kafka.TopicsToProduce, time.Second, 0)
+	defer kp.Close()
+	if err != nil {
+		log.Error("error creating kafka producer", "error", err)
+		return
+	}
+	outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second, billingSvc)
+	go outboxWorker.Start(ctx)
+
+	// TODO хардкод
 	go func() {
-		kp, err = kafka.NewPaymentsSyncProducer(cfg.Kafka.Brokers)
-		if err != nil {
-			log.Error("error creating kafka producer", "error", err)
-			return
-		}
-
-		outboxWorker := outbox.NewOutboxProcessor(log, db, kp, 5*time.Second, billingSvc)
-		go outboxWorker.Start(ctx)
-	}()
-	defer func() {
-		if err := kp.Close(); err != nil {
-			log.Error("error closing kafka producer", "error", err)
-		}
-	}()
-
-	var cg *kafka.Consumer
-	go func() {
-		cg, err = kafka.NewConsumerGroup(
+		cg, err := kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
-			cfg.Kafka.GroupID,
+			cfg.Kafka.TopicsToConsume,
 			svc,
+			time.Second,
+			uint(100),
 		)
 		if err != nil {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := cg.Start(ctx, cfg.Kafka.Topics); err != nil {
-			log.Error("error starting consumer group", "error", err)
+		if err := cg.CreateTopics(ctx, 8, 2); err != nil {
+			log.Error("error creating kafka topics", "error", err)
+			return
 		}
-	}()
-	defer func() {
-		if err := cg.Close(); err != nil {
-			log.Error("error closing consumer group", "error", err)
-		}
+		log.Info("topics created", "topics", cfg.Kafka.TopicsToConsume)
+		cg.RunConsumers(ctx, 2, &wg)
 	}()
 
 	q := make(chan os.Signal, 1)
@@ -114,11 +107,16 @@ func main() {
 		}
 	}()
 
+	// TODO вроде можно объединить?
 	<-q
+	cancel()
 
+	shutdownWG := &sync.WaitGroup{}
 	shutdownWG.Add(1)
 	go func() {
 		defer shutdownWG.Done()
+		// Wait till resources are freed (closed)
+		wg.Wait()
 		srv.GracefulStop()
 	}()
 

@@ -19,8 +19,9 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-	shutdownWG := &sync.WaitGroup{}
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// TODO думаю сюда норм errgroup залетит
 
 	cfg := config.MustNew()
 
@@ -41,8 +42,9 @@ func main() {
 
 	tp, err := tracer.NewTracerProvider(cfg.Tracing.URL, "inventory")
 	if err != nil {
-		log.Error("error creating tracer provider", "error", err)
+		log.Panic("error creating tracer provider", "error", err)
 	}
+	tracer.SetGlobalTracerProvider(tp)
 	defer func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -50,7 +52,6 @@ func main() {
 			log.Error("error shutting down tracer provider", "error", err)
 		}
 	}()
-	tracer.SetGlobalTracerProvider(tp)
 
 	srv := grpc_server.MustNew(
 		log,
@@ -59,26 +60,28 @@ func main() {
 		grpc_server.WithTracerProvider(tp),
 	)
 
-	var cg *kafka.Consumer
+	wg := sync.WaitGroup{}
+
+	// TODO хардкод
 	go func() {
-		cg, err = kafka.NewConsumerGroup(
+		cg, err := kafka.NewConsumerGroup(
 			ctx,
 			cfg.Kafka.Brokers,
-			cfg.Kafka.GroupID,
+			cfg.Kafka.TopicsToConsume,
 			svc,
+			time.Second,
+			uint(100),
 		)
 		if err != nil {
 			log.Error("error starting consumer group", "error", err)
 			return
 		}
-		if err := cg.Start(ctx, cfg.Kafka.Topics); err != nil {
-			log.Error("error starting consumer group", "error", err)
+		if err := cg.CreateTopics(ctx, 8, 2); err != nil {
+			log.Error("error creating kafka topics", "error", err)
+			return
 		}
-	}()
-	defer func() {
-		if err := cg.Close(); err != nil {
-			log.Error("error closing consumer group", "error", err)
-		}
+		log.Info("topics created", "topics", cfg.Kafka.TopicsToConsume)
+		cg.RunConsumers(ctx, 2, &wg)
 	}()
 
 	q := make(chan os.Signal, 1)
@@ -86,18 +89,25 @@ func main() {
 
 	go func() {
 		if err := srv.Run(ctx); err != nil {
-			log.Error("error running server", "error", err)
+			log.Panic("error running server", "error", err)
 		}
 	}()
 
+	// TODO вроде можно объединить?
 	<-q
+	cancel()
+
+	shutdownWG := sync.WaitGroup{}
 
 	shutdownWG.Add(1)
 	go func() {
 		defer shutdownWG.Done()
+		// Wait till resources are freed (closed)
+		wg.Wait()
 		srv.GracefulStop()
 	}()
 
+	// Wait till everything's shut down
 	shutdownWG.Wait()
 
 	log.Info("graceful shutdown completed")

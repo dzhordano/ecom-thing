@@ -19,6 +19,9 @@ type OrderService interface {
 	DeleteOrder(ctx context.Context, orderId uuid.UUID) error
 
 	SearchOrders(ctx context.Context, filters map[string]any) ([]*domain.Order, error) // TODO Своя структура вместо any
+
 	CompleteOrder(ctx context.Context, orderId uuid.UUID) error
 	CancelOrder(ctx context.Context, orderId uuid.UUID) error
+	// TODO better to implement this one...
+	// SetOrderStatus(ctx context.Context, orderId uuid.UUID, status string) error
 }
