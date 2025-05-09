@@ -6,6 +6,7 @@ import (
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain/repository"
+	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/dzhordano/ecom-thing/services/inventory/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -68,8 +69,11 @@ func (s *ItemService) IsReservable(ctx context.Context, items map[string]uint64)
 
 // SetItemWithOp implements interfaces.ItemService.
 func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity uint64, op string) error {
+
+	dOp := protoEnumToDomainOp(op)
+
 	item, err := s.repo.GetItem(ctx, id.String())
-	if err != nil && op != domain.OperationAdd {
+	if err != nil && dOp != domain.OperationAdd {
 		s.log.Error("error getting item", "error", err, "item_id", id.String())
 		return domain.NewAppError(err, "failed to get item")
 	}
@@ -78,7 +82,7 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 		item = domain.NewItem(id)
 	}
 
-	if err := performOp(item, quantity, op); err != nil {
+	if err := performOp(item, quantity, dOp); err != nil {
 		s.log.Error("error performing operation", "error", err, "item_id", id.String())
 		return domain.NewAppError(err, err.Error())
 	}
@@ -96,9 +100,10 @@ func (s *ItemService) SetItemWithOp(ctx context.Context, id uuid.UUID, quantity 
 // SetItemsWithOp implements interfaces.ItemService.
 func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint64, op string) error {
 	dItems := make([]domain.Item, 0, len(items))
+	dOp := protoEnumToDomainOp(op)
 
-	// Flag for checking if operation is add.
-	isOpAdd := op == domain.OperationAdd
+	// Flag for checking if operation is 'add'.
+	isOpAdd := dOp == domain.OperationAdd
 
 	// TODO optimize?
 	for id := range items {
@@ -115,7 +120,7 @@ func (s *ItemService) SetItemsWithOp(ctx context.Context, items map[string]uint6
 			i = domain.NewItem(uuid.MustParse(id)) // WARNING: This may panic. BUT, it actually WONT unless you delete validUUID method from handlers.
 		}
 
-		if err := performOp(i, items[id], op); err != nil {
+		if err := performOp(i, items[id], dOp); err != nil {
 			s.log.Error("error performing operation", "error", err, "item_id", id)
 
 			return domain.NewAppError(err, err.Error())
@@ -151,5 +156,22 @@ func performOp(item *domain.Item, quantity uint64, op string) error {
 		return item.SubLockedQuantity(quantity)
 	default:
 		return domain.ErrOperationUnknown
+	}
+}
+
+func protoEnumToDomainOp(op string) string {
+	switch op {
+	case api.OperationType_OPERATION_TYPE_ADD.String():
+		return domain.OperationAdd
+	case api.OperationType_OPERATION_TYPE_SUB.String():
+		return domain.OperationSub
+	case api.OperationType_OPERATION_TYPE_LOCK.String():
+		return domain.OperationLock
+	case api.OperationType_OPERATION_TYPE_UNLOCK.String():
+		return domain.OperationUnlock
+	case api.OperationType_OPERATION_TYPE_SUB_LOCKED.String():
+		return domain.OperationSubLocked
+	default:
+		return domain.OperationUnknown
 	}
 }

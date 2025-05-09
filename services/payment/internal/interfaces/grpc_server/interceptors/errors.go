@@ -10,26 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	// HashMap for domain errors for efficient mapping.
-	// Не знаю, можно ли улучшить. Над подумац.
-	errorMap = map[error]codes.Code{
-		domain.ErrInvalidArgument:         codes.InvalidArgument,
-		domain.ErrInvalidStatus:           codes.InvalidArgument,
-		domain.ErrInvalidCurrency:         codes.InvalidArgument,
-		domain.ErrInvalidPaymentMethod:    codes.InvalidArgument,
-		domain.ErrInvalidPayment:          codes.InvalidArgument,
-		domain.ErrPaymentAlreadyPending:   codes.InvalidArgument,
-		domain.ErrPaymentAlreadyCompleted: codes.InvalidArgument,
-		domain.ErrPaymentAlreadyExists:    codes.AlreadyExists,
-		domain.ErrPaymentNotFound:         codes.NotFound,
-
-		domain.ErrPaymentCancelled: codes.InvalidArgument,
-		domain.ErrPaymentFailed:    codes.InvalidArgument,
-		domain.ErrInternal:         codes.Internal,
-	}
-)
-
 func mapError(err error) error {
 	if s, ok := status.FromError(err); ok {
 		return s.Err() // Return the status error if it's a gRPC error
@@ -37,13 +17,10 @@ func mapError(err error) error {
 
 	var appErr *domain.AppError
 	if errors.As(err, &appErr) {
-		for unwrappedErr := appErr.Unwrap(); unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
-			if code, ok := errorMap[unwrappedErr]; ok {
-				return status.Error(code, appErr.Error())
-			}
+		code := appErr.GRPCCode()
+		if code != codes.Internal {
+			return status.Error(code, appErr.Error())
 		}
-
-		return status.Error(codes.Internal, appErr.Error())
 	}
 
 	return status.Error(codes.Internal, "internal error")

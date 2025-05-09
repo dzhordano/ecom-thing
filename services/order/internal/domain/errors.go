@@ -4,6 +4,7 @@ package domain
 
 import (
 	"errors"
+	"google.golang.org/grpc/codes"
 )
 
 var (
@@ -67,4 +68,33 @@ func (e *AppError) Unwrap() error {
 
 func (e *AppError) Is(target error) bool {
 	return errors.Is(e.Code, target)
+}
+
+func (e *AppError) GRPCCode() codes.Code {
+	switch {
+	case errors.Is(e.Code, ErrOrderNotFound):
+		return codes.NotFound
+	case errors.Is(e.Code, ErrInvalidArgument):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrInvalidUUID):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrOrderAlreadyCompleted):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrOrderAlreadyCancelled):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrCouponExpired):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrCouponNotActive):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrCouponNotFound):
+		return codes.NotFound
+	case errors.Is(e.Code, ErrNotEnoughQuantity):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrProductUnavailable):
+		return codes.NotFound
+	case errors.Is(e.Code, ErrInventoryUnavailable):
+		return codes.NotFound
+	default:
+		return codes.Internal
+	}
 }

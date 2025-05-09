@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc"
 )
 
+// FIXME в идеале везде нужна обертка, чтобы полностью изолироваться от infrastructure
 func MetricsInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,

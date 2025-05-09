@@ -9,15 +9,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	// HashMap w/ domain errors for efficient mapping.
-	errorMap = map[error]codes.Code{
-		domain.ErrNotEnoughQuantity: codes.InvalidArgument,
-		domain.ErrProductNotFound:   codes.NotFound,
-		domain.ErrOperationUnknown:  codes.Unknown,
-	}
-)
-
 func mapError(err error) error {
 	if s, ok := status.FromError(err); ok {
 		return s.Err() // Return status error if it's a gRPC error
@@ -25,13 +16,10 @@ func mapError(err error) error {
 
 	var appErr *domain.AppError
 	if errors.As(err, &appErr) {
-		for unwrappedErr := appErr.Unwrap(); unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
-			if code, ok := errorMap[unwrappedErr]; ok {
-				return status.Error(code, appErr.Error())
-			}
+		code := appErr.GRPCCode()
+		if code != codes.Internal {
+			return status.Error(code, appErr.Error())
 		}
-
-		return status.Error(codes.Internal, appErr.Error())
 	}
 
 	return status.Error(codes.Internal, "internal error")

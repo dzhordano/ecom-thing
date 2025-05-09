@@ -10,39 +10,6 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-var (
-	// HashMap for domain errors for efficient mapping.
-	// Не знаю, можно ли улучшить. Над подумац.
-	errorMap = map[error]codes.Code{
-		domain.ErrOrderNotFound:         codes.NotFound,
-		domain.ErrInvalidOrderStatus:    codes.InvalidArgument,
-		domain.ErrInvalidCurrency:       codes.InvalidArgument,
-		domain.ErrInvalidPaymentMethod:  codes.InvalidArgument,
-		domain.ErrInvalidDeliveryMethod: codes.InvalidArgument,
-		domain.ErrInvalidArgument:       codes.InvalidArgument,
-		domain.ErrInvalidDescription:    codes.InvalidArgument,
-
-		domain.ErrInvalidUUID:            codes.InvalidArgument,
-		domain.ErrInvalidPrice:           codes.InvalidArgument,
-		domain.ErrInvalidDiscount:        codes.InvalidArgument,
-		domain.ErrInvalidDeliveryAddress: codes.InvalidArgument,
-		domain.ErrInvalidDeliveryDate:    codes.InvalidArgument,
-		domain.ErrInvalidOrderItems:      codes.InvalidArgument,
-
-		domain.ErrOrderAlreadyCompleted: codes.InvalidArgument,
-		domain.ErrOrderAlreadyCancelled: codes.InvalidArgument,
-
-		domain.ErrCouponExpired:   codes.InvalidArgument,
-		domain.ErrCouponNotFound:  codes.NotFound,
-		domain.ErrCouponNotActive: codes.InvalidArgument,
-
-		domain.ErrNotEnoughQuantity: codes.InvalidArgument,
-
-		domain.ErrProductUnavailable:   codes.NotFound,
-		domain.ErrInventoryUnavailable: codes.NotFound,
-	}
-)
-
 func mapError(err error) error {
 	if s, ok := status.FromError(err); ok {
 		return s.Err() // Return the status error if it's a gRPC error
@@ -50,13 +17,10 @@ func mapError(err error) error {
 
 	var appErr *domain.AppError
 	if errors.As(err, &appErr) {
-		for unwrappedErr := appErr.Unwrap(); unwrappedErr != nil; unwrappedErr = errors.Unwrap(unwrappedErr) {
-			if code, ok := errorMap[unwrappedErr]; ok {
-				return status.Error(code, appErr.Error())
-			}
+		code := appErr.GRPCCode()
+		if code != codes.Internal {
+			return status.Error(code, appErr.Error())
 		}
-
-		return status.Error(codes.Internal, appErr.Error())
 	}
 
 	return status.Error(codes.Internal, "internal error")

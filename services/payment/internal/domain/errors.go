@@ -1,6 +1,9 @@
 package domain
 
-import "errors"
+import (
+	"errors"
+	"google.golang.org/grpc/codes"
+)
 
 var (
 	ErrInvalidArgument         = errors.New("invalid argument")
@@ -53,4 +56,25 @@ func (e *AppError) Unwrap() error {
 
 func (e *AppError) Is(target error) bool {
 	return errors.Is(e.Code, target)
+}
+
+func (e *AppError) GRPCCode() codes.Code {
+	switch {
+	case errors.Is(e.Code, ErrInvalidArgument):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrPaymentAlreadyPending):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrPaymentAlreadyCompleted):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrPaymentAlreadyExists):
+		return codes.AlreadyExists
+	case errors.Is(e.Code, ErrPaymentNotFound):
+		return codes.NotFound
+	case errors.Is(e.Code, ErrPaymentCancelled):
+		return codes.InvalidArgument
+	case errors.Is(e.Code, ErrPaymentFailed):
+		return codes.InvalidArgument
+	default:
+		return codes.Internal
+	}
 }

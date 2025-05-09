@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/application/interfaces"
-	"github.com/dzhordano/ecom-thing/services/inventory/internal/domain"
 	"github.com/dzhordano/ecom-thing/services/inventory/internal/interfaces/grpc_server/converter"
 	api "github.com/dzhordano/ecom-thing/services/inventory/pkg/api/inventory/v1"
 	"github.com/google/uuid"
@@ -84,7 +83,7 @@ func (h *ItemHandler) SetItem(ctx context.Context, req *api.SetItemRequest) (*ap
 
 	span.AddEvent("call service")
 
-	err = h.service.SetItemWithOp(ctx, itemId, req.Item.GetQuantity(), protoOpToString(req.OperationType))
+	err = h.service.SetItemWithOp(ctx, itemId, req.Item.GetQuantity(), req.OperationType.String())
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +122,7 @@ func (h *ItemHandler) SetItems(ctx context.Context, req *api.SetItemsRequest) (_
 
 	span.AddEvent("call service")
 
-	if err := h.service.SetItemsWithOp(ctx, pItems, protoOpToString(req.OperationType)); err != nil {
+	if err := h.service.SetItemsWithOp(ctx, pItems, req.OperationType.String()); err != nil {
 		return nil, err
 	}
 
@@ -191,21 +190,4 @@ func validUUID(id string) error {
 	}
 
 	return nil
-}
-
-func protoOpToString(op api.OperationType) string {
-	switch op {
-	case api.OperationType_OPERATION_TYPE_ADD:
-		return domain.OperationAdd
-	case api.OperationType_OPERATION_TYPE_SUB:
-		return domain.OperationSub
-	case api.OperationType_OPERATION_TYPE_LOCK:
-		return domain.OperationLock
-	case api.OperationType_OPERATION_TYPE_UNLOCK:
-		return domain.OperationUnlock
-	case api.OperationType_OPERATION_TYPE_SUB_LOCKED:
-		return domain.OperationSubLocked
-	default:
-		return domain.OperationUnknown
-	}
 }
